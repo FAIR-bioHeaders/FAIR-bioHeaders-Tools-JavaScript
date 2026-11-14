@@ -1,7 +1,7 @@
 {
   "name": "fair-bioheaders",
   "version": "0.0.0",
-  "description": "Read, validate and strip FAIR-bioHeaders (FHR, FHP, FHGFF3) headers in JavaScript: native Node.js, no Python or WebAssembly",
+  "description": "Read, validate and strip FAIR-bioHeaders (FHR, FHP, FHGFF3) headers in JavaScript: native Node.js, no Python or WebAssembly; an opt-in rule-V7 lane reads the FHT and FHGM drafts against digest-pinned bytes",
   "type": "module",
   "license": "MPL-2.0",
   "repository": {
@@ -38,6 +38,8 @@
   "files": [
     "src/",
     "schemas/",
+    "drafts/",
+    "conformance/",
     "examples/",
     "docs/",
     "LICENSE",
@@ -46,12 +48,17 @@
   ],
   "scripts": {
     "test": "node --test",
+    "test:ci": "node scripts/check-test-report.mjs --json test-report.json",
     "conformance": "node scripts/run-conformance.mjs",
+    "matrix": "node scripts/make-matrix.mjs",
+    "check:matrix": "node scripts/make-matrix.mjs --check",
     "check:vendoring": "node scripts/check-vendoring.mjs",
+    "check:drafts": "node scripts/check-vendoring.mjs --drafts-only",
     "capability:ajv": "node scripts/capability/ajv-dialect.mjs",
     "capability:digest": "node scripts/capability/digest.mjs conformance",
     "capability:yaml": "node scripts/capability/yaml-portability-differential.mjs",
     "capability:toolkit": "node scripts/capability/toolkit-crosscheck.mjs conformance",
+    "capability:draft": "node scripts/capability/draft-vectors.mjs",
     "check:docs": "node scripts/check-docs.mjs --commands",
     "check:license": "node scripts/check-license.mjs"
   },

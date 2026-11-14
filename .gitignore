@@ -4,6 +4,12 @@ coverage/
 *.tgz
 npm-debug.log*
 
+# Reports the CI steps generate. `test/goldens/` is NOT generated noise: the
+# default-behaviour golden is committed on purpose and compared against.
+test-report.json
+conformance-table.txt
+draft-lane-evidence.txt
+
 # Editors and operating systems
 .DS_Store
 .idea/
