@@ -176,8 +176,7 @@ tables now do instead:
 | `+.5`, `-.5` | 1.1 float | refused | 1.1's float pattern needs digits before the point in that form, so it reads a string and disagrees with 1.2 |
 | `=` | 1.1 str | refused | 1.1's `value` resolver tag is kept distinct, so the dialects disagree |
 | `<<` in value position | 1.1 str | refused | 1.1's `merge` resolver tag is kept distinct; in key position it is refused as an R8 merge key first |
-| `1.7976931348623157e309` | 1.2 core float overflows to Infinity, 1.1 reads a string, so the pair "agrees" on a value the toolkit refuses | refused | R12 fires on the tag pair, with a separate R13 overflow refusal behind it for notations that do resolve alike |
-| `1:05:30.5`, `1:60`, `0:1` | sexagesimal handling differed | matches this build now | 1.1's sexagesimal integer and float channels are resolved exactly as PyYAML's patterns state, so `0:1` and `1:60` stay strings and `1:30` is the integer 90 |
+| `1.7976931348623157e309` (a value that overflows to infinity) | `js-yaml`'s core float tag refuses the overflow, so the borrowed pair disagreed in the mirror image of the toolkit's direction | refused | the outcome happened to agree by accident of one library's tables; `plainScalarOverflows` now refuses it explicitly under R13, which says a value that overflows to infinity is invalid, so the refusal no longer depends on which way a resolver happens to fall |
 
 So both tables are written out there from the dialects themselves — YAML 1.2 core
 from the specification's core-schema patterns, YAML 1.1 from the resolver PyYAML
@@ -185,7 +184,11 @@ registers (plus the `y`/`n` booleans the toolkit adds), with a timestamp read as
 `str` because R12 keeps date-like plain scalars as strings — and integers are
 resolved as `BigInt`, so the comparison is exact rather than double-precision.
 `js-yaml` still does the actual parsing and value construction; the tables only
-decide whether the two dialects agree.
+decide whether the two dialects agree. The sexagesimal forms were re-probed rather
+than assumed: `1:30` is the integer 90 to YAML 1.1 and a string to 1.2 (refused),
+`1:05:30.5` is YAML 1.1's sexagesimal float and a string to 1.2 (refused), while
+`0:1` and `1:60` match neither dialect's pattern and stay ordinary strings
+(accepted) — which is what the toolkit does in each case.
 
 The verification is a reader-level differential against the installed toolkit:
 `load_yaml("k: " + text)` plus `check_finite` versus `loadHeaderYaml`, so parse
