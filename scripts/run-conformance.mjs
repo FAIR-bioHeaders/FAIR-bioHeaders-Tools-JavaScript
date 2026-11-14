@@ -108,11 +108,6 @@ const failures = [];
 /** @type {string[]} */
 const notRun = [];
 
-// PROBE - REVERT. A deliberately wrong vector expectation, to prove the native CI
-// job goes red on it. See the follow-up revert commit; this must not survive.
-for (const vector of vectors) {
-  if (vector.id === 'fasta-lf') vector.expected = vector.expected === 'valid' ? 'invalid' : 'valid';
-}
 for (const vector of vectors) {
   const counts = byFormat.get(vector.format) ?? { pass: 0, fail: 0, notRun: 0 };
   byFormat.set(vector.format, counts);
