@@ -198,8 +198,10 @@ run** (jsonld 37, microdata 26) because those reader paths are not implemented.
 They are reported as skipped with a reason, never as passes. With the V7 lane
 requested, the same reading path is exercised against the two development suites
 that own the drafts, read at the commits the contracts are pinned to: **91 draft
-vectors pass and 5 are not run** (FHT 65/65 at `226f923c`; FHGM 26 pass with the 5
-K4-dependent vectors not run), under
+vectors pass and 5 are not run** (FHT 65/65 at `226f923c`, or 66/66 at that
+repository's suite revision `24d3b033`, where the three contract rules carry their
+current `C1`/`C2`/`C3` labels instead of the retired `T1`/`T2`/`T3`; FHGM 26 pass with
+the 5 K4-dependent vectors not run), under
 `node scripts/capability/draft-vectors.mjs`. Those counts are draft evidence and
 are never added to the 291. Full breakdown, and
 the list of what is not implemented or claimed:

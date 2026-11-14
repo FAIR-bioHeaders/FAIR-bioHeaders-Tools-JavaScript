@@ -143,16 +143,26 @@ through the lane and report them separately.
 
 | draft suite | contract pinned at | vectors at that commit | pass | fail | not run, and why |
 | --- | --- | --- | --- | --- | --- |
-| FHT (`FHT-Specification/conformance`) | `226f923c28b680edb3c546e99a751482d06aef1a`, sha256 `59ad9641adcb0e55…` | 65 | 65 | 0 | none |
+| FHT (`FHT-Specification/conformance`) | contract `226f923c28b680edb3c546e99a751482d06aef1a`, sha256 `59ad9641adcb0e55…`; suite run at that same revision by CI, or at `24d3b033…` for the `C1`-`C3` labels | 65 (66 at the suite revision) | 65 (66) | 0 | none |
 | FHGM (`FHGM-Specification/development/conformance`) | `ac3d37b3033312844fc3151217731928ae33aa54`, sha256 `bf1553cac04dc88d…` | 31 | 26 | 0 | 5 - every vector whose verdict depends on K4, which resolves a `featureId` against the GFF3 feature layer this library does not read |
 
-The suite is read **at the commit the contract is pinned to**, which is what CI does,
-and the count is that suite's size at that revision: FHT held 65 vectors at
-`226f923c` and holds 66 at that repository's later head `156bda63` (the extra is
-`fht-fasta-parent-mixed-verdicts`, added after the pin). Reading the later head too -
-which is what a local run against a current checkout does - gives 66 pass, 0 fail;
-both numbers are reported here rather than one of them, because the pin is the claim
-and the moving `main` is not.
+Two revisions are involved and they are not the same thing, so both are stated.
+
+- The **contract** pin is `226f923c`. That is the revision whose `fht.json` bytes this
+  build compiles, and it is what CI clones and runs.
+- That repository's conformance suite moved on afterwards. At `226f923c` the suite has
+  **65 vectors** and labels its three contract rules **`T1`, `T2`, `T3`** - the
+  provisional ids that `FHT-Specification#36`/#38 later retired in favour of
+  `C1`/`C2`/`C3`. At the suite revision `24d3b033ab951ef79ee9f6d17419d8ba700f1b0a`
+  (manifest sha256 `9b07179497bdc7247d6ead2404d9d5fdee48308a58b385bd4cd9a7e91450053a`,
+  56250 bytes, both verified over HTTPS and from an independent archive of that
+  commit) the suite has **66 vectors** - the extra is `fht-fasta-parent-mixed-verdicts` -
+  and uses the `C1`/`C2`/`C3` ids.
+
+Both readings pass every vector they score: 65 of 65 at the contract pin (which is
+what CI reports), 66 of 66 at the suite revision and at that repository's current
+head. The rule *semantics* are the same across the rename; only the labels differ, and
+whichever id set is quoted describes the suite revision, never the contract revision.
 
 Each of those rows is a *draft* result: it says the lane reads the pinned bytes and
 reports what the pinned contract and the drafted rules say. It is not a
