@@ -24,18 +24,24 @@ import { gunzipSync } from 'node:zlib';
 import { HeaderError } from './errors.js';
 import { computeChecksum, findChecksumLine } from './checksum.js';
 import { assertNoByteOrderMark, headerLines, isGff3VersionLine, splitLines } from './lines.js';
-import { selectSchema } from './selection.js';
+import { enabledDrafts, selectSchema } from './selection.js';
 import { validateRecord } from './validate.js';
 import { loadHeaderYaml } from './yaml.js';
+import { checkFhgmModels } from './fhgm.js';
+import { verifyParentLinks } from './parent-links.js';
+import { headerTypesByContainer } from './types.js';
 
 const GZIP_MAGIC = [0x1f, 0x8b];
 
-/** Which header types occur in which container (docs/FORMAT.md, "Each header type has its containers"). */
-const CONTAINER_TYPES = {
-  fasta: new Set(['FHR', 'FHP']),
-  gfa: new Set(['FHR']),
-  gff3: new Set(['FHGFF3']),
-};
+/**
+ * Which header types occur in which container (docs/FORMAT.md, "Each header type
+ * has its containers"), with the V7 lane shut: exactly the released FHR, FHP and
+ * FHGFF3 this library has always accepted.
+ *
+ * `src/types.js` owns the table; this is the default view of it, kept as a
+ * constant so nothing recomputes state on a reading.
+ */
+export const CONTAINER_TYPES = Object.freeze(headerTypesByContainer());
 
 /**
  * @typedef {'fasta'|'gfa'|'gff3'} Container
@@ -47,9 +53,14 @@ const CONTAINER_TYPES = {
  * @property {Container} container
  * @property {Record<string, unknown>} metadata the header as a plain object; `{}` when unreadable
  * @property {{stated: string, computed: string, matches: boolean}} checksum base64 SHA-512/256 values
- * @property {{type: string, release: string, schemaVersion: string|number, rule: string}} schema what the record cites and what was used
+ * @property {{type: string, release: string|null, schemaVersion: string|number|null, rule: string}} schema
+ *   what the record cites and what was used; `release` and `schemaVersion` are null
+ *   for a V7 draft reading, because a draft has taken neither form
  * @property {string[]} warnings things a conforming validator reports without rejecting the file
  * @property {string[]} errors why the file was rejected, when it was
+ * @property {import('./fhgm.js').FhgmResult} [fhgm]
+ *   present only when the caller opened the V7 lane for FHGM: the draft verdict on
+ *   the `x-fhgm-models` records, held apart from this reading's own FHGFF3 result
  */
 
 /**
@@ -143,10 +154,18 @@ function recordMarkerWarnings(text, container) {
  * an unavailable contract is reported as `unsupported-version` in the message
  * text and never checked against another schema (V4).
  *
+ * With no `drafts` option this is exactly the reading this library produced
+ * before the rule-V7 lane existed, byte for byte: `test/default-gate.test.mjs`
+ * compares every vector's reading against `test/goldens/default-gate.json`.
+ *
  * @param {Uint8Array} data the file's exact bytes, plain or gzip/BGZF
  * @param {object} [options]
  * @param {Container} [options.container] the container; required without `name`
  * @param {string} [options.name] a file name used only to infer the container
+ * @param {string[]|true} [options.drafts] the V7 lane: draft type ids to recognise,
+ *   or `true` for every draft this build pins. Absent, the lane stays shut.
+ * @param {import('./fhgm.js').FhgmOptions} [options.fhgm] FHGM lane options
+ *   (`{overlay: true}`, `{predecessors: [...]}`); read only when the lane names FHGM
  * @returns {Reading}
  */
 export function inspectBytes(data, options = {}) {
@@ -154,6 +173,8 @@ export function inspectBytes(data, options = {}) {
   if (container === undefined) {
     throw new HeaderError("inspectBytes needs {container: 'fasta'|'gfa'|'gff3'} or a {name} to infer it from");
   }
+  const drafts = enabledDrafts(options);
+  const allowed = drafts.size === 0 ? CONTAINER_TYPES : headerTypesByContainer([...drafts]);
   /** @type {string[]} */
   const errors = [];
   /** @type {string[]} */
@@ -174,14 +195,15 @@ export function inspectBytes(data, options = {}) {
       errors.push(`checksum mismatch: the line states ${stated}, SHA-512/256 of the ${covered.length} covered bytes is ${computed} (R3, R4)`);
     }
     warnings.push(...recordMarkerWarnings(text, container));
-    const selection = selectSchema(metadata);
-    if (!CONTAINER_TYPES[container].has(selection.type)) {
+    const selection = selectSchema(metadata, { drafts: [...drafts] });
+    if (!(allowed[container] ?? []).includes(selection.type)) {
       errors.push(`a ${selection.type} header does not belong in a ${container} file, whatever its checksum says (docs/FORMAT.md)`);
     }
     const result = validateRecord(metadata, selection);
     errors.push(...result.errors);
     warnings.push(...result.warnings);
-    return {
+    /** @type {Reading} */
+    const reading = {
       valid: errors.length === 0,
       container,
       metadata,
@@ -190,6 +212,24 @@ export function inspectBytes(data, options = {}) {
       warnings,
       errors,
     };
+    // C3, lane-only: a parent link is verified against bytes the caller handed
+    // over, never against a file this library went and opened. With no resolver
+    // every link is `unchecked`, which C3 says leaves the record valid - an
+    // unsupplied parent is not a rejection, and it is never reported as verified.
+    if (selection.rule === 'V7' && Array.isArray(metadata.derivedFrom) && metadata.derivedFrom.length > 0) {
+      const links = verifyParentLinks(metadata, { type: selection.type, resolveParent: options.parents });
+      reading.parentLinks = links;
+      errors.push(...links.errors);
+      warnings.push(...links.warnings.filter((line) => !line.includes('unreleased draft')));
+      if (links.errors.length > 0) reading.valid = false;
+    }
+    // The FHGM draft lane reports beside the file's own result, never inside it:
+    // a verdict on nested records must not become, or alter, the released FHGFF3
+    // result of the file that carries them.
+    if (drafts.has('FHGM') && selection.type === 'FHGFF3') {
+      reading.fhgm = checkFhgmModels(metadata, { base: { valid: errors.length === 0 }, ...(options.fhgm ?? {}) });
+    }
+    return reading;
   } catch (error) {
     if (!(error instanceof HeaderError)) throw error;
     const prefix = error.rule === null ? '' : `${error.rule}: `;

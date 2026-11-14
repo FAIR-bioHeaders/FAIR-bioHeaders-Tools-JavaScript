@@ -26,6 +26,7 @@ import { createRequire } from 'node:module';
 
 import { HeaderError } from './errors.js';
 import { loadSchema } from './registry.js';
+import { loadDraft } from './drafts.js';
 
 const require = createRequire(import.meta.url);
 const Ajv2020 = require('ajv/dist/2020').default;
@@ -95,18 +96,23 @@ function compiler() {
 }
 
 /**
- * Compile (and cache) the validator for one released contract.
+ * Compile (and cache) the validator for one contract this build holds.
  *
- * The `$id` of a vendored copy is its raw-main URL in the specification
- * repository, which every release of that type shares; `ajv` keys schemas by
- * `$id`, so the copies are compiled with it removed and keyed here by type and
- * release instead. The bundled files themselves keep their released bytes.
+ * The `$id` of a vendored copy is its raw-main URL in the repository that owns
+ * it, which every release of that type shares; `ajv` keys schemas by `$id`, so
+ * the copies are compiled with it removed and keyed here by type and release
+ * instead. The bundled files themselves keep their released bytes.
  *
- * @param {'FHR'|'FHP'|'FHGFF3'} type
- * @param {string} release
- * @returns {{validate: (data: unknown) => boolean, entry: import('./registry.js').SchemaEntry}}
+ * A draft is keyed by its digest, not by a release: there is no release to name,
+ * and two different pins of the same draft must not share a compiled validator.
+ *
+ * @param {string} type
+ * @param {string|null} release release tag, or null for a V7 draft
+ * @param {'contract'|'overlay'} [part] FHGM draft only: which pinned file
+ * @returns {{validate: (data: unknown) => boolean, entry: import('./registry.js').SchemaEntry|import('./drafts.js').DraftEntry}}
  */
-export function validator(type, release) {
+export function validator(type, release, part = 'contract') {
+  if (release === null) return draftValidator(type, part);
   const key = `${type}@${release}`;
   const hit = compiled.get(key);
   if (hit !== undefined) return hit;
@@ -124,32 +130,84 @@ export function validator(type, release) {
 }
 
 /**
+ * Compile (and cache) the validator for one pinned draft contract.
+ *
+ * `src/drafts.js` verifies the bytes against their recorded SHA-256 first, so a
+ * draft that moved under this build is reported instead of quietly read.
+ *
+ * @param {string} type
+ * @param {'contract'|'overlay'} [part]
+ * @returns {{validate: (data: unknown) => boolean, entry: import('./drafts.js').DraftEntry}}
+ */
+export function draftValidator(type, part = 'contract') {
+  const loaded = loadDraft(type, part);
+  if (loaded === null) {
+    throw new HeaderError(`this build pins no ${type} draft (${part})`, { rule: 'V7' });
+  }
+  const key = `draft:${type}@${part}@${loaded.entry.sha256}`;
+  const hit = compiled.get(key);
+  if (hit !== undefined) return hit;
+  const schema = structuredClone(loaded.schema);
+  delete schema.$id;
+  const validate = compiler().compile(schema);
+  const built = { validate, entry: loaded.entry };
+  compiled.set(key, built);
+  return built;
+}
+
+/**
+ * @typedef {object} TypeDescriptor
+ * @property {string[]} identityFields the type's name-and-version fields, whose
+ *   values must not be empty (docs/SCHEMA-VERSIONS.md, "Required values are
+ *   non-empty")
+ * @property {string[]} authorLists list fields of author objects
+ * @property {boolean} hasTaxon whether the type carries a `taxon` object
+ */
+
+/**
+ * Per-type vocabulary for the non-empty warnings. Declared once, here, so a new
+ * released type contributes a row instead of an `if`.
+ *
+ * @type {Record<string, TypeDescriptor>}
+ */
+export const TYPE_VOCABULARY = Object.freeze({
+  FHR: { identityFields: ['genome', 'version'], authorLists: ['metadataAuthor', 'assemblyAuthor'], hasTaxon: true },
+  FHP: { identityFields: ['proteome', 'version'], authorLists: ['metadataAuthor', 'assemblyAuthor'], hasTaxon: true },
+  FHGFF3: { identityFields: ['annotation', 'version'], authorLists: ['metadataAuthor', 'assemblyAuthor'], hasTaxon: true },
+  FHT: { identityFields: ['transcriptome', 'version'], authorLists: ['metadataAuthor', 'assemblyAuthor'], hasTaxon: true },
+  FHGM: { identityFields: [], authorLists: ['contributors'], hasTaxon: false },
+});
+
+/**
  * The non-empty requirements of `docs/SCHEMA-VERSIONS.md` ("Required values are
  * non-empty"), reported as warnings: such a record is schema-valid but does not
  * describe the data.
  *
  * @param {Record<string, unknown>} record
- * @param {'FHR'|'FHP'|'FHGFF3'} type
+ * @param {string} type
  * @returns {string[]}
  */
 export function emptyValueWarnings(record, type) {
+  const vocabulary = TYPE_VOCABULARY[type] ?? { identityFields: [], authorLists: [], hasTaxon: false };
   const warnings = [];
-  for (const field of type === 'FHR' ? ['genome', 'version'] : type === 'FHP' ? ['proteome', 'version'] : ['annotation', 'version']) {
+  for (const field of vocabulary.identityFields) {
     const value = record[field];
     if (typeof value === 'string' && value.trim() === '') {
       warnings.push(`${field}: required value is empty, so the record does not describe the data (docs/SCHEMA-VERSIONS.md)`);
     }
   }
-  const taxon = record.taxon;
-  if (taxon !== null && typeof taxon === 'object' && !Array.isArray(taxon)) {
-    const t = /** @type {Record<string, unknown>} */ (taxon);
-    const named = typeof t.name === 'string' && t.name.trim() !== '';
-    const identified = typeof t.uri === 'string' && t.uri.trim() !== '';
-    if (!named && !identified) {
-      warnings.push('taxon: has neither a non-empty name nor a uri (docs/SCHEMA-VERSIONS.md)');
+  if (vocabulary.hasTaxon) {
+    const taxon = record.taxon;
+    if (taxon !== null && typeof taxon === 'object' && !Array.isArray(taxon)) {
+      const t = /** @type {Record<string, unknown>} */ (taxon);
+      const named = typeof t.name === 'string' && t.name.trim() !== '';
+      const identified = typeof t.uri === 'string' && t.uri.trim() !== '';
+      if (!named && !identified) {
+        warnings.push('taxon: has neither a non-empty name nor a uri (docs/SCHEMA-VERSIONS.md)');
+      }
     }
   }
-  for (const field of ['metadataAuthor', 'assemblyAuthor']) {
+  for (const field of vocabulary.authorLists) {
     const authors = record[field];
     if (authors === undefined) continue;
     if (!Array.isArray(authors)) continue; // the schema reports the type
@@ -169,22 +227,39 @@ export function emptyValueWarnings(record, type) {
 }
 
 /**
- * R14: collect `format: uri` declarations from a released contract and check the
+ * The parsed contract document a selection or an explicit request points at.
+ *
+ * @param {string} type
+ * @param {string|null} release release tag, or null for the pinned draft
+ * @param {'contract'|'overlay'} [part]
+ * @returns {Record<string, unknown>|null}
+ */
+function contractDocument(type, release, part = 'contract') {
+  if (release === null) {
+    const loaded = loadDraft(type, part);
+    return loaded === null ? null : loaded.schema;
+  }
+  const loaded = loadSchema(type, release);
+  return loaded === null ? null : loaded.schema;
+}
+
+/**
+ * R14: collect `format: uri` declarations from a contract and check the
  * record's values against the accepted link schemes.
  *
  * The paths are derived from the contract itself rather than a hand-written
  * field list, so a new URI field in a later minor is covered without a change
- * here.
+ * here. `release: null` reads the pinned draft contract instead.
  *
  * @param {Record<string, unknown>} record
- * @param {'FHR'|'FHP'|'FHGFF3'} type
- * @param {string} release
+ * @param {string} type
+ * @param {string|null} release
  * @returns {string[]} one warning per value with a scheme R14 does not accept
  */
 export function linkSchemeWarnings(record, type, release) {
-  const loaded = loadSchema(type, release);
-  if (loaded === null) return [];
-  const uriPaths = collectUriPaths(loaded.schema, loaded.schema);
+  const document = contractDocument(type, release);
+  if (document === null) return [];
+  const uriPaths = collectUriPaths(document, document);
   const warnings = [];
   const seen = new Set();
   for (const path of uriPaths) {
@@ -285,18 +360,24 @@ function readPaths(data, path, shown) {
  * @property {boolean} valid
  * @property {string[]} errors schema violations, empty when valid
  * @property {string[]} warnings non-schema requirements reported as warnings
- * @property {{type: 'FHR'|'FHP'|'FHGFF3', release: string, schemaVersion: string|number}} schema
+ * @property {{type: string, release: string|null, schemaVersion: string|number|null, draft?: object}} schema
  */
 
 /**
  * Validate a parsed header record against the contract that governs it.
+ *
+ * A V7 selection is validated against the pinned draft bytes, and its result is
+ * labelled: `schema.release` and `schema.schemaVersion` are null because a draft
+ * has taken neither form, and `schema.draft` carries the citation, commit and
+ * digest the reading was taken against.
  *
  * @param {Record<string, unknown>} record
  * @param {import('./selection.js').Selection} selection
  * @returns {ValidationResult}
  */
 export function validateRecord(record, selection) {
-  const { validate, entry } = validator(selection.type, selection.release);
+  const draft = selection.rule === 'V7';
+  const { validate, entry } = draft ? draftValidator(selection.type, 'contract') : validator(selection.type, selection.release);
   const ok = validate(record);
   const errors = ok ? [] : (validate.errors ?? []).map((error) => formatError(error));
   const warnings = [...emptyValueWarnings(record, selection.type), ...linkSchemeWarnings(record, selection.type, selection.release)];
@@ -305,7 +386,21 @@ export function validateRecord(record, selection) {
     valid: errors.length === 0,
     errors,
     warnings,
-    schema: { type: selection.type, release: selection.release, schemaVersion: entry.schemaVersion },
+    schema: draft
+      ? {
+          type: selection.type,
+          release: null,
+          schemaVersion: null,
+          draft: {
+            status: 'draft',
+            repository: selection.draft.repository,
+            citation: selection.draft.citation,
+            commit: selection.draft.commit,
+            sha256: selection.draft.sha256,
+            file: selection.draft.file,
+          },
+        }
+      : { type: selection.type, release: selection.release, schemaVersion: entry.schemaVersion },
   };
 }
 

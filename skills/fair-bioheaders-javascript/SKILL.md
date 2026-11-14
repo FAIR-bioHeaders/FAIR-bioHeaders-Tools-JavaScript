@@ -1,6 +1,6 @@
 ---
 name: fair-bioheaders-javascript
-description: Read, check and strip FAIR-bioHeaders metadata headers from JavaScript on Node.js - FHR headers in reference genome FASTA or GFA, FHP headers in protein FASTA, FHGFF3 headers in GFF3. Use when the user wants to verify a `;~` or `#~` header and its SHA-512/256 checksum in a Node.js or JavaScript project, parse header metadata into a JavaScript object, or strip a header so samtools/htslib, Picard, bedtools or Biopython will open the file. Do NOT use it to write a header (this library has no writer), to validate GFF3 features (use gff3-validator), to read FHT or FHGM metadata (no released contract exists), or to describe the fhref.org browser tools as JavaScript validation (they run CPython under Pyodide).
+description: Read, check and strip FAIR-bioHeaders metadata headers from JavaScript on Node.js - FHR headers in reference genome FASTA or GFA, FHP headers in protein FASTA, FHGFF3 headers in GFF3. Use when the user wants to verify a `;~` or `#~` header and its SHA-512/256 checksum in a Node.js or JavaScript project, parse header metadata into a JavaScript object, or strip a header so samtools/htslib, Picard, bedtools or Biopython will open the file. Do NOT use it to write a header (this library has no writer), to validate GFF3 features (use gff3-validator), to read FHT or FHGM metadata as a released contract (neither is released; the V7 draft lane is recognition, not support), or to describe the fhref.org browser tools as JavaScript validation (they run CPython under Pyodide).
 ---
 
 # FAIR-bioHeaders in JavaScript
@@ -23,15 +23,27 @@ V1-V6 in `docs/SCHEMA-VERSIONS.md`.
 | FHR | reference genome FASTA or GFA | `https://w3id.org/fair-bioheaders/fhr/v0.6.0` | `'2.1'` | yes |
 | FHP | protein FASTA | `https://w3id.org/fair-bioheaders/fhp/v0.6.0` | `'1.2'` | yes |
 | FHGFF3 | GFF3 annotation | `https://w3id.org/fair-bioheaders/fhgff3/v0.6.0` | `'1.2'` | yes |
-| FHT | transcriptome | - | - | **no: draft, no released contract** |
-| FHGM | gene model | - | - | **no: draft, no released contract** |
+| FHT | transcriptome | - | - | **no: draft, no released contract.** Readable only through the opt-in `{drafts: ['FHT']}` lane against pinned bytes |
+| FHGM | gene-model records inside an FHGFF3 header | - | - | **no: draft, no released contract.** Same lane; K4 (feature-layer resolution) is declared not implemented |
 
 Read versions from the shared registry
 (`schemas/versions.json` at a release tag), never from memory. FHT is scheduled as a
 future `v0.7.0` and FHGM as `v0.8.0`; until those releases exist, a draft has no
 `schemaVersion`, no w3id URL, no registry row and no support claim, and rule V7 keeps
-it that way. If a user asks you to add FHT or FHGM support here, stop and say the
-contract is unreleased - do not invent a version, a URL or a draft lane.
+it that way. If a user asks you to add FHT or FHGM **support** here, stop and say the
+contract is unreleased - do not invent a version, a URL, a registry row or a
+`drafts/provenance.json` entry that looks like a release.
+
+What this library *does* have is the reader lane V7 defines, which is recognition and
+not adoption: `inspectBytes(bytes, {container, drafts: ['FHT']})`. Use it only when the
+user explicitly asked to read a draft - never to make a default reading "just work" -
+and keep the three properties intact: the lane is opt-in per call, the bytes are the
+ones `drafts/provenance.json` pins by commit and SHA-256, and every record read that
+way carries the warning naming them. A V7 reading reports `release: null` and
+`schemaVersion: null`; say "read against a pinned draft", never "validated against the
+FHT contract". FHGM verdicts arrive in a separate `reading.fhgm` block: the file's own
+FHGFF3 result is untouched, and K4 stays not-supported-yet because resolving a
+`featureId` needs the GFF3 feature layer, which belongs to `gff3-validator`.
 
 ## Rules for using it
 

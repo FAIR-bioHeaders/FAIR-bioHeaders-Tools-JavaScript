@@ -7,12 +7,13 @@
  * commands to run. The shared specification guards the same hazard for its own
  * `llms.txt` with `tests/test_llms_txt.py`; this is the equivalent here.
  *
- *     node scripts/check-docs.mjs              # versions, counts, draft guard
+ *     node scripts/check-docs.mjs              # versions, counts, draft guard, matrix
  *     node scripts/check-docs.mjs --commands   # every advertised npm script exists
  *
  * Exit status is 1 on any drift, including a draft contract named as if it were
- * released: FHT and FHGM must not acquire a w3id URL, a `schemaVersion` row or a
- * support claim anywhere in this repository.
+ * released: FHT and FHGM must not acquire a w3id URL, a release-tag citation, a
+ * `schemaVersion` row or a support claim anywhere in this repository, and every
+ * document that names the V7 lane must name its pin and its opt-in condition.
  */
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
@@ -23,7 +24,7 @@ import { CURRENT_RELEASE } from '../src/registry.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-const DOC_FILES = ['README.md', 'llms.txt', 'AGENTS.md', 'CONTRIBUTING.md', 'SECURITY.md', 'docs/CAPABILITY.md', 'docs/CONFORMANCE.md', 'docs/USAGE.md', 'skills/fair-bioheaders-javascript/SKILL.md'];
+const DOC_FILES = ['README.md', 'llms.txt', 'AGENTS.md', 'CONTRIBUTING.md', 'SECURITY.md', 'docs/CAPABILITY.md', 'docs/CONFORMANCE.md', 'docs/USAGE.md', 'docs/MATRIX.md', 'skills/fair-bioheaders-javascript/SKILL.md'];
 
 const problems = [];
 const notes = [];
@@ -58,16 +59,49 @@ for (const type of ['FHR', 'FHP', 'FHGFF3']) {
 notes.push(`contract versions checked against ${provenance.current}: FHR '${current.FHR.schemaVersion}', FHP '${current.FHP.schemaVersion}', FHGFF3 '${current.FHGFF3.schemaVersion}'`);
 
 // --- draft guard ----------------------------------------------------------
-for (const draft of ['fht', 'fhgm']) {
+// Rule V7 lets a draft be *recognised* through an explicit lane and forbids it
+// taking any release form. The guard therefore checks three things: no release
+// shape anywhere (w3id alias, release-tag citation, registry row, published
+// schemaVersion), no support claim, and an honest statement of the lane's
+// conditionality wherever a pinned draft is named.
+const draftProvenance = JSON.parse(readFileSync(join(ROOT, 'drafts', 'provenance.json'), 'utf8'));
+const draftTypes = Object.keys(draftProvenance.drafts);
+for (const draft of draftTypes.map((type) => type.toLowerCase())) {
   const url = new RegExp(`w3id\\.org/fair-bioheaders/${draft}\\b`, 'i');
   if (url.test(text)) problems.push(`a document names https://w3id.org/fair-bioheaders/${draft}/… — a draft has no w3id alias (rule V7)`);
+  const tagUrl = new RegExp(`raw\\.githubusercontent\\.com/FAIR-bioHeaders/[A-Za-z-]*${draft}-Specification/v[0-9]`, 'i');
+  if (tagUrl.test(text)) problems.push(`a document cites a release-tag URL for the ${draft.toUpperCase()} draft: V7 recognises a raw-main citation only`);
   if (Object.values(provenance.releases).some((row) => row[draft.toUpperCase()] !== undefined)) {
     problems.push(`schemas/provenance.json lists a ${draft.toUpperCase()} contract`);
   }
+  // "supported" and "ships" are the claim words. "released" is not: the honest
+  // sentence about a draft is that it has no released contract, and forbidding the
+  // word would push the prose into euphemism.
+  const supportClaim = new RegExp(`(${draft.toUpperCase()})[^.!\\n]{0,60}\\b(is |are |now )?(supported|ships|shipped)\\b`, 'i');
+  const claim = supportClaim.exec(text);
+  if (claim !== null) {
+    const window = text.slice(claim.index, claim.index + 140);
+    if (!/\b(not|no) (yet )?(supported|a released|support claim)/i.test(window) && !/\bnever supported/i.test(window)) {
+      problems.push(`a document claims ${draft.toUpperCase()} support: ${JSON.stringify(window.slice(0, 90))}`);
+    }
+  }
 }
-for (const [type, version] of [['FHT', '1.0'], ['FHGM', '1.0'], ['FHT', '0.1']]) {
-  const claim = new RegExp(`${type}[^\n]{0,40}schemaVersion[^\n]{0,8}'${version}'`, 'i');
+for (const [type, version] of [['FHT', '1.0'], ['FHGM', '1.0'], ['FHT', '0.1'], ['FHGM', '0.1']]) {
+  const claim = new RegExp(`${type}[^\\n]{0,40}schemaVersion[^\\n]{0,8}'${version}'`, 'i');
   if (claim.test(text)) problems.push(`a document states a schemaVersion for the ${type} draft`);
+}
+for (const type of draftTypes) {
+  const row = draftProvenance.drafts[type];
+  if (!text.includes(row.commit) && !text.includes(row.commit.slice(0, 12))) {
+    problems.push(`no document names the ${type} draft pin commit ${row.commit}: re-pinning the draft without updating the prose is exactly the drift this guard exists for`);
+  }
+  if (!text.includes(row.sha256) && !text.includes(row.sha256.slice(0, 12))) {
+    problems.push(`no document names the ${type} draft pin digest ${row.sha256.slice(0, 12)}...`);
+  }
+}
+if (!/\{drafts:/.test(text)) problems.push('no document shows how the V7 lane is opened (`{drafts: [...]}`), so the opt-in condition is unstated');
+if (!/lane[^.\n]{0,80}(never the default|not the default|opt-in)/i.test(text) && !/(never the default|opt-in)[^.\n]{0,80}lane/i.test(text)) {
+  problems.push('no document states that the draft lane is never the default');
 }
 const registryTypes = Object.keys(provenance.releases[provenance.current])
   .filter((key) => key !== 'commit')
@@ -76,7 +110,11 @@ const registryTypes = Object.keys(provenance.releases[provenance.current])
 if (registryTypes.join(',') !== ['FHR', 'FHGFF3', 'FHP'].sort().join(',')) {
   problems.push(`schemas/provenance.json current row lists ${registryTypes.join(', ')}; only released contracts may appear`);
 }
-notes.push('draft guard: no FHT or FHGM URL, schemaVersion row or registry entry found');
+const draftsRegistryTypes = Object.keys(draftProvenance.drafts).sort();
+if (draftsRegistryTypes.join(',') !== ['FHGM', 'FHT'].join(',')) {
+  problems.push(`drafts/provenance.json lists ${draftsRegistryTypes.join(', ')}; the V7 lane covers exactly the two drafts, FHT and FHGM`);
+}
+notes.push(`draft guard: ${draftsRegistryTypes.join('/')} pinned at their commits, no w3id alias, no registry row, no schemaVersion, no support claim`);
 
 // --- vector counts, from the vendored manifest ---------------------------
 const manifest = JSON.parse(readFileSync(join(ROOT, 'conformance', 'manifest.json'), 'utf8'));
@@ -106,6 +144,19 @@ if (!text.includes(conformance.source.commit.slice(0, 7))) {
 }
 if (!text.includes(CURRENT_RELEASE)) problems.push(`no document names the current release ${CURRENT_RELEASE}`);
 
+// --- the generated matrix ------------------------------------------------
+const matrixPath = join(ROOT, 'docs', 'MATRIX.md');
+if (!existsSync(matrixPath)) {
+  problems.push('docs/MATRIX.md is missing: run `npm run matrix`');
+} else {
+  const matrix = readFileSync(matrixPath, 'utf8');
+  const { capabilityRows } = await import('../src/types.js');
+  const cells = capabilityRows().length;
+  if (!matrix.includes(`${cells} cells`)) {
+    problems.push(`docs/MATRIX.md does not state the ${cells} cells the registry renders: run \`npm run matrix\` and commit the result`);
+  }
+}
+
 // --- advertised commands --------------------------------------------------
 if (process.argv.includes('--commands')) {
   const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
@@ -123,12 +174,40 @@ if (process.argv.includes('--commands')) {
   notes.push(`documented commands checked against ${scripts.size} package.json scripts`);
 }
 
+// --- in-page anchors and relative links inside the repository ------------
+const headingsByFile = new Map();
+for (const file of read) {
+  const body = readFileSync(join(ROOT, file), 'utf8');
+  const slugs = new Set();
+  for (const match of body.matchAll(/^#{1,6} +(.*)$/gm)) {
+    slugs.add(
+      match[1]
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9 -]/g, '')
+        .replace(/ +/g, '-'),
+    );
+  }
+  headingsByFile.set(file, slugs);
+}
+
 // --- broken relative links inside the repository -------------------------
 for (const file of read) {
   const body = readFileSync(join(ROOT, file), 'utf8');
-  for (const match of body.matchAll(/\]\((?!https?:)(?!mailto:)([^)#]+)(#[^)]*)?\)/g)) {
-    const target = resolve(dirname(join(ROOT, file)), match[1]);
-    if (!existsSync(target)) problems.push(`${file}: relative link target does not exist: ${match[1]}`);
+  for (const match of body.matchAll(/\]\((?!https?:)(?!mailto:)([^)#]*)(#[^)]*)?\)/g)) {
+    const [, targetPath, fragment] = match;
+    if (targetPath !== '') {
+      const target = resolve(dirname(join(ROOT, file)), targetPath);
+      if (!existsSync(target)) problems.push(`${file}: relative link target does not exist: ${targetPath}`);
+    }
+    if (fragment === undefined) continue;
+    // An in-page anchor is a claim that a heading exists. GitHub's slug is the
+    // heading lowercased with punctuation dropped and spaces hyphenated, which is
+    // what the set above computes.
+    const slug = fragment.slice(1);
+    const inFile = targetPath === '' ? file : join(dirname(file), targetPath);
+    const slugs = headingsByFile.get(inFile.replace(/\\/g, '/'));
+    if (slugs === undefined || !slugs.has(slug)) problems.push(`${file}: anchor #${slug} matches no heading in ${inFile}`);
   }
 }
 

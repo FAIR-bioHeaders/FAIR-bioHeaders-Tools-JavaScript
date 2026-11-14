@@ -1,41 +1,94 @@
 /**
- * Schema selection, rules V1 to V6 of `docs/SCHEMA-VERSIONS.md`.
+ * Schema selection, rules V1 to V7 of `docs/SCHEMA-VERSIONS.md`.
  *
  * A reader looks only at the record's own `schema` value and matches it
  * exactly; it never falls back to another release, and a contract it does not
  * have is reported as `unsupported-version` rather than checked against a
- * different one. V7, the opt-in draft lane, is deliberately not implemented:
- * FHT and FHGM have no released contract, no `schemaVersion`, no w3id URL and no
- * row in the shared `schemas/versions.json`, so this library publishes no draft
- * and makes no support claim for either type.
+ * different one.
+ *
+ * V7 is the opt-in lane for **unreleased draft contracts**. It is a parameter,
+ * never a default: `selectSchema(record)` and `selectSchema(record, {})` behave
+ * exactly as they did before V7 existed, and a draft citation is then "any other
+ * value" under V5. Only `selectSchema(record, {drafts: ['FHT']})` - an explicit
+ * caller decision naming the type - recognises the pinned draft, and its
+ * selection carries the warning V7 requires on every record read that way.
+ * Opening the lane recognises a proposal; it does not adopt one, and it does not
+ * make a support claim: FHT and FHGM have no row in the shared
+ * `schemas/versions.json`, no w3id URL and no release tag, and a release-shaped
+ * URL for either type stays V5 even with the lane open. FHGM records carry no
+ * `schema` field at all, so for them the lane selects the contract applied to
+ * the records (`src/fhgm.js`), not the routing of the file.
  *
  * @module selection
  */
 
 import { HeaderError } from './errors.js';
 import { CURRENT_RELEASE, FHR1_RELEASE, describeSupport, releasesFor } from './registry.js';
+import { citationIndex, DRAFT_TYPES, draftEntry, draftWarning } from './drafts.js';
+import { RELEASED_TYPES, TYPES } from './types.js';
 
 const RAW_PREFIX = 'https://raw.githubusercontent.com/FAIR-bioHeaders/';
 /** The specification repository's current name and the name it held until #108. */
 const SPEC_REPOS = new Set(['FAIR-bioHeaders-Specification', 'FHR-Specification']);
 const W3ID_PREFIX = 'https://w3id.org/fair-bioheaders/';
-const FILE_TYPES = new Map([
-  ['fhr.json', 'FHR'],
-  ['fhp.json', 'FHP'],
-  ['fhgff3.json', 'FHGFF3'],
-]);
-const W3ID_TYPES = new Map([
-  ['fhr', 'FHR'],
-  ['fhp', 'FHP'],
-  ['fhgff3', 'FHGFF3'],
-]);
+
+// Which citation forms exist is not a hand-written list here: it is derived from
+// the type registry, so a released type contributes its own `<file>.json` and its
+// w3id path segment by being declared in src/types.js. That is what the registry
+// is for. Before it, adding a type meant editing three tables in two files; now a
+// released type appears under V1 and V3 automatically, and an unreleased one
+// cannot appear at all, because RELEASED_TYPES reads the provenance files. The
+// draft citations live in a separate index (src/drafts.js) precisely so V1 to V3
+// can never reach them by accident.
+const FILE_TYPES = new Map(RELEASED_TYPES.map((id) => [`${TYPES[id].pathSlug}.json`, id]));
+const W3ID_TYPES = new Map(RELEASED_TYPES.map((id) => [TYPES[id].pathSlug, id]));
+
+/**
+ * @typedef {object} DraftLane
+ * @property {string[]} [drafts] draft type ids whose V7 lane the caller chose:
+ *   an array of ids (`['FHT']`), or `true` for every draft this build pins.
+ *   Absent, `null` or `[]` leaves the lane shut.
+ */
+
+/**
+ * The drafts the caller chose, as a Set of type ids.
+ *
+ * `true` means "every draft this build pins"; an array means exactly those ids;
+ * anything else means the lane stays shut. An unknown id is a hard error rather
+ * than a silent no-op, because a caller who asked for a lane it did not get would
+ * otherwise read a V5 result believing it came from a draft contract.
+ *
+ * @param {DraftLane|{drafts?: string[]|true|false|null}} options
+ * @returns {Set<string>}
+ */
+export function enabledDrafts(options) {
+  const requested = options?.drafts;
+  if (requested === undefined || requested === null || requested === false) return new Set();
+  if (requested === true) return new Set(DRAFT_TYPES);
+  if (!Array.isArray(requested)) {
+    throw new HeaderError(`{drafts} must be true or an array of draft type ids, got ${JSON.stringify(requested)}`, { rule: 'V7', field: 'drafts' });
+  }
+  const set = new Set();
+  for (const id of requested) {
+    if (typeof id !== 'string' || draftEntry(id) === undefined) {
+      throw new HeaderError(
+        `{drafts} names ${JSON.stringify(id)}, which this build pins no draft contract for (drafts available: ${DRAFT_TYPES.join(', ') || 'none'})`,
+        { rule: 'V7', field: 'drafts' },
+      );
+    }
+    set.add(id);
+  }
+  return set;
+}
 
 /**
  * @typedef {object} Selection
- * @property {'FHR'|'FHP'|'FHGFF3'} type the header type whose contract governs the record
- * @property {string} release the release tag of the contract this reader will use, for example `v0.6.0`
- * @property {'V1'|'V2'|'V3'|'V5'|'V6'} rule the rule that chose it
- * @property {string} [warning] a warning to report with the reading (only V6 sets one)
+ * @property {string} type the header type whose contract governs the record
+ * @property {string|null} release the release tag of the contract this reader will
+ *   use, for example `v0.6.0`; `null` for a draft, which has no release form
+ * @property {'V1'|'V2'|'V3'|'V5'|'V6'|'V7'} rule the rule that chose it
+ * @property {string} [warning] a warning to report with the reading (V6 and V7 set one)
+ * @property {import('./drafts.js').DraftEntry} [draft] set only by V7
  */
 
 /**
@@ -98,10 +151,13 @@ function unsupportedVersion(type, value) {
  * Choose the contract that governs a record.
  *
  * @param {Record<string, unknown>} metadata a parsed header record
+ * @param {DraftLane} [options] `{drafts: [...]}` opens the V7 lane; with no
+ *   option, no draft is recognised and every outcome is the V1-V6 result
  * @returns {Selection}
  * @throws {HeaderError} with `result: 'unsupported-version'` when V4 applies
  */
-export function selectSchema(metadata) {
+export function selectSchema(metadata, options = {}) {
+  const drafts = enabledDrafts(options);
   const value = metadata.schema;
   if (typeof value !== 'string' || value.length === 0) {
     return { type: 'FHR', release: CURRENT_RELEASE, rule: 'V5' };
@@ -138,6 +194,34 @@ export function selectSchema(metadata) {
     unsupportedVersion(w3id.type, value); // V4: unknown release, or one that published no such contract
   }
 
+  // V7: the one lane-recognised form is the raw-main URL of the development
+  // repository that owns the draft type, and only for a type the caller named.
+  // The check sits after V1-V4 and before V5 so it cannot reach a released
+  // citation, and it matches the whole URL, not a prefix: a FHT tag URL or a
+  // `…/fht/vX.Y.Z` w3id URL names a release no registry lists, so it falls
+  // through to V5 exactly as it did before this rule existed.
+  if (drafts.size > 0) {
+    const cited = citationIndex().get(value);
+    if (cited !== undefined && drafts.has(cited)) {
+      const entry = draftEntry(cited);
+      return { type: cited, release: null, rule: 'V7', draft: entry, warning: draftWarning(entry) };
+    }
+  }
+
   // V5: any other value is FHR, checked against this reader's current FHR copy.
   return { type: 'FHR', release: CURRENT_RELEASE, rule: 'V5' };
+}
+
+/**
+ * The releases a type can be selected against, or the pin a draft is read at.
+ *
+ * @param {string} type
+ * @returns {{status: 'released'|'draft', releases?: string[], draft?: import('./drafts.js').DraftEntry}}
+ */
+export function selectableAs(type) {
+  const releases = releasesFor(type);
+  if (releases.length > 0) return { status: 'released', releases };
+  const entry = draftEntry(type);
+  if (entry !== undefined) return { status: 'draft', draft: entry };
+  return { status: 'draft' };
 }

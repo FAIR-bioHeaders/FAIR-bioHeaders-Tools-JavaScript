@@ -2,12 +2,16 @@
 /**
  * Check the vendored copies in this repository against their recorded provenance.
  *
- * Three trees are vendored from FAIR-bioHeaders-Specification and all must stay
- * byte-exact, because everything else here is measured against them:
+ * Four trees are copied into this repository and all must stay byte-exact, because
+ * everything else here is measured against them:
  *
  * - `schemas/`: the released contract files the reader selects between;
  * - `conformance/`: the shared vectors that decide acceptance;
- * - `examples/`: the minimal records the tests and capability scripts use.
+ * - `examples/`: the minimal records the tests and capability scripts use;
+ * - `drafts/`: **not** a released copy - the rule-V7 draft contracts, pinned to a
+ *   commit and SHA-256 in `drafts/provenance.json` and owned by their own
+ *   development repositories. They are digest-checked here for the same reason:
+ *   a silent change to a pinned draft would move what a lane reading means.
  *
  * Default mode recomputes every recorded SHA-256 offline and reports drift: a
  * silent change to `schemas/fhp-1.2.json` would alter which files this library
@@ -134,6 +138,39 @@ if (!existsSync(conformanceProvenancePath)) {
   }
 }
 
+// --- drafts/ (the rule-V7 pin, not a released copy) -----------------------
+const draftsProvenancePath = join(ROOT, 'drafts', 'provenance.json');
+if (!existsSync(draftsProvenancePath)) {
+  problems.push('drafts/provenance.json: missing');
+} else {
+  const drafts = JSON.parse(readFileSync(draftsProvenancePath, 'utf8'));
+  for (const [type, row] of Object.entries(drafts.drafts)) {
+    checked += 1;
+    const provPath = join(ROOT, 'drafts', row.file);
+    if (!existsSync(provPath)) {
+      problems.push(`drafts/${row.file}: missing (pinned ${type} contract)`);
+    } else {
+      const actual = sha256File(provPath);
+      if (actual !== row.sha256) problems.push(`drafts/${row.file}: sha256 ${actual}, provenance records ${row.sha256} (${type} at ${row.commit})`);
+      if (row.bytes !== undefined && readFileSync(provPath).length !== row.bytes) problems.push(`drafts/${row.file}: byte count disagrees with the provenance record`);
+    }
+    const overlay = row.transportOverlay;
+    if (overlay !== undefined) {
+      checked += 1;
+      const overlayPath = join(ROOT, 'drafts', overlay.file);
+      if (!existsSync(overlayPath)) problems.push(`drafts/${overlay.file}: missing (pinned ${type} overlay)`);
+      else if (sha256File(overlayPath) !== overlay.sha256) problems.push(`drafts/${overlay.file}: sha256 disagrees with the provenance record (${type} overlay at ${overlay.commit})`);
+    }
+    // A draft must not acquire a release shape while nobody is looking.
+    for (const field of ['releaseTag', 'w3id', 'registryRow']) {
+      if (row[field] !== null) problems.push(`drafts/provenance.json ${type}.${field}: a draft takes no release form, so this must be null (rule V7)`);
+    }
+    if (row.status !== 'draft') problems.push(`drafts/provenance.json ${type}.status: must say "draft", says ${JSON.stringify(row.status)}`);
+    if (!row.citation.includes('/main/')) problems.push(`drafts/provenance.json ${type}.citation: V7 recognises a raw-main citation only, got ${row.citation}`);
+    if (row.sha256.slice(0, 12) === row.commit.slice(0, 12)) problems.push(`drafts/provenance.json ${type}: the commit and the digest are the same string, which cannot both be true`);
+  }
+}
+
 // --- examples/ ------------------------------------------------------------
 const examplesProvenancePath = join(ROOT, 'examples', 'provenance.json');
 let examples = null;
@@ -153,7 +190,20 @@ if (!existsSync(examplesProvenancePath)) {
   }
 }
 
-// --- optional upstream comparison ----------------------------------------
+// --- selective modes ------------------------------------------------------
+if (process.argv.includes('--drafts-only')) {
+  // The draft pin freshness check on its own, for a caller that only wants to know
+  // whether the drafts this build names are still the bytes it recorded.
+  const names = Object.keys(JSON.parse(readFileSync(draftsProvenancePath, 'utf8')).drafts);
+  console.log(`draft pins checked: ${names.join(', ')}`);
+  if (problems.length === 0) console.log('every pinned draft matches its recorded digest');
+  else {
+    console.log(`problems (${problems.length}):`);
+    for (const line of problems) console.log(`  ${line}`);
+  }
+  process.exit(problems.length === 0 ? 0 : 1);
+}
+
 const argIndex = process.argv.indexOf('--upstream');
 if (argIndex >= 0) {
   const upstream = resolve(process.argv[argIndex + 1] ?? '');

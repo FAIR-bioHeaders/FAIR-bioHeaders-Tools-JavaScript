@@ -25,6 +25,7 @@ import { fileURLToPath } from 'node:url';
 
 import { CURRENT_RELEASE, DIALECT, has as hasSchema, loadSchema } from '../../src/registry.js';
 import { validateRecord, validator } from '../../src/validate.js';
+import { DRAFT_TYPES, draftEntry, draftWarning, loadDraft } from '../../src/drafts.js';
 
 const require = createRequire(import.meta.url);
 const Ajv2020 = require('ajv/dist/2020').default;
@@ -223,6 +224,55 @@ for (const [type, record] of Object.entries(minimal)) {
     }
   }
   check(`this library's configuration compiles every bundled copy (${compiled.length} of them)`, compiled.length === 17, compiled.join(' '));
+}
+
+// --- 10. the rule-V7 draft contracts compile under the same configuration --
+// Draft bytes are read only through the lane, but when they are read they are read
+// by this compiler: same 2020-12 build, same strict settings, same asserted
+// formats. A draft contract that would force a different configuration would be a
+// finding worth having before anyone relies on the lane.
+{
+  for (const type of DRAFT_TYPES) {
+    const loaded = loadDraft(type);
+    check(`${type} draft compiles on the same 2020-12 configuration`, loaded !== null && loaded.schema.$schema === DIALECT, loaded?.schema.$schema ?? 'unavailable');
+    check(`${type} draft declares draft/2020-12, not draft-07`, loaded?.schema.$schema === 'https://json-schema.org/draft/2020-12/schema');
+    const empty = validateRecord({}, { type, release: null, rule: 'V7', draft: loaded.entry });
+    check(`${type} draft reports its required set on an empty record`, empty.valid === false && empty.errors.some((line) => line.includes('required property')), empty.errors.map((line) => line.split(' ')[0]).join(', '));
+    const warned = draftWarning(loaded.entry);
+    check(`${type} warning names the commit, the digest and what the result is not`, warned.includes(loaded.entry.commit) && warned.includes(loaded.entry.sha256) && warned.includes('not a released schema'));
+  }
+
+  // FHT C2 is inside the pinned bytes: an arbitrary URL must fail the contract,
+  // and it must not be able to select FHT. Negative control: the pinned citation
+  // must be accepted by the same pattern.
+  const fht = loadDraft('FHT');
+  const record = (schemaValue, extra = {}) => ({
+    schema: schemaValue,
+    schemaVersion: '1.0',
+    transcriptome: 'Capability study record',
+    assemblyType: 'de novo',
+    moleculeType: 'mRNA',
+    taxon: { name: 'Homo sapiens' },
+    version: '1.0.0',
+    metadataAuthor: [{ name: 'Capability study record (synthetic)' }],
+    dateCreated: '2026-11-14',
+    checksum: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+    ...extra,
+  });
+  const pinned = validateRecord(record(fht.entry.citation), { type: 'FHT', release: null, rule: 'V7', draft: fht.entry });
+  check('the pinned raw-main citation satisfies the FHT draft contract (control)', pinned.valid === true, pinned.errors.join('; '));
+  const arbitrary = validateRecord(record('https://example.org/schemas/fht.json'), { type: 'FHT', release: null, rule: 'V7', draft: fht.entry });
+  check('an arbitrary URL fails the FHT draft contract (C2)', arbitrary.valid === false && arbitrary.errors.some((line) => line.includes('schema')), arbitrary.errors.join('; '));
+  const dated = validateRecord(record(fht.entry.citation, { dateCreated: '2022-13-45' }), { type: 'FHT', release: null, rule: 'V7', draft: fht.entry });
+  check('format is ASSERTED in the draft lane too: dateCreated "2022-13-45" is refused', dated.valid === false && dated.errors.some((line) => line.includes('format')), dated.errors.join('; '));
+  note(`with the lane shut, that same citation is "any other value" under V5 and is read as FHR (docs/SCHEMA-VERSIONS.md V7)`);
+
+  const fhgm = loadDraft('FHGM');
+  const overlay = loadDraft('FHGM', 'overlay');
+  check('the FHGM transport overlay compiles too', overlay !== null && overlay.schema.$schema === DIALECT);
+  const bareRecord = validateRecord({ modelId: 'm', modelVersion: '1', featureId: 'g1' }, { type: 'FHGM', release: null, rule: 'V7', draft: fhgm.entry });
+  check('the FHGM record contract requires reference (deviation D1)', bareRecord.valid === false && bareRecord.errors.some((line) => line.includes('reference')), bareRecord.errors.join('; '));
+  note('FHGM records carry no schema of their own, so nothing about them is selected by V1-V7: the lane picks the contract, the FHGFF3 citation routes the file');
 }
 
 for (const line of results) console.log(line);

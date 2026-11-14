@@ -10,8 +10,8 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    name: Library and shared vectors (Node ${{ matrix.node }})
+  native:
+    name: Native acceptance - Node ${{ matrix.node }}, no Python (primary acceptance)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -20,8 +20,16 @@ jobs:
         # package.json engines says >=20. Node 20 leaves support in April 2026, so
         # 22 and 24 are the lines that matter; 20 is kept to prove the floor.
         # The capability study was executed on 24.x only — see docs/CAPABILITY.md.
+        # OS coverage is documented in docs/CONFORMANCE.md: ubuntu-latest here,
+        # macOS as the development platform, Windows not tested.
         node: ['20', '22', '24']
     steps:
+      # This job is the acceptance gate, and it is the reason there is no
+      # setup-python step anywhere in it. Everything below runs on Node's own
+      # runtime: `node --test` for the suites, `node:crypto` for SHA-512/256, and
+      # the JavaScript runner and guard in scripts/. A reference comparison against
+      # the Python toolkit exists too - it is the `reference` job below, labelled
+      # supplemental, and it is not what accepts this library.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
@@ -31,23 +39,41 @@ jobs:
           cache: npm
       - name: Install exact dependency pins
         run: npm ci --ignore-scripts
-      - name: Vendored copies still match their provenance
+      - name: Vendored copies and pinned drafts still match their provenance
         run: node scripts/check-vendoring.mjs
       - name: Check the licence in LICENSE and package.json
         run: node scripts/check-license.mjs
+      - name: Docs match the registry, and the capability matrix is current
+        run: |
+          node scripts/check-docs.mjs --commands
+          node scripts/make-matrix.mjs --check
       - name: Capability (i) - draft/2020-12 against the released contracts
         run: node scripts/capability/ajv-dialect.mjs
       - name: Capability (ii) - SHA-512/256 against every valid sequence vector
         run: node scripts/capability/digest.mjs conformance
-      - name: Unit tests and the shared conformance vectors
-        run: node --test
+      - name: Native acceptance, accounted (zero tests, missing vectors and unexplained skips all fail)
+        run: node scripts/check-test-report.mjs --json test-report.json
       - name: Shared conformance vectors, per-format table
-        run: node scripts/run-conformance.mjs
+        run: node scripts/run-conformance.mjs | tee conformance-table.txt
+      - name: Upload the native test report and the vector table
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: native-acceptance-node-${{ matrix.node }}
+          path: |
+            test-report.json
+            conformance-table.txt
+          if-no-files-found: error
 
   reference:
-    name: Differential against the released Python toolkit
+    name: Differential against the released Python toolkit (supplemental evidence, not acceptance)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # This job answers "does this library disagree with the reference
+    # implementation?". It is evidence, and it is not the gate: the `native` job
+    # above is, and it passes with no Python installed. A new test never depends
+    # on this job, and nothing here is the oracle for a vector - the pinned
+    # manifest and the native assertions are.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -56,7 +82,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.13'
       - name: Install the reference toolkit at the version the shared CI pins
@@ -75,3 +101,50 @@ jobs:
         env:
           FHR_TOOLKIT_BIN: ${{ runner.temp }}/fhr-reference/bin
         run: node scripts/capability/toolkit-crosscheck.mjs conformance
+
+  draft-lane:
+    name: Draft lane against the owning repositories' development suites (labelled draft, not acceptance)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # FHT and FHGM are drafts. This job never claims support: it runs the two
+    # development suites that live in the repositories that own those types,
+    # through the explicit rule-V7 lane, and prints a table labelled draft. The
+    # checkouts are pinned to the commits `drafts/provenance.json` pins, so the
+    # bytes being read are the bytes the lane says it reads. Acceptance stays in
+    # the `native` job, on the shared suite.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install exact dependency pins
+        run: npm ci --ignore-scripts
+      - name: Read the pinned draft commits out of this build's own registry
+        id: pins
+        run: node scripts/ci/draft-pins.mjs --github-output
+      # Unauthenticated clones, not actions/checkout: the two owning repositories
+      # are public, and a full clone works whether or not the pinned commit is
+      # reachable from their default branch. Nothing here writes to them, and no
+      # credential is passed.
+      - name: Clone the two owning repositories at the pinned commits
+        run: |
+          git clone --quiet "https://github.com/FAIR-bioHeaders/${{ steps.pins.outputs.fht-repo }}" .upstream/FHT-Specification
+          git -C .upstream/FHT-Specification checkout --detach --quiet "${{ steps.pins.outputs.fht-commit }}"
+          git clone --quiet "https://github.com/FAIR-bioHeaders/${{ steps.pins.outputs.fhgm-repo }}" .upstream/FHGM-Specification
+          git -C .upstream/FHGM-Specification checkout --detach --quiet "${{ steps.pins.outputs.fhgm-commit }}"
+          git -C .upstream/FHT-Specification rev-parse HEAD
+          git -C .upstream/FHGM-Specification rev-parse HEAD
+      - name: Confirm the checked-out draft bytes still match this build's pin
+        run: node scripts/ci/draft-pins.mjs --check .upstream/FHT-Specification .upstream/FHGM-Specification
+      - name: Run both development suites through the lane
+        run: node scripts/capability/draft-vectors.mjs --fht .upstream/FHT-Specification --fhgm .upstream/FHGM-Specification --verbose | tee draft-lane-evidence.txt
+      - name: Upload the draft-lane evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: draft-lane-evidence
+          path: draft-lane-evidence.txt
+          if-no-files-found: error

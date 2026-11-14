@@ -28,23 +28,13 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { inspectBytes, stripBytes } from '../src/reader.js';
+import { containerFor, notRunReason } from '../src/serializations.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..');
 
-/** Formats this build reads, and the container each one lives in. */
-const SUPPORTED = {
-  fasta: 'fasta',
-  gfa: 'gfa',
-  'fhp-fasta': 'fasta',
-  fhgff3: 'gff3',
-};
-
-/** Why an unsupported format cannot be scored yet. */
-const NOT_RUN = {
-  microdata: 'the HTML microdata binding (docs/MICRODATA.md M1-M5) is not implemented by this build',
-  jsonld: 'the canonical JSON-LD reader (docs/JSONLD.md J1-J9) is not implemented; J3-J5 also need a JSON-LD processor',
-};
+// One declaration of what is scored and what is declared not-run, shared with
+// `npm test`, the capability matrix and the acceptance guard (src/serializations.js).
 
 function parseArgs(argv) {
   const out = { suite: null, formats: null, ids: null };
@@ -122,16 +112,17 @@ for (const vector of vectors) {
   const counts = byFormat.get(vector.format) ?? { pass: 0, fail: 0, notRun: 0 };
   byFormat.set(vector.format, counts);
 
-  if (NOT_RUN[vector.format] !== undefined) {
+  const declared = notRunReason(vector);
+  if (declared !== null) {
     counts.notRun += 1;
-    notRun.push(`${vector.id} (${vector.format}): ${NOT_RUN[vector.format]}`);
+    notRun.push(`${vector.id} (${vector.format}): ${declared}`);
     continue;
   }
 
   let outcome;
   try {
     const raw = new Uint8Array(readFileSync(join(dir, vector.file)));
-    const container = SUPPORTED[vector.format];
+    const container = containerFor(vector.format);
     outcome = inspectBytes(raw, { container });
     if (vector.expected === 'valid') {
       // The strip round trip must return a byte-exact copy of the payload, so a
