@@ -16,10 +16,12 @@ LICENSE text eol=lf
 # by their exact bytes - and every file here is digest-checked by
 # scripts/check-vendoring.mjs, so a line-ending conversion in a checkout would
 # both change what a vector tests and break its recorded SHA-256. The contract
-# copies under schemas/ are hashed the same way. This mirrors the rule the shared
-# specification sets for its own conformance directory.
+# copies under schemas/ and the digest-pinned draft contracts under drafts/ are
+# hashed the same way. This mirrors the rule the shared specification sets for its
+# own conformance directory.
 conformance/** -text
 schemas/** -text
+drafts/** -text
 examples/** -text
 
 # Compressed vectors are transport, not text, in either direction.

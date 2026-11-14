@@ -10,10 +10,16 @@
  * of reimplementing it.
  *
  * Supported contracts: the released FHR, FHP and FHGFF3 schemas, selected per
- * record by rules V1 to V6 from the copies vendored in `schemas/`. FHT and FHGM
- * have no released contract and are not supported: this library publishes no
- * `schemaVersion`, no w3id URL and no registry row for either, and does not
- * implement the opt-in draft lane of rule V7.
+ * record by rules V1 to V6 from the copies vendored in `schemas/`.
+ *
+ * FHT and FHGM are drafts: no released contract, no `schemaVersion` of their own
+ * in the shared registry, no w3id URL and no row in `schemas/versions.json`, and
+ * no support claim for either. Rule V7 gives them one recognition path - the
+ * explicit `{drafts: [...]}` lane in `src/drafts.js`, reading bytes pinned by
+ * commit and SHA-256 and warning on every record - and nothing about that lane
+ * makes either type supported. With no `drafts` option this library behaves
+ * exactly as it did before V7 existed, which `test/default-gate.test.mjs` proves
+ * against `test/goldens/default-gate.json`.
  *
  * This library is not the browser tooling on the FAIR bioHeaders website and not
  * `gff3-validator`'s Pyodide build; nothing here runs CPython. It validates
@@ -42,3 +48,32 @@ export {
 } from './registry.js';
 export { emptyValueWarnings, hasAcceptedLinkScheme, linkSchemeWarnings, validateRecord, validator } from './validate.js';
 export { containerOf, decompress, inspectBytes, inspectFile, stripBytes, stripFile } from './reader.js';
+
+// The five-type registry: what this build knows, and what it can do with it.
+export {
+  CONTAINERS,
+  DRAFT_TYPE_IDS,
+  RELEASED_TYPES,
+  SUPPORT,
+  TYPES,
+  TYPE_IDS,
+  capability,
+  capabilityRows,
+  describeType,
+  headerTypesByContainer,
+} from './types.js';
+
+// The rule-V7 draft lane. Nothing here is reachable without an explicit
+// `{drafts: ...}` decision by the caller.
+export {
+  DRAFT_TYPES,
+  citationIndex as draftCitations,
+  draftEntry,
+  draftProvenance,
+  draftSupport,
+  draftWarning,
+  hasDraft,
+  loadDraft,
+} from './drafts.js';
+export { VERDICTS as PARENT_LINK_VERDICTS, parentLinkWarning, verifyParentLinks } from './parent-links.js';
+export { FHGM_NOT_SUPPORTED, FHGM_RULES, MODELS_KEY, VERDICTS as FHGM_VERDICTS, admitsExtensionFields, checkFhgmModels, fhgmRuleCoverage } from './fhgm.js';

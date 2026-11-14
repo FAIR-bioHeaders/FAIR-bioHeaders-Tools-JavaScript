@@ -1,0 +1,56 @@
+{
+  "description": "Draft contracts this build can read ONLY through the explicitly requested rule-V7 lane. These are not released contracts: neither type has a row in the shared schemas/versions.json, a published schemaVersion of its own, a w3id URL or a release tag, and nothing in this file changes that. Each entry pins the exact bytes of one draft file by the commit of the development repository that owns the type and the SHA-256 of those bytes, which is how docs/SCHEMA-VERSIONS.md V7 requires a draft to be read: selection runs against the pinned bytes, never against a repository's main at run time. `src/drafts.js` re-verifies every digest the first time a draft is loaded and refuses to read on a mismatch. The lane is never the default: with no explicit user decision these files are not read at all and a draft citation is 'any other value' under V5, exactly as it was before the lane existed. This registry is deliberately separate from schemas/provenance.json, which lists released contracts only and stays that way.",
+  "rule": "docs/SCHEMA-VERSIONS.md rule V7 (FAIR-bioHeaders-Specification#221/#226, text published at tag v0.6.0)",
+  "scheduledPublication": {
+    "FHT": "v0.7.0",
+    "FHGM": "v0.8.0",
+    "note": "A scheduled future release is a decision about that type, not a licence to publish it here. Until the release lands these entries stay drafts: no schemaVersion claim, no fixed alias, no registry row, no support claim."
+  },
+  "dialect": "https://json-schema.org/draft/2020-12/schema",
+  "retrieved": "2026-11-14",
+  "drafts": {
+    "FHT": {
+      "status": "draft",
+      "repository": "FHT-Specification",
+      "repositoryUrl": "https://github.com/FAIR-bioHeaders/FHT-Specification",
+      "sourcePath": "fht.json",
+      "file": "fht-draft.json",
+      "bytes": 29430,
+      "sha256": "59ad9641adcb0e5591045c2d894c066d1adc9984cca84c5ff6502f8dad88487e",
+      "commit": "226f923c28b680edb3c546e99a751482d06aef1a",
+      "citation": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/main/fht.json",
+      "releaseTag": null,
+      "w3id": null,
+      "registryRow": null,
+      "ownerIssue": "https://github.com/FAIR-bioHeaders/FHT-Specification/issues/10",
+      "verification": "Read from the FHT-Specification checkout with `git show <commit>:fht.json`; the same bytes are present at that repository's main head 156bda63bd6bbe0322bc6c5b8dcccdfad380655a (checked 2026-11-14, digest identical) and are fetched byte-equal over HTTPS from the pinned commit URL (200, 29430 bytes, sha256 59ad9641...). These are the re-pinned bytes: the released fair-bioheaders 0.11.0 wheel still bundles the previous draft (sha256 11c69d66...), so a differential against the installed toolkit compares against older draft bytes and is labelled accordingly.",
+      "note": "An FHT header is a FASTA `;~` block like FHR, so it shares the FASTA container; the type is decided by the record's own `schema` citation. Its conformance rules are C1 (contract validation), C2 (schema-URL closure) and C3 (parent-link verification) - text in the FHT-Specification conformance README. C2 is inside the pinned bytes; C3 is implemented here in src/parent-links.js."
+    },
+    "FHGM": {
+      "status": "draft",
+      "repository": "FHGM-Specification",
+      "repositoryUrl": "https://github.com/FAIR-bioHeaders/FHGM-Specification",
+      "sourcePath": "development/model/fhgm-model.schema.json",
+      "file": "fhgm-model-draft.json",
+      "bytes": 9564,
+      "sha256": "bf1553cac04dc88d8afaff1d39bc50360342e1ebedac4b73dfe3dff570ff410f",
+      "commit": "ac3d37b3033312844fc3151217731928ae33aa54",
+      "citation": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHGM-Specification/main/development/model/fhgm-model.schema.json",
+      "releaseTag": null,
+      "w3id": null,
+      "registryRow": null,
+      "ownerIssue": "https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/204",
+      "verification": "Read from the FHGM-Specification checkout with `git show <commit>:development/model/fhgm-model.schema.json`; the same bytes are present at that repository's main head 52b07b7a640a6e037993d08f7c5700cc6c7929c5 (checked 2026-11-14, digest identical) and are fetched byte-equal over HTTPS from the pinned commit URL (200, 9564 bytes, sha256 bf1553ca...). FAIR-bioHeaders-Specification pins the same bytes for its CEDAR draft snapshot at templates/cedar/drafts/provenance.json (sha256 bf1553ca..., re-pinned by #237/#238), so this consumer and the publication authority agree on what the draft is.",
+      "transportOverlay": {
+        "sourcePath": "development/model/fhgm-draft.schema.json",
+        "file": "fhgm-transport-draft.json",
+        "bytes": 1363,
+        "sha256": "dd9f69274f26860bbfd71d0e8b2794420c5369fb5d40ce838fb6a9e6d5116e3d",
+        "commit": "ac3d37b3033312844fc3151217731928ae33aa54",
+        "citation": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHGM-Specification/main/development/model/fhgm-draft.schema.json",
+        "note": "Transport-only overlay: it pins one FHGFF3 file identity (the v0.5.0 URLs with schemaVersion 1.1, the only combination R15 admits extension fields for at that release) and requires a non-empty `x-fhgm-models` array. It says nothing about record contents: those are the model contract above. src/fhgm.js applies K1 from the published extension rule (docs/FORMAT.md R15: extension fields are admitted from FHGFF3 1.1, so a 1.2 header qualifies too) and offers `overlay: true` to apply the pinned overlay's narrower v0.5.0 pin instead, which is what the upstream FHGM checker does."
+      },
+      "note": "FHGM is not a file header type: an FHGM record carries no `schema`, no `schemaVersion` and no `checksum`. Records ride inside an FHGFF3 header under the R15 extension key `x-fhgm-models`, the file keeps its released FHGFF3 citation and is routed by V1 to V3, and the file checksum covers every record byte (R3). The V7 lane therefore selects only the contract applied to the records. Model-level rules K1-K6 and the boundary B1 are drafted in FHGM-Specification; src/fhgm.js implements K1, K2, K3, K5 and K6 and reports K4 (feature-target resolution) as not-supported-yet, because resolving a featureId needs the GFF3 feature layer, which this library's boundary assigns to gff3-validator."
+    }
+  }
+}

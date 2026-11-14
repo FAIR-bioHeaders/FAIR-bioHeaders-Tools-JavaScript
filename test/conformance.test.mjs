@@ -22,19 +22,17 @@ import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
 
 import { inspectBytes, stripBytes } from '../src/reader.js';
+import { containerFor, notRunReason } from '../src/serializations.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SUITE = join(ROOT, 'conformance');
 const manifest = JSON.parse(readFileSync(join(SUITE, 'manifest.json'), 'utf8'));
 
-/** Formats this build reads, and the container each lives in. */
-const SUPPORTED = { fasta: 'fasta', gfa: 'gfa', 'fhp-fasta': 'fasta', fhgff3: 'gff3' };
+// Which formats are scored, and which are declared not-run with a reason, comes
+// from src/serializations.js: the runner, the capability matrix, the acceptance
+// guard and this suite all read that one declaration, so no table can drift out
+// of step with another.
 
-/** Why an unsupported format cannot be scored here. */
-const NOT_RUN = {
-  microdata: 'the HTML microdata binding (docs/MICRODATA.md M1-M5) is not implemented by this build',
-  jsonld: 'the canonical JSON-LD reader (docs/JSONLD.md J1-J9) is not implemented; J3-J5 also need a JSON-LD processor',
-};
 
 /**
  * @param {unknown} expected
@@ -65,8 +63,8 @@ function read(vector) {
   return raw;
 }
 
-const supported = manifest.vectors.filter((vector) => vector.format in SUPPORTED);
-const unsupportedVectors = manifest.vectors.filter((vector) => vector.format in NOT_RUN);
+const supported = manifest.vectors.filter((vector) => containerFor(vector.format) !== null);
+const unsupportedVectors = manifest.vectors.filter((vector) => notRunReason(vector) !== null);
 
 describe('shared conformance vectors', () => {
   it('cover the 291 vectors this suite was pinned at', () => {
@@ -76,7 +74,7 @@ describe('shared conformance vectors', () => {
 
   for (const vector of supported) {
     it(`${vector.id} (${vector.format}, expected ${vector.expected})`, () => {
-      const reading = inspectBytes(read(vector), { container: SUPPORTED[vector.format] });
+      const reading = inspectBytes(read(vector), { container: containerFor(vector.format) });
       if (vector.expected === 'valid') {
         assert.deepEqual(reading.errors, [], 'a valid vector must be accepted');
         if (typeof vector.checksum === 'string') {
@@ -89,7 +87,7 @@ describe('shared conformance vectors', () => {
           assert.ok(reading.warnings.some((line) => line.includes(rule)), `a valid vector with warnings must produce one naming ${rule}`);
         }
         // strip must remove bytes and nothing else about the payload changes.
-        const stripped = stripBytes(read(vector), { container: SUPPORTED[vector.format] });
+        const stripped = stripBytes(read(vector), { container: containerFor(vector.format) });
         assert.ok(stripped.length < read(vector).length, 'strip must remove the header lines');
       } else {
         assert.equal(reading.valid, false, `an invalid vector (${vector.rule}: ${vector.reason}) must be rejected`);
@@ -104,6 +102,6 @@ describe('shared conformance vectors', () => {
   }
 
   for (const vector of unsupportedVectors) {
-    it(`${vector.id} (${vector.format}) — not run`, { skip: NOT_RUN[vector.format] }, () => {});
+    it(`${vector.id} (${vector.format}) — not run`, { skip: notRunReason(vector) }, () => {});
   }
 });

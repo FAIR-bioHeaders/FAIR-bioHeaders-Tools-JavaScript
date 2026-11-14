@@ -1,0 +1,1480 @@
+{
+  "goldenVersion": 1,
+  "description": "Per-vector digest of the default reading path (no draft lane requested), computed by scripts/golden-default-off.mjs from the public API. test/default-gate.test.mjs refuses any difference: rule V7 keeps the lane from changing default behaviour, and this file is how that is proved rather than asserted.",
+  "aggregate": "cefb059e520e76fe49321e3015b525f68e883429f0bbf88cbed5beb0ae503baf",
+  "counts": {
+    "vectors": 291,
+    "examples": 3
+  },
+  "vectors": [
+    {
+      "id": "fasta-lf",
+      "format": "fasta",
+      "digest": "cb30b418d21d4e0a99d6db7b652528e1151b2b6812f7aaedcdbeec24b367d575"
+    },
+    {
+      "id": "fasta-crlf",
+      "format": "fasta",
+      "digest": "7c4a8028879331c58c15b8a65d99c4c49bc4195bccdd7790a2b4db6d2f9c453a"
+    },
+    {
+      "id": "fasta-cr",
+      "format": "fasta",
+      "digest": "5f1dce21db8d4ccac3e1b06a7c48d3637381cba231d21680dd2db56e964c6b13"
+    },
+    {
+      "id": "fasta-mixed-endings",
+      "format": "fasta",
+      "digest": "d9db130ce9d8606562bc8e3d9b7e9171ac9f1b1b8f86745b59b089785e5ba149"
+    },
+    {
+      "id": "fasta-no-final-newline",
+      "format": "fasta",
+      "digest": "048324f0979d03ca739232896e7f9eed73d73524b489973f15a4124b2f3a6b28"
+    },
+    {
+      "id": "fasta-comments-and-blank-lines",
+      "format": "fasta",
+      "digest": "d0c9404ea4bab21be1e2f850df78d803a90d6256cba1cdfce1ae68f22078040a"
+    },
+    {
+      "id": "fasta-root-indented",
+      "format": "fasta",
+      "digest": "3316fc329343fd5d0c653651c4dc7e11af352cbad2f9d2741ffb6c79ed89742c"
+    },
+    {
+      "id": "fasta-space-before-colon",
+      "format": "fasta",
+      "digest": "cb30b418d21d4e0a99d6db7b652528e1151b2b6812f7aaedcdbeec24b367d575"
+    },
+    {
+      "id": "fasta-nested-checksum",
+      "format": "fasta",
+      "digest": "e1efe1338b35e7674d3d5df46543be92e6a64627bd5dea4e5034f71573549cd2"
+    },
+    {
+      "id": "fasta-quoted-value",
+      "format": "fasta",
+      "digest": "cb30b418d21d4e0a99d6db7b652528e1151b2b6812f7aaedcdbeec24b367d575"
+    },
+    {
+      "id": "fasta-checksum-trailing-spaces",
+      "format": "fasta",
+      "digest": "cb30b418d21d4e0a99d6db7b652528e1151b2b6812f7aaedcdbeec24b367d575"
+    },
+    {
+      "id": "fasta-checksum-first",
+      "format": "fasta",
+      "digest": "cb30b418d21d4e0a99d6db7b652528e1151b2b6812f7aaedcdbeec24b367d575"
+    },
+    {
+      "id": "fasta-non-utf8-outside-header",
+      "format": "fasta",
+      "digest": "3e098d02944d55ac80a07c6fd6faf097ae2e935574bbe5e6d94aba1e279ebcbf"
+    },
+    {
+      "id": "fasta-utf8-metadata",
+      "format": "fasta",
+      "digest": "908a01ea99a5804ff512640705a76c56fda36fae2dba1319dbf89bea5e0a7e60"
+    },
+    {
+      "id": "fasta-yaml-indicators-in-strings",
+      "format": "fasta",
+      "digest": "5f16498a320586b32cde2453f398d685d3a117120b39215a855747b1648a3f7d"
+    },
+    {
+      "id": "fasta-yaml-portable-types",
+      "format": "fasta",
+      "digest": "0bdc88d8d7c06390661a9174deae06450c3aae4bb256cd0fa6ebaef0fcd3f94f"
+    },
+    {
+      "id": "fasta-escaped-record-markers",
+      "format": "fasta",
+      "digest": "86b78646ae8e93f90fa19214b8aec571c562fd3aea21e4ecdfd7962106a3f166"
+    },
+    {
+      "id": "fasta-raw-record-markers",
+      "format": "fasta",
+      "digest": "203232c053724a2c8838e0eba125a3de996edf43cb16428888735cd00782b3bc"
+    },
+    {
+      "id": "fasta-link-scheme-warning",
+      "format": "fasta",
+      "digest": "a9d9dedad936d0fc79be69422919d334f354daf0fdd6a7d35832f1c690d44a51"
+    },
+    {
+      "id": "gfa-lf",
+      "format": "gfa",
+      "digest": "3a532e95e84c76e3af113ca8a1b6d2ac0259e6f5fde0fd4d2d633740f9c0e96c"
+    },
+    {
+      "id": "gfa-crlf",
+      "format": "gfa",
+      "digest": "b1f508cc9093ce9ce535e1702bc5f0247daf0c4fd1f6ca4c27a72b00a347e0b8"
+    },
+    {
+      "id": "gfa-cr",
+      "format": "gfa",
+      "digest": "aa2b25facd36f20ea8ced078f7c4dfc32a9c43751ad517dd75d21401e080fdf8"
+    },
+    {
+      "id": "gfa-mixed-endings",
+      "format": "gfa",
+      "digest": "a72203d96082d0621533fba0a2f65ec17be585cea7abdb28c919d5a01705c931"
+    },
+    {
+      "id": "gfa-no-final-newline",
+      "format": "gfa",
+      "digest": "f37ef41af4e967a59945e48f87f739ffbe1363974b4c0d67eac21aa1bed14919"
+    },
+    {
+      "id": "gfa-comments-and-blank-lines",
+      "format": "gfa",
+      "digest": "3d03f663997333abc098178a838a1ba1c0652be31d348ed2aae0e93d3ad3e2fb"
+    },
+    {
+      "id": "gfa-root-indented",
+      "format": "gfa",
+      "digest": "42767979bfa143b78d9a83ee7cb1eb26dc9d7012f689dc0fb9466feaba4b4041"
+    },
+    {
+      "id": "gfa-space-before-colon",
+      "format": "gfa",
+      "digest": "3a532e95e84c76e3af113ca8a1b6d2ac0259e6f5fde0fd4d2d633740f9c0e96c"
+    },
+    {
+      "id": "gfa-nested-checksum",
+      "format": "gfa",
+      "digest": "0f37d9202d3b1191cdadb039a7e8f9d09c021266642ffee770e625e6f0c40fb3"
+    },
+    {
+      "id": "gfa-quoted-value",
+      "format": "gfa",
+      "digest": "3a532e95e84c76e3af113ca8a1b6d2ac0259e6f5fde0fd4d2d633740f9c0e96c"
+    },
+    {
+      "id": "gfa-checksum-trailing-spaces",
+      "format": "gfa",
+      "digest": "3a532e95e84c76e3af113ca8a1b6d2ac0259e6f5fde0fd4d2d633740f9c0e96c"
+    },
+    {
+      "id": "gfa-checksum-first",
+      "format": "gfa",
+      "digest": "3a532e95e84c76e3af113ca8a1b6d2ac0259e6f5fde0fd4d2d633740f9c0e96c"
+    },
+    {
+      "id": "gfa-non-utf8-outside-header",
+      "format": "gfa",
+      "digest": "1baece93383e988d3395f98dad7d31d4e88d4ea5b276d3aa043e30c29c9ff0f0"
+    },
+    {
+      "id": "gfa-utf8-metadata",
+      "format": "gfa",
+      "digest": "0586f08772d3761e46f341a44ff95829ad33349b15a2053d0d37fc5e34384466"
+    },
+    {
+      "id": "gfa-yaml-indicators-in-strings",
+      "format": "gfa",
+      "digest": "b245e8b7794a071b376f41d1240943538ce148a8848ede32cc6e52ce6b1102a5"
+    },
+    {
+      "id": "gfa-yaml-portable-types",
+      "format": "gfa",
+      "digest": "94adb9c081d7f909a3a4bf243ccc2196e228a71b79c3a0d9a702ba81348c9137"
+    },
+    {
+      "id": "fasta-gzip",
+      "format": "fasta",
+      "digest": "cb30b418d21d4e0a99d6db7b652528e1151b2b6812f7aaedcdbeec24b367d575"
+    },
+    {
+      "id": "fasta-bgzf",
+      "format": "fasta",
+      "digest": "cb30b418d21d4e0a99d6db7b652528e1151b2b6812f7aaedcdbeec24b367d575"
+    },
+    {
+      "id": "fasta-gzip-multimember",
+      "format": "fasta",
+      "digest": "cb30b418d21d4e0a99d6db7b652528e1151b2b6812f7aaedcdbeec24b367d575"
+    },
+    {
+      "id": "gfa-gzip",
+      "format": "gfa",
+      "digest": "3a532e95e84c76e3af113ca8a1b6d2ac0259e6f5fde0fd4d2d633740f9c0e96c"
+    },
+    {
+      "id": "gfa-bgzf",
+      "format": "gfa",
+      "digest": "3a532e95e84c76e3af113ca8a1b6d2ac0259e6f5fde0fd4d2d633740f9c0e96c"
+    },
+    {
+      "id": "gfa-gzip-multimember",
+      "format": "gfa",
+      "digest": "3a532e95e84c76e3af113ca8a1b6d2ac0259e6f5fde0fd4d2d633740f9c0e96c"
+    },
+    {
+      "id": "microdata-canonical",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "microdata-first-attribute-wins",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "microdata-itemtype-token-list",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "microdata-itemprop-token-list",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "microdata-implied-end-tags",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "microdata-nested-unrelated-scope",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "microdata-value-attributes",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "microdata-value-attributes-elsewhere-ignored",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "microdata-html-escaping",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "microdata-non-ascii",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "microdata-utf8-bom",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "microdata-typed-values",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "microdata-untyped-schema-values",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "jsonld-canonical-embedded",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-canonical-url",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-keys-reordered",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-legacy-software-string",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-schema-versioned-url",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-documentation-url",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-author-name-type",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-export-terms",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-documentation-other-scheme",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-script-escaped",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-link-scheme-warning",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-expanded",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-graph-single-node",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-context-url-array",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-iri-as-string",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "fhp-fasta-lf",
+      "format": "fhp-fasta",
+      "digest": "667beecfba704a442d7c4d1ae29fd792e97d31d205d9321995a52318a2f97664"
+    },
+    {
+      "id": "fhp-fasta-crlf",
+      "format": "fhp-fasta",
+      "digest": "ab3117d0bdb4db1eb5fa369ea1e2436a607f4ebbb6cc9a28d89a163c2c4010ef"
+    },
+    {
+      "id": "fhp-fasta-no-final-newline",
+      "format": "fhp-fasta",
+      "digest": "d1ae92a98e2a6b73af81912b22b8d1670828a5e83b15516f6a628829885ee047"
+    },
+    {
+      "id": "fhp-fasta-comments-and-blank-lines",
+      "format": "fhp-fasta",
+      "digest": "97083939288ec589bbd557409df518d542e6f7bf04de54008ae2fa0a6d83b1f2"
+    },
+    {
+      "id": "fhp-fasta-escaped-record-markers",
+      "format": "fhp-fasta",
+      "digest": "ae13e35a8b1f01e6c768edda3c2968cbd922a85063ef77d2d19f6452feec1b56"
+    },
+    {
+      "id": "fhp-fasta-gzip",
+      "format": "fhp-fasta",
+      "digest": "667beecfba704a442d7c4d1ae29fd792e97d31d205d9321995a52318a2f97664"
+    },
+    {
+      "id": "fhp-fasta-bgzf",
+      "format": "fhp-fasta",
+      "digest": "667beecfba704a442d7c4d1ae29fd792e97d31d205d9321995a52318a2f97664"
+    },
+    {
+      "id": "fhp-fasta-database-source",
+      "format": "fhp-fasta",
+      "digest": "0bbf3209f86f6ced997a6428c5b13b38c6e7e8509dcdc9fb1ffddb67a9e3b247"
+    },
+    {
+      "id": "fhp-fasta-mixed-sources",
+      "format": "fhp-fasta",
+      "digest": "2d96b642e54749bac0f5cb30745dfd8df6b3ad94aa6326b46a88c75bbc18ebd1"
+    },
+    {
+      "id": "fhp-fasta-rich",
+      "format": "fhp-fasta",
+      "digest": "f281ef00179a71d53224cd03e8702f4984ed89f52fcab58d88422a08881dd9ba"
+    },
+    {
+      "id": "fhp-fasta-busco-lineage-dotted",
+      "format": "fhp-fasta",
+      "digest": "4af61fda5c9f419a2d89a1c2f39d03e82ccd694d7a327431b1c4d862fc4aba0b"
+    },
+    {
+      "id": "fhgff3-minimal-checksum-link",
+      "format": "fhgff3",
+      "digest": "3bd4b7964b71fc642d8f55e883f1f4c64e69190b5f2f48d08f25b54dbb633897"
+    },
+    {
+      "id": "fhgff3-minimal-reference-link",
+      "format": "fhgff3",
+      "digest": "850ac00fcda22b18d3678075c7a191e1748186f0f114b2abe2efc55e85cd2d26"
+    },
+    {
+      "id": "fhgff3-both-links",
+      "format": "fhgff3",
+      "digest": "b8505d7621670bd4c3344a8b5b6b7e2f3f628fe9af7db9216771ba65738e19a8"
+    },
+    {
+      "id": "fhgff3-directives-interleaved",
+      "format": "fhgff3",
+      "digest": "7f7348c6d10288311f153165423c3805e522703210d2520931488022db8ed724"
+    },
+    {
+      "id": "fhgff3-directives-after-header",
+      "format": "fhgff3",
+      "digest": "8e912b82bbe75789a3a62d25282aa93ce4c55477373b83491fa90061a9de929b"
+    },
+    {
+      "id": "fhgff3-triple-hash-before-features",
+      "format": "fhgff3",
+      "digest": "667ce14ab9e8510c1ea9197a71bd68e1c9ec321e8c0bdfaf0855d16510c7fe1a"
+    },
+    {
+      "id": "fhgff3-embedded-fasta",
+      "format": "fhgff3",
+      "digest": "49893af272c5959fae2b4027ea66b2e40465b557e973a9c9781897fb403fb221"
+    },
+    {
+      "id": "fhgff3-header-only",
+      "format": "fhgff3",
+      "digest": "803711266800e84eda81d1395ac1f19b67230aff7b49da09482cddd8dbce988a"
+    },
+    {
+      "id": "fhgff3-version-3-1-26",
+      "format": "fhgff3",
+      "digest": "6917d67b1dac44a1353cb9326e7bee6d5f80a602112db58888c39a5d99f25fda"
+    },
+    {
+      "id": "fhgff3-version-3-trailing-whitespace",
+      "format": "fhgff3",
+      "digest": "16ec737063bfdb23f1afb34c7b116f60978733aa220b365703128b456787f6e5"
+    },
+    {
+      "id": "fhgff3-crlf",
+      "format": "fhgff3",
+      "digest": "70ebad646a051b8383bcdd4e419b2cca414d11f7ffe58f5552a7454c44edffd8"
+    },
+    {
+      "id": "fhgff3-gzip",
+      "format": "fhgff3",
+      "digest": "3bd4b7964b71fc642d8f55e883f1f4c64e69190b5f2f48d08f25b54dbb633897"
+    },
+    {
+      "id": "fhgff3-bgzf",
+      "format": "fhgff3",
+      "digest": "3bd4b7964b71fc642d8f55e883f1f4c64e69190b5f2f48d08f25b54dbb633897"
+    },
+    {
+      "id": "fhgff3-nested-parent-checksum",
+      "format": "fhgff3",
+      "digest": "eb3022d8980b78510c360389cfd5518b7444af50f5b2a3b661d11eacd3f028cc"
+    },
+    {
+      "id": "fhgff3-busco-lineage-dotted",
+      "format": "fhgff3",
+      "digest": "24cdb9df6a57f952df9d645d096d2bb13e7ef80a4cb46ec368051a8352440b3d"
+    },
+    {
+      "id": "fasta-schema-raw-main",
+      "format": "fasta",
+      "digest": "a5832f270895629437cec010b758a3dbbea124510d7924b9d35ca6d3d671f05e"
+    },
+    {
+      "id": "fasta-schema-raw-main-version-1-0",
+      "format": "fasta",
+      "digest": "80379be24efa52039039d5c218725b043b38180558ce4391787e7fe72cea3e86"
+    },
+    {
+      "id": "fasta-schema-raw-main-version-1-integer",
+      "format": "fasta",
+      "digest": "4ef4632452d42bd8535de26e54db3516d76341389191d63a5ae75ac3c07ec222"
+    },
+    {
+      "id": "fasta-schema-canonical-raw-main-version-1",
+      "format": "fasta",
+      "digest": "b7a93feda305288f729c1cecf8418e5a093588c115c2b6c3498beecb0d3ab780"
+    },
+    {
+      "id": "fasta-schema-raw-tag",
+      "format": "fasta",
+      "digest": "ebc7f7fe0166a274951b7b0e200f3244f7ffa432faf0f0bba2fa6f3415d4e354"
+    },
+    {
+      "id": "fasta-schema-w3id-trailing-slash",
+      "format": "fasta",
+      "digest": "9f34de5e5f6c2cc9609359d85c4a0223b1742edce03203dd3e07512937f16a14"
+    },
+    {
+      "id": "fasta-schema-v0.3.1",
+      "format": "fasta",
+      "digest": "35a8ab19a78dfe10a8962d38e92134e2df48c4b740bb544bb14f145c9110ccf3"
+    },
+    {
+      "id": "fasta-schema-other-value",
+      "format": "fasta",
+      "digest": "dc929b5edfb0e377a093fcb0590378f0bf5d10699459089a88e7266873c02085"
+    },
+    {
+      "id": "fasta-schema-canonical-raw-main",
+      "format": "fasta",
+      "digest": "9919f71760b51ff0df1095a4fd1d0b511f2e431534e8f11f4fb8a19b4e61bcfc"
+    },
+    {
+      "id": "fasta-schema-canonical-raw-tag",
+      "format": "fasta",
+      "digest": "87dc0ae75919662e5ae8cca15ecb6b1f2b12bf2e6307121f2f6c4cdecb0b9ff3"
+    },
+    {
+      "id": "fhp-fasta-schema-canonical-raw-main",
+      "format": "fhp-fasta",
+      "digest": "f919568b4305108602902ee6928215d536f79ae54864a53f2fef6d4cd9390af0"
+    },
+    {
+      "id": "fhgff3-schema-canonical-raw-main",
+      "format": "fhgff3",
+      "digest": "dab148d9efdb41b74d0b4d837c25b3f687e49938d6fa95dc7ed0386b9ac0548d"
+    },
+    {
+      "id": "fhp-fasta-schema-raw-tag",
+      "format": "fhp-fasta",
+      "digest": "610929b08f8eee6b3af75bfb7449ffb9524a252e12ec0a36c37d4cf0ab5ef2c4"
+    },
+    {
+      "id": "fhgff3-schema-raw-main",
+      "format": "fhgff3",
+      "digest": "b990e13c1a315f7a2463c4f5b32c355a1b33244601c2f4e1ee46fff860538e53"
+    },
+    {
+      "id": "microdata-schema-raw-main-version-1",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "jsonld-schema-raw-main-version-1",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "fasta-extension-fields",
+      "format": "fasta",
+      "digest": "a45747338087801dfac601fe859351b4f1707c1ab9a2eb4db443300bbe5a56a1"
+    },
+    {
+      "id": "gfa-extension-fields",
+      "format": "gfa",
+      "digest": "83b5389215c79308fee8d95eb575b08516d9c9566bb465e6653a288417d49ee8"
+    },
+    {
+      "id": "fasta-extension-fields-raw-main",
+      "format": "fasta",
+      "digest": "9afd5041467f1356c2004486d7a5d295cd15f059f5dc876dc82a018b0a7ab0c6"
+    },
+    {
+      "id": "fasta-extension-named-like-standard-field",
+      "format": "fasta",
+      "digest": "8e85a80d93a56353756790087952b0036b572532fa1c54d0a862c331901e5a54"
+    },
+    {
+      "id": "fhp-fasta-extension-fields",
+      "format": "fhp-fasta",
+      "digest": "bd943a1e0e517809f8add8d24da3a0e8b01b4911e92ea30ae89e66f076adc64a"
+    },
+    {
+      "id": "fhgff3-extension-fields",
+      "format": "fhgff3",
+      "digest": "ebbdc75be3143a2b7ec75c1d3e1f04c6c6e64a661038f8527c743ef20562ee68"
+    },
+    {
+      "id": "jsonld-extension-fields-left-out",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "microdata-extension-fields-left-out",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "fasta-tab-on-checksum-line",
+      "format": "fasta",
+      "digest": "d1be040c16848c40bfd4f1c3d60af0fb268015ecf45a97d33bc7ab443b46657d"
+    },
+    {
+      "id": "fasta-crlf-normalized-checksum",
+      "format": "fasta",
+      "digest": "7e9b7b298ded926cb2d9982c1baabedb93a10406da4b15c63dbac74969397085"
+    },
+    {
+      "id": "fasta-missing-checksum",
+      "format": "fasta",
+      "digest": "185b71824208d2e8ff4eafece9b5edd2ff5dfac7e9fe8c514573fa69ef8420b1"
+    },
+    {
+      "id": "fasta-two-checksum-lines",
+      "format": "fasta",
+      "digest": "628fc95fc7ce828a9e00e6f60a7d50e9bc67728a1a7ef8be1951d68bcef0a1c4"
+    },
+    {
+      "id": "fasta-quoted-key",
+      "format": "fasta",
+      "digest": "185b71824208d2e8ff4eafece9b5edd2ff5dfac7e9fe8c514573fa69ef8420b1"
+    },
+    {
+      "id": "fasta-only-nested-checksum",
+      "format": "fasta",
+      "digest": "185b71824208d2e8ff4eafece9b5edd2ff5dfac7e9fe8c514573fa69ef8420b1"
+    },
+    {
+      "id": "fasta-metadata-tampered",
+      "format": "fasta",
+      "digest": "fac68bd831e0847e8bede23d59ca42412b14c04eb6eab37822421957d8a827ad"
+    },
+    {
+      "id": "fasta-sequence-tampered",
+      "format": "fasta",
+      "digest": "a81e719084419a23817964f7075291b7883d20222b202bff3cdcddcbe76b6461"
+    },
+    {
+      "id": "fasta-checksum-terminator-hashed",
+      "format": "fasta",
+      "digest": "47aa70349c36900f4859e131ca70ebc3711ab4da2124bd7e40f097e74b9f2d38"
+    },
+    {
+      "id": "fasta-comment-tampered",
+      "format": "fasta",
+      "digest": "f33a45e1a3a0c54a4beb9537f3cbfaf09d092b73519ab7d510fa7f2db741491c"
+    },
+    {
+      "id": "fasta-truncated-sha512",
+      "format": "fasta",
+      "digest": "d5a46a4d90ef8886fc912b9e8229501821a84827a421d94360647ed94a8444d0"
+    },
+    {
+      "id": "fasta-sha256",
+      "format": "fasta",
+      "digest": "cbfc2883826817fa8d383b8b11ef2feeefa76a0642d2cf2b67953bf0001a4c11"
+    },
+    {
+      "id": "fasta-block-literal-checksum",
+      "format": "fasta",
+      "digest": "d1be040c16848c40bfd4f1c3d60af0fb268015ecf45a97d33bc7ab443b46657d"
+    },
+    {
+      "id": "fasta-folded-checksum",
+      "format": "fasta",
+      "digest": "d1be040c16848c40bfd4f1c3d60af0fb268015ecf45a97d33bc7ab443b46657d"
+    },
+    {
+      "id": "fasta-continued-checksum",
+      "format": "fasta",
+      "digest": "d1be040c16848c40bfd4f1c3d60af0fb268015ecf45a97d33bc7ab443b46657d"
+    },
+    {
+      "id": "fasta-quoted-continued-checksum",
+      "format": "fasta",
+      "digest": "d1be040c16848c40bfd4f1c3d60af0fb268015ecf45a97d33bc7ab443b46657d"
+    },
+    {
+      "id": "fasta-comment-on-checksum-line",
+      "format": "fasta",
+      "digest": "d1be040c16848c40bfd4f1c3d60af0fb268015ecf45a97d33bc7ab443b46657d"
+    },
+    {
+      "id": "fasta-record-marker-on-checksum-line",
+      "format": "fasta",
+      "digest": "d1be040c16848c40bfd4f1c3d60af0fb268015ecf45a97d33bc7ab443b46657d"
+    },
+    {
+      "id": "fasta-tagged-checksum",
+      "format": "fasta",
+      "digest": "d1be040c16848c40bfd4f1c3d60af0fb268015ecf45a97d33bc7ab443b46657d"
+    },
+    {
+      "id": "fasta-noncanonical-checksum",
+      "format": "fasta",
+      "digest": "d1be040c16848c40bfd4f1c3d60af0fb268015ecf45a97d33bc7ab443b46657d"
+    },
+    {
+      "id": "fasta-yaml-leading-zero",
+      "format": "fasta",
+      "digest": "2475309e843e3c79413bd008594efd4556fde5e5b33bee700959f28811ab5ab3"
+    },
+    {
+      "id": "fasta-yaml-underscore",
+      "format": "fasta",
+      "digest": "608a3732435941987cc4faf5b48c8928fc326c78722890bfd64fe19acc764b74"
+    },
+    {
+      "id": "fasta-yaml-sexagesimal",
+      "format": "fasta",
+      "digest": "d85c0c82067bcdeaf81130cb996d274252d349712c5e37d89efbf7bba448cef9"
+    },
+    {
+      "id": "fasta-yaml-boolean-word",
+      "format": "fasta",
+      "digest": "da280e50f5cb009ff0d3bfdae45a98a2818214f7bb8c0708302908376ddba1df"
+    },
+    {
+      "id": "fasta-yaml-tag",
+      "format": "fasta",
+      "digest": "c394a104e02c048d72bd5ec9545e62a948c9888b065957a59585864c7c5cfe79"
+    },
+    {
+      "id": "fasta-u0085-in-header",
+      "format": "fasta",
+      "digest": "cb67fd3d6d3460c67ab53ff9b3a983955aa4ee50431789744d6e93a00e31845f"
+    },
+    {
+      "id": "fasta-u2028-in-header",
+      "format": "fasta",
+      "digest": "cb67fd3d6d3460c67ab53ff9b3a983955aa4ee50431789744d6e93a00e31845f"
+    },
+    {
+      "id": "fasta-u2029-in-header",
+      "format": "fasta",
+      "digest": "cb67fd3d6d3460c67ab53ff9b3a983955aa4ee50431789744d6e93a00e31845f"
+    },
+    {
+      "id": "fasta-non-utf8-header",
+      "format": "fasta",
+      "digest": "f6d0cf29169721de1873cdead8e1e1874e67c9339faae14fc0fd53397f920725"
+    },
+    {
+      "id": "fasta-utf8-bom",
+      "format": "fasta",
+      "digest": "85b84e175cfe70c7d79a173ab2407308153ae1b478d75fced9682e7a1ebbc4b0"
+    },
+    {
+      "id": "fasta-duplicate-key",
+      "format": "fasta",
+      "digest": "6949cff17bdf1cefc56e5cfda3ece448440c8094b97131166fec5838ac2c89cc"
+    },
+    {
+      "id": "fasta-yaml-anchor",
+      "format": "fasta",
+      "digest": "1ebe579e48562e005726e863dc7de0ed9e6a5fbeaa136df48d812699e7e742ce"
+    },
+    {
+      "id": "fasta-yaml-alias",
+      "format": "fasta",
+      "digest": "1ebe579e48562e005726e863dc7de0ed9e6a5fbeaa136df48d812699e7e742ce"
+    },
+    {
+      "id": "fasta-yaml-merge-key",
+      "format": "fasta",
+      "digest": "2cfa9b2cdbaf1351081924e97fcf5cd9bc7057207b0d801dd4d0d51b141bea1d"
+    },
+    {
+      "id": "fasta-fhr-line-after-sequence",
+      "format": "fasta",
+      "digest": "55f2c300fc7bd7feaa3d6ffcf4b9f67caaf12f6690ed98affc2db850817f7524"
+    },
+    {
+      "id": "fasta-concatenated",
+      "format": "fasta",
+      "digest": "55f2c300fc7bd7feaa3d6ffcf4b9f67caaf12f6690ed98affc2db850817f7524"
+    },
+    {
+      "id": "fasta-nan-vital-stats",
+      "format": "fasta",
+      "digest": "eef78cc0c1ca0e0cef0f95c25bbad1777b3b109c09de25c08aeb4edd5bf48424"
+    },
+    {
+      "id": "fasta-infinity-vital-stats",
+      "format": "fasta",
+      "digest": "87fbf7bfbc7c9c89591bdeb8f0210eabc80d2e0e468e7e41600c4adfd1f25894"
+    },
+    {
+      "id": "gfa-tab-on-checksum-line",
+      "format": "gfa",
+      "digest": "10c04893dde15322f3d283267b5b6e382e8adab6b2786f5342947d458a5f322e"
+    },
+    {
+      "id": "gfa-crlf-normalized-checksum",
+      "format": "gfa",
+      "digest": "2c292a0c89dd1685d6a264779b274d037b03793270df56df1001bf255c7b9013"
+    },
+    {
+      "id": "gfa-missing-checksum",
+      "format": "gfa",
+      "digest": "409471a8dcf4c3efad21d349e47a401f827706ef125c8fbf820c13fe448d31a8"
+    },
+    {
+      "id": "gfa-two-checksum-lines",
+      "format": "gfa",
+      "digest": "b476dbbd044c13235c123a84cdc0dc45dec7721c3738f741a9a22c177cb82a53"
+    },
+    {
+      "id": "gfa-quoted-key",
+      "format": "gfa",
+      "digest": "409471a8dcf4c3efad21d349e47a401f827706ef125c8fbf820c13fe448d31a8"
+    },
+    {
+      "id": "gfa-only-nested-checksum",
+      "format": "gfa",
+      "digest": "409471a8dcf4c3efad21d349e47a401f827706ef125c8fbf820c13fe448d31a8"
+    },
+    {
+      "id": "gfa-metadata-tampered",
+      "format": "gfa",
+      "digest": "da0d87cd1a673d2942905675d90fc5e1884f6224a6abc91501307501bd4b2048"
+    },
+    {
+      "id": "gfa-sequence-tampered",
+      "format": "gfa",
+      "digest": "54e58657467cb58ebc8999f6e11258af5ad9c81f3158456e0e34c75520f783d5"
+    },
+    {
+      "id": "gfa-checksum-terminator-hashed",
+      "format": "gfa",
+      "digest": "0173d5ef30e2b17b27ea24e35e88f281c8f91b2f27342e875a0dec494f2c5ab2"
+    },
+    {
+      "id": "gfa-comment-tampered",
+      "format": "gfa",
+      "digest": "52f19dc50e02cb4600426b3ebecdc86f0a4eec77aeed6386f574881b0cb33445"
+    },
+    {
+      "id": "gfa-truncated-sha512",
+      "format": "gfa",
+      "digest": "b46bd114df25580373bcabd7be4c0aae2cfe6c330cb368675f5d5fcc40337a96"
+    },
+    {
+      "id": "gfa-sha256",
+      "format": "gfa",
+      "digest": "4cfa0ca46a9eb967a822eaf6489364e26a3bab44ba4ff8cd325b06b47244f589"
+    },
+    {
+      "id": "gfa-block-literal-checksum",
+      "format": "gfa",
+      "digest": "10c04893dde15322f3d283267b5b6e382e8adab6b2786f5342947d458a5f322e"
+    },
+    {
+      "id": "gfa-folded-checksum",
+      "format": "gfa",
+      "digest": "10c04893dde15322f3d283267b5b6e382e8adab6b2786f5342947d458a5f322e"
+    },
+    {
+      "id": "gfa-continued-checksum",
+      "format": "gfa",
+      "digest": "10c04893dde15322f3d283267b5b6e382e8adab6b2786f5342947d458a5f322e"
+    },
+    {
+      "id": "gfa-quoted-continued-checksum",
+      "format": "gfa",
+      "digest": "10c04893dde15322f3d283267b5b6e382e8adab6b2786f5342947d458a5f322e"
+    },
+    {
+      "id": "gfa-comment-on-checksum-line",
+      "format": "gfa",
+      "digest": "10c04893dde15322f3d283267b5b6e382e8adab6b2786f5342947d458a5f322e"
+    },
+    {
+      "id": "gfa-tagged-checksum",
+      "format": "gfa",
+      "digest": "10c04893dde15322f3d283267b5b6e382e8adab6b2786f5342947d458a5f322e"
+    },
+    {
+      "id": "gfa-noncanonical-checksum",
+      "format": "gfa",
+      "digest": "10c04893dde15322f3d283267b5b6e382e8adab6b2786f5342947d458a5f322e"
+    },
+    {
+      "id": "gfa-yaml-leading-zero",
+      "format": "gfa",
+      "digest": "cbb2f13136aa48f6d135d2566e94d6bc05acaca1fe7527e5630ed42b0a18e2e2"
+    },
+    {
+      "id": "gfa-yaml-underscore",
+      "format": "gfa",
+      "digest": "3d3e344a3104304e7d50e354cea52d5b700a5392d83adf0f72397533a17555f1"
+    },
+    {
+      "id": "gfa-yaml-sexagesimal",
+      "format": "gfa",
+      "digest": "3d4d725f27090935d8dc4acc4655f8ee8cc7c2a88f4bbe448d77cc1d57b906f9"
+    },
+    {
+      "id": "gfa-yaml-boolean-word",
+      "format": "gfa",
+      "digest": "f03d8dd22f5b84a7689b2f91bb05c540c297c7ecf9c0f279d52461c4f60af22e"
+    },
+    {
+      "id": "gfa-yaml-tag",
+      "format": "gfa",
+      "digest": "c1c1358fccd5a24edc33bcba564a14e3a4759f6b58513ff1278103998856bbd4"
+    },
+    {
+      "id": "gfa-u0085-in-header",
+      "format": "gfa",
+      "digest": "18068aabb928c3542fc421ebb0e9c726815e752d1b220b4fcbab506b1d3e7aa9"
+    },
+    {
+      "id": "gfa-u2028-in-header",
+      "format": "gfa",
+      "digest": "18068aabb928c3542fc421ebb0e9c726815e752d1b220b4fcbab506b1d3e7aa9"
+    },
+    {
+      "id": "gfa-u2029-in-header",
+      "format": "gfa",
+      "digest": "18068aabb928c3542fc421ebb0e9c726815e752d1b220b4fcbab506b1d3e7aa9"
+    },
+    {
+      "id": "gfa-non-utf8-header",
+      "format": "gfa",
+      "digest": "fb2f903a71c1e0a7b6bb5e4e054c7d42c89170b49d9bdb59c6d42fc78ec887db"
+    },
+    {
+      "id": "gfa-utf8-bom",
+      "format": "gfa",
+      "digest": "745f0e5324b8bb4ead419fc0395a67daf0a48c5a22d8ea03dad98671a9940076"
+    },
+    {
+      "id": "gfa-duplicate-key",
+      "format": "gfa",
+      "digest": "dc9770124e411a288fe8c4f27e99b9c0ce8e0e5131c037c707f4fde0fc3ff9d8"
+    },
+    {
+      "id": "gfa-yaml-anchor",
+      "format": "gfa",
+      "digest": "be1facd58eb8a86cfc3e19d43f3188e2ebf37c9d28e9e7a938118fd7cb412c1b"
+    },
+    {
+      "id": "gfa-yaml-alias",
+      "format": "gfa",
+      "digest": "be1facd58eb8a86cfc3e19d43f3188e2ebf37c9d28e9e7a938118fd7cb412c1b"
+    },
+    {
+      "id": "gfa-yaml-merge-key",
+      "format": "gfa",
+      "digest": "40fc58b1adfc55eb5d57218d46e5c1ad49ee39b99d1e7f5caeb095a6dc93272c"
+    },
+    {
+      "id": "gfa-fhr-line-after-sequence",
+      "format": "gfa",
+      "digest": "8f46d5a2290001b07390632ed3785b30d72ba7989cf1dc595d6f258c0c82f8ad"
+    },
+    {
+      "id": "gfa-concatenated",
+      "format": "gfa",
+      "digest": "8f46d5a2290001b07390632ed3785b30d72ba7989cf1dc595d6f258c0c82f8ad"
+    },
+    {
+      "id": "fasta-gzip-sequence-tampered",
+      "format": "fasta",
+      "digest": "a81e719084419a23817964f7075291b7883d20222b202bff3cdcddcbe76b6461"
+    },
+    {
+      "id": "microdata-no-fhr-scope",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "microdata-two-fhr-scopes",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "microdata-genome-only-in-nested-scope",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "microdata-itemtype-repeated-attribute",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "microdata-itemprop-repeated-attribute",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "microdata-type-mismatch",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "microdata-type-mismatch-value-attribute",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "microdata-value-attribute-applies",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "microdata-repeated-single-valued",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "microdata-schema-invalid",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    },
+    {
+      "id": "jsonld-nested-extra-key",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-duplicate-key",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-missing-checksum",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-type-object",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-documentation-and-subjectof",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-context-remapped",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-context-schemaorg-vocab",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-context-extended",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-context-import",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-context-nested",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-nest",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-remote-context",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-unknown-term",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-two-nodes",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-two-genome-values",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-flattened",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-datetime-datecreated",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-root-id",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "fhp-fasta-sequence-tampered",
+      "format": "fhp-fasta",
+      "digest": "f627d8bb9d69d4a37d68f0e664afdc02f7d7a0e9956c29d7c288644d11a439b5"
+    },
+    {
+      "id": "fhp-fasta-stop-normalized-checksum",
+      "format": "fhp-fasta",
+      "digest": "577e58654727dea30e881b2ef690b8ec95b71853aa73d6753bf1a9df95a04260"
+    },
+    {
+      "id": "fhp-fasta-case-normalized-checksum",
+      "format": "fhp-fasta",
+      "digest": "dda3f45b4ac080f3b1e11183ebf2f21996b01e88e31f8f4a59a68f69a2e272ba"
+    },
+    {
+      "id": "fhp-fasta-two-checksum-lines",
+      "format": "fhp-fasta",
+      "digest": "628fc95fc7ce828a9e00e6f60a7d50e9bc67728a1a7ef8be1951d68bcef0a1c4"
+    },
+    {
+      "id": "fhp-fasta-header-after-record",
+      "format": "fhp-fasta",
+      "digest": "96e0850b8438d1fa3750d03b051a9956fd7fbe70be0677777d696e0788e5e3c1"
+    },
+    {
+      "id": "fhp-fasta-missing-source-type",
+      "format": "fhp-fasta",
+      "digest": "17c441ba7f3202cfc2d181035eca50cb853f88217d20336549b14877dadd311c"
+    },
+    {
+      "id": "fhp-fasta-curated-source-type",
+      "format": "fhp-fasta",
+      "digest": "540cdbab6dbdf619be1d51c4df01735c0d3784d0b1a42206f7a3cb9a264e0106"
+    },
+    {
+      "id": "fhp-fasta-genome-key",
+      "format": "fhp-fasta",
+      "digest": "6141978cef73931ef446f8e933089e15a09b4bdd66b49c07514928c54a094491"
+    },
+    {
+      "id": "fhp-fasta-derived-from-no-checksum",
+      "format": "fhp-fasta",
+      "digest": "a51f3d000ba688dd14e0cfe8b452fb4b2db3d9d222a810aaa919422051f1aff4"
+    },
+    {
+      "id": "fhp-fasta-derived-from-bad-relationship",
+      "format": "fhp-fasta",
+      "digest": "c87be854172dba0c2b97cc549ca258db3058165e1509824194a40a061d310afc"
+    },
+    {
+      "id": "fhp-fasta-source-without-name",
+      "format": "fhp-fasta",
+      "digest": "9178fcd019cb77f0fe10131ef9f4127f30d4f5cb4863518c873a4945ad254208"
+    },
+    {
+      "id": "fhp-fasta-unused-genetic-code",
+      "format": "fhp-fasta",
+      "digest": "b8b41805b55d00e661641d08a0bc8d780d45b95443b626e40d0b55e9131791ad"
+    },
+    {
+      "id": "fhp-fasta-busco-no-lineage-version",
+      "format": "fhp-fasta",
+      "digest": "5ecc245fd6702ac56ef6d8a546009cef161c07c79de0f5d0c6ccdf31d4e1aecf"
+    },
+    {
+      "id": "fhp-fasta-busco-lineage-trailing-dot",
+      "format": "fhp-fasta",
+      "digest": "f0fbd0b39de9b72ce4951db555231354e9cc9faf7e2ee1f0e63ab3dcf4d26bbc"
+    },
+    {
+      "id": "fhp-fasta-busco-lineage-leading-dot",
+      "format": "fhp-fasta",
+      "digest": "403336f0cbd79de2ca736e4d77922d3b55d7f88cb8fae8df32db2bb11986293b"
+    },
+    {
+      "id": "fhp-fasta-busco-lineage-letter-component",
+      "format": "fhp-fasta",
+      "digest": "dc6529c1cf55e54f2072b933d5aefd5d8c1c517a7960593ede928b97cac611d5"
+    },
+    {
+      "id": "fhp-fasta-busco-lineage-uppercase",
+      "format": "fhp-fasta",
+      "digest": "73132c743566880f23e1303ed7cc6f7964113196e5608729e187b18f9f46b529"
+    },
+    {
+      "id": "fhp-fasta-cites-fhr-schema",
+      "format": "fhp-fasta",
+      "digest": "ff18396bc86e03522e8a0a3609f46a9b12f4cd87831284eba8092ea845cdd799"
+    },
+    {
+      "id": "fhgff3-fasta-tampered",
+      "format": "fhgff3",
+      "digest": "1cc00fd51143f56a6cdb65be872b8ec8d96c8f7cc6e3511e96a1204c4c340a10"
+    },
+    {
+      "id": "fhgff3-two-checksum-lines",
+      "format": "fhgff3",
+      "digest": "0c1f69a1d1b550f9659bc48bc90501b9a0c8f1a8d3f548054b9b6c91312f0ab3"
+    },
+    {
+      "id": "fhgff3-header-after-feature",
+      "format": "fhgff3",
+      "digest": "48d4f70c712e2d19dae1abc15ff45b808c4ea8f4e683fc021fb23e03a56b75de"
+    },
+    {
+      "id": "fhgff3-header-after-fasta",
+      "format": "fhgff3",
+      "digest": "479d46a683788c4df3b5dec52a9c605c23f37b95e98467b8afef229d1df3eaad"
+    },
+    {
+      "id": "fhgff3-concatenated",
+      "format": "fhgff3",
+      "digest": "db995c7a742274f5c7686033d04c437c77c7c837991797804bf5a38fa01f81c8"
+    },
+    {
+      "id": "fhgff3-header-before-version",
+      "format": "fhgff3",
+      "digest": "cf153d680014412bb9639586b74b59ae8bb536a5c7e0e3da4f8b6bb427705107"
+    },
+    {
+      "id": "fhgff3-version-30",
+      "format": "fhgff3",
+      "digest": "d83e04292820bb0b57de25f4aef12bbdc500bb70f079e260bd539f074121e8f0"
+    },
+    {
+      "id": "fhgff3-version-3x",
+      "format": "fhgff3",
+      "digest": "2480b9ea5f51fa0a285e6ae05c559496b9f50d433ab657a6363cf53ccc1aed3f"
+    },
+    {
+      "id": "fhgff3-version-3-1",
+      "format": "fhgff3",
+      "digest": "121427d474dc9ff0625d62bc531edad774e8565dc843100c21d3a0c25e00297d"
+    },
+    {
+      "id": "fhgff3-no-genome-link",
+      "format": "fhgff3",
+      "digest": "bc6fc955bd8760c6793eededaca8770a503cf5b7278d8f112c1b97ccc03f15a2"
+    },
+    {
+      "id": "fhgff3-half-reference",
+      "format": "fhgff3",
+      "digest": "936e7bbecc39d287231e88e49be46794519cb47f5343adf7fa5dde5ab6809bf8"
+    },
+    {
+      "id": "fhgff3-two-annotates",
+      "format": "fhgff3",
+      "digest": "47dce8dd3b1e9dc9633c91f8a16a5dfcd5814524e5af215b36ce825323f59499"
+    },
+    {
+      "id": "fhgff3-annotates-fhp",
+      "format": "fhgff3",
+      "digest": "9fdef9314848aa795b4219c06f18286a047ab29916c71e6196a231cac318d803"
+    },
+    {
+      "id": "fhgff3-fhr-only-key",
+      "format": "fhgff3",
+      "digest": "7f9f3fdd8b464f2b107fb5c0075fc9bbd26cb30a75e23637da89569f81f96bdd"
+    },
+    {
+      "id": "fhgff3-busco-lineage-trailing-dot",
+      "format": "fhgff3",
+      "digest": "75e80ba871e9241b88e033e6e94583ca83dccbfce16028f94da1c31ecafe7e3f"
+    },
+    {
+      "id": "fhgff3-cites-fhr-schema",
+      "format": "fhgff3",
+      "digest": "5c09a704f351b99985e4534ca2b73ac6877afbe587a9307cf98b9fe24e246999"
+    },
+    {
+      "id": "fasta-schema-raw-main-version-1-invalid",
+      "format": "fasta",
+      "digest": "127ef9d4fcd21d09c5e9eadfeb4e5854829bcb24b411f4af8294b073e81ddba4"
+    },
+    {
+      "id": "fasta-schema-raw-main-version-string-1",
+      "format": "fasta",
+      "digest": "c54852abd008aafef9a715ac4437fd781a8a9761582b5d9d979f3792030c77a9"
+    },
+    {
+      "id": "fasta-schema-raw-main-version-true",
+      "format": "fasta",
+      "digest": "33a9fd0ac83c4643bf7220113861095ab670b94455befd87e71c75fc682aa4db"
+    },
+    {
+      "id": "fasta-schema-raw-tag-version-1",
+      "format": "fasta",
+      "digest": "f55d26cd8a4f5e4b6970b0e2ae68fe83c959f45fc6b82b0b3ec0cd29171d3063"
+    },
+    {
+      "id": "fasta-schema-v0.3.1-version-2.0",
+      "format": "fasta",
+      "digest": "a6a5d3487e5026a8813697b20314cbfdf96b6e672e9ed96ca8bb65710b6a7815"
+    },
+    {
+      "id": "fasta-schema-unknown-release",
+      "format": "fasta",
+      "digest": "9240bc7d1824bef996b98a09cbe4aba2cea250ea231a6e7561eb9b6fd44d6cbe"
+    },
+    {
+      "id": "fasta-schema-branch-ref",
+      "format": "fasta",
+      "digest": "116a180285556b1a7d9cd76f77b44ec73c4e7af6c004391b9833c02b748c7417"
+    },
+    {
+      "id": "fasta-schema-other-value-version-1",
+      "format": "fasta",
+      "digest": "826897a42cca44496099e9e98c10ff83dc73b7c0a16fee179ec41516d5825492"
+    },
+    {
+      "id": "fhp-fasta-schema-release-without-type",
+      "format": "fhp-fasta",
+      "digest": "34e1675a5168fe9172f2ad4f2f9b50210a89b869b3f50a7bfa12cf558ac11e75"
+    },
+    {
+      "id": "fhgff3-schema-unknown-release",
+      "format": "fhgff3",
+      "digest": "f97d153f0ccb421503285cae08ab942509ae12ae254d9c8beb925f2648fc00dd"
+    },
+    {
+      "id": "fasta-unknown-key",
+      "format": "fasta",
+      "digest": "c94ef26f2c733be93a654f9f77269ef1ebbbd987bcd60688e38858a79890057d"
+    },
+    {
+      "id": "fasta-extension-key-uppercase-prefix",
+      "format": "fasta",
+      "digest": "b07291852b1d2fbc4af166bbf95023482ff0a05910c5787cd2ea45bf8c51a4fc"
+    },
+    {
+      "id": "fasta-extension-key-empty-name",
+      "format": "fasta",
+      "digest": "81f365943d99ac2561bf8a0bfc276a08bdeb40e22c8241eb01cae2970a7d6f70"
+    },
+    {
+      "id": "fasta-extension-key-punctuation-first",
+      "format": "fasta",
+      "digest": "50657bdf6a50116c14080b119556ae9372e138e743154e1ea2201dbfeee8e214"
+    },
+    {
+      "id": "fasta-extension-key-space",
+      "format": "fasta",
+      "digest": "df6c3725f7bb3e28b54e52069aa495f31fdd32f4a6dd624e35a97627187bd991"
+    },
+    {
+      "id": "fasta-extension-key-non-ascii",
+      "format": "fasta",
+      "digest": "1fe7d013234601837179f660ca1edf10b977d5d81bc146d5db1ae5f426f90029"
+    },
+    {
+      "id": "fasta-extension-key-trailing-line-feed",
+      "format": "fasta",
+      "digest": "b161540b98348cd90e3f10aba153a1220dab85044910a894a4e9a4cdeb086e49"
+    },
+    {
+      "id": "fasta-extension-nested",
+      "format": "fasta",
+      "digest": "d31c6380751bce8c29448ac537ba05350ae55504a8049c32ab21f8b704d20eb1"
+    },
+    {
+      "id": "fasta-extension-nested-author",
+      "format": "fasta",
+      "digest": "a7a799fefa6cc92b23507ca2f582b48a02065e5eec642f83bb6fc506bace9bff"
+    },
+    {
+      "id": "fasta-extension-older-version",
+      "format": "fasta",
+      "digest": "5ebc63e032da5330ba7d5f2ff43aeea4a973d62ddb5fcf02c94fbe810845c92d"
+    },
+    {
+      "id": "fasta-extension-older-release",
+      "format": "fasta",
+      "digest": "0990a7cb1b4c9ca9e8c254ffec0be6b2488f2a21ec49b984c262e522b7e07db6"
+    },
+    {
+      "id": "fasta-extension-older-release-new-version",
+      "format": "fasta",
+      "digest": "45fdf59063361f59e0974ac825dd95ef9e555144d4efd680f255169f1561dd66"
+    },
+    {
+      "id": "gfa-extension-older-version",
+      "format": "gfa",
+      "digest": "a152928dab1d55408e2761437a73243b98eb908f4afce297aee951c564983474"
+    },
+    {
+      "id": "fasta-extension-older-version-raw-main",
+      "format": "fasta",
+      "digest": "9a23b37e1a95789e7b8305e754852579728e7eedea9abdeeb0d0a656d1806569"
+    },
+    {
+      "id": "fasta-extension-yaml-boolean-word",
+      "format": "fasta",
+      "digest": "71b40d2912ace17a7dd369d9d16e94faeb6410258f908c35a41e873b46d95803"
+    },
+    {
+      "id": "fasta-extension-nan",
+      "format": "fasta",
+      "digest": "a5c5b3877e1106e1339e913a9ce9445d09a3037b65bec88c3e4f2bb245aedb44"
+    },
+    {
+      "id": "fasta-extension-duplicate-key",
+      "format": "fasta",
+      "digest": "4055560fc151857cfa3acccb5d37f0ad8c388f61152dc41d57bac9785ca95866"
+    },
+    {
+      "id": "fhp-fasta-extension-older-version",
+      "format": "fhp-fasta",
+      "digest": "ec41d6cba28ca4ad974c070ddebf4f6f981e2211807085a89c98ed4606a9a8c3"
+    },
+    {
+      "id": "fhgff3-extension-older-version",
+      "format": "fhgff3",
+      "digest": "22265d0fef39dce4837556a4b2b12e856b9cbd98659bcaadaa51c1df1a6753e9"
+    },
+    {
+      "id": "fhp-fasta-extension-older-release",
+      "format": "fhp-fasta",
+      "digest": "6d464fceec6e84ef34c618e16079587cdd04b78432ae999194ac0bd2b8db128d"
+    },
+    {
+      "id": "fhgff3-extension-older-release",
+      "format": "fhgff3",
+      "digest": "2e817a149bcf8cf073dcbf7b6baf3620bef25e2a8246635e80e040df047f78fc"
+    },
+    {
+      "id": "fhp-fasta-extension-nested",
+      "format": "fhp-fasta",
+      "digest": "92074e451602286cf6a6c320f53d1d1d2de0f2564b72c2e3186c7573e4326ed2"
+    },
+    {
+      "id": "fhgff3-extension-nested",
+      "format": "fhgff3",
+      "digest": "acc84de85fb3adf1e3fd4a12fbb5556ed2a1fe81968d0d4b9c3a7587f1f984e8"
+    },
+    {
+      "id": "jsonld-extension-field",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "jsonld-extension-field-general",
+      "format": "jsonld",
+      "digest": "a951ce944a70d3ea3309c141ae2dbf1208b6fdf7a584427c55b381406643a6b1"
+    },
+    {
+      "id": "microdata-extension-field",
+      "format": "microdata",
+      "digest": "dd63489d45d3dedf9c6d6fdbfe1d0f5181b6f7086e26af43f5c1c1e7c9529288"
+    }
+  ],
+  "examples": [
+    {
+      "name": "minimal.fhr.json",
+      "digest": "b7212dfc27efb2d72883a2a1c3b0745d67ad04e5cb855be8490da528e174e3ad"
+    },
+    {
+      "name": "minimal-predicted.fhp.json",
+      "digest": "050b4af2e8e2c351e98b3e6b1ba7591a1e03226c665557bbce650f6f964acbb9"
+    },
+    {
+      "name": "minimal-reference.fhgff3.json",
+      "digest": "c35b1f8b4289823e84cc5f519a2d9dcdf1c9730f9503b224d3abb41d05d97cda"
+    }
+  ]
+}
