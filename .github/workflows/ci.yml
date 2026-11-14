@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Library and shared vectors (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # package.json engines says >=20. Node 20 leaves support in April 2026, so
+        # 22 and 24 are the lines that matter; 20 is kept to prove the floor.
+        # The capability study was executed on 24.x only — see docs/CAPABILITY.md.
+        node: ['20', '22', '24']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - name: Install exact dependency pins
+        run: npm ci --ignore-scripts
+      - name: Vendored copies still match their provenance
+        run: node scripts/check-vendoring.mjs
+      - name: Licences: the file, the manifest, and dependency ids unchanged
+        run: node scripts/check-license.mjs
+      - name: Capability (i) - draft/2020-12 against the released contracts
+        run: node scripts/capability/ajv-dialect.mjs
+      - name: Capability (ii) - SHA-512/256 against every valid sequence vector
+        run: node scripts/capability/digest.mjs conformance
+      - name: Unit tests and the shared conformance vectors
+        run: node --test
+      - name: Shared conformance vectors, per-format table
+        run: node scripts/run-conformance.mjs
+
+  reference:
+    name: Differential against the released Python toolkit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - name: Install the reference toolkit at the version the shared CI pins
+        # fair-bioheaders 0.11.0 is the first release that bundles v0.6.0, and the
+        # version FAIR-bioHeaders-Specification's conformance job installs.
+        run: |
+          python -m venv "$RUNNER_TEMP/fhr-reference"
+          "$RUNNER_TEMP/fhr-reference/bin/python" -m pip install "fair-bioheaders==0.11.0"
+      - name: Install exact dependency pins
+        run: npm ci --ignore-scripts
+      - name: Capability (iii) - YAML stage against bioheaders.load_yaml + check_finite
+        env:
+          FHR_PYTHON: ${{ runner.temp }}/fhr-reference/bin/python
+        run: node scripts/capability/yaml-portability-differential.mjs --sweep
+      - name: Validity and strip bytes against the toolkit CLI
+        env:
+          FHR_TOOLKIT_BIN: ${{ runner.temp }}/fhr-reference/bin
+        run: node scripts/capability/toolkit-crosscheck.mjs conformance
