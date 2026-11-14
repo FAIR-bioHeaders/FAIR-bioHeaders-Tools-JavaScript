@@ -8,7 +8,8 @@ JavaScript-specific expectations; it vendors the shared bytes and runs them.
 ```sh
 npm run conformance        # per-format table over all 291 vectors
 npm test                   # unit tests + one test per vector (63 reported skipped)
-npm run check:vendoring    # the vendored copies still match their provenance
+npm run test:ci            # the same suite, accounted (see "Accounting the suite")
+npm run check:vendoring    # the vendored copies AND the pinned drafts match their provenance
 ```
 
 ## Where the vectors come from
@@ -88,8 +89,13 @@ line and block end, the genome link, and FHGFF3-vs-FHR selection, and
 `unsupported-version`.
 
 `V7` has no vector by design: rule V7 changes no default outcome and publishes no
-draft contract in the shared suite. This library does not implement the lane, so
-there is nothing here to skip.
+draft contract in the shared suite ("This suite publishes no draft contract, so no
+vector is valid or invalid under V7"). This build does implement the lane, so the
+shared suite still holds nothing for it - and the lane is therefore accounted for in
+two other places: `test/default-gate.test.mjs` proves the lane-off behaviour is
+byte-identical to the pre-lane library, and the lane-on behaviour is proved against
+the pinned FHT contract, the pinned FHGM record contract and the two development
+suites (next section).
 
 ## Vectors not run, and why
 
@@ -120,7 +126,68 @@ Also unexercised by the suite, so untested by anything here rather than merely
 - integers beyond `Number.MAX_SAFE_INTEGER`, which the suite never uses;
 - the v0.3.0 copy of `fhr.json`, which no vector cites (v0.3.1 is the FHR 1 release
   V6 names) — it is bundled so V2/V3 can answer a v0.3.0 citation as a known
-  release rather than as `unsupported-version`.
+  release rather than as `unsupported-version`;
+- FHGM K4 (feature-target resolution), declared not-supported-yet above rather than
+  approximated from the header alone;
+- parent-link recomputation for the released types: no released rule makes a
+  recomputed mismatch a rejection, so `verifyParentLinks` runs only inside the FHT
+  lane, against parent bytes the caller hands over.
+
+## Draft-lane evidence, labelled draft and kept out of the counts above
+
+FHT and FHGM have no vector in the shared suite and none is vendored here: rule V7
+keeps a record that cites a draft in the development repository that owns it. What
+can be done - and is, by `node scripts/capability/draft-vectors.mjs`, also run in CI
+against the pinned commits - is to read those repositories' own development suites
+through the lane and report them separately.
+
+| draft suite | pinned at | vectors | pass | fail | not run, and why |
+| --- | --- | --- | --- | --- | --- |
+| FHT (`FHT-Specification/conformance`) | `226f923c28b680edb3c546e99a751482d06aef1a`, sha256 `59ad9641adcb0e55…` | 66 | 66 | 0 | none |
+| FHGM (`FHGM-Specification/development/conformance`) | `ac3d37b3033312844fc3151217731928ae33aa54`, sha256 `bf1553cac04dc88d…` | 31 | 26 | 0 | 5 - every vector whose verdict depends on K4, which resolves a `featureId` against the GFF3 feature layer this library does not read |
+
+Each of those rows is a *draft* result: it says the lane reads the pinned bytes and
+reports what the pinned contract and the drafted rules say. It is not a
+released-contract result, it is not added to the 228 above, and it is not support
+for either type. The FHT row covers C1 contract validation, C2 schema-URL closure,
+C3 parent-link verdicts (checked-pass, checked-fail and unchecked all reached), the
+R1-R15 header rules and the two V5 cases the suite includes; the FHGM row covers B1,
+K1, K2, K3, K5 and K6, with the predecessor verdicts exercised against the prior
+snapshots the suite names.
+
+`node scripts/ci/draft-pins.mjs --check <FHT checkout> <FHGM checkout>` is what
+proves the bytes being read are the bytes the pin names; the CI job runs it against
+checkouts of the pinned commits, and it was verified locally to report `DRIFT` on a
+stale checkout and `MATCH` on the pinned one.
+
+## Accounting the suite
+
+`npm run test:ci` (`scripts/check-test-report.mjs`) runs Node's own test runner with
+the TAP reporter and then refuses to call the run a success unless the suite is
+still the whole suite. It fails on:
+
+- zero leaf tests, or a discovered test file that contains none - an empty harness
+  reports success without the guard;
+- a vector of the pinned manifest with no test, or with two;
+- a skip for anything other than the declared not-run formats, with a reason that is
+  not the declared one, or a declared not-run format that ran anyway - so a hole
+  cannot be filled by silence in either direction;
+- any failing test.
+
+Two demonstrations that the guard bites, both local and both reverted: silencing one
+runnable vector (`{ skip: ... }` on `gfa-lf`) left `node --test` reporting
+`pass 369, fail 0` while the guard exited 1 with
+`gfa-lf (gfa): skipped with "silenced on purpose", and it is not a declared not-run
+format`; pointing it at a file with no tests exited 1 with
+`the runner reported 1 file(s) and no leaf test at all`. The cross-repository
+demonstration - a deliberate bad vector expectation making the CI job red - is
+recorded with the PR, because that one only counts on CI.
+
+The guard also checks the workflow itself (`test/workflow.test.mjs`): the primary
+`native` job must install and invoke no foreign runtime, must run every acceptance
+command, must contain no step allowed to fail softly, and any job that does install
+Python must say `supplemental` in its name. Adding a `setup-python` step to the
+primary job fails the test suite locally before CI ever runs it.
 
 ## Cross-checks beyond the vectors
 
@@ -158,7 +225,9 @@ found and fixed (see [`CAPABILITY.md`](CAPABILITY.md)).
   container rules; feature lines, SO terms and biology belong to
   `gff3-validator`.
 - It is not FHT or FHGM support, at any version. Neither has a released contract,
-  and this build ships no draft, no `schemaVersion`, no w3id URL and no V7 lane for
-  either.
+  and this build states no `schemaVersion`, no w3id URL and no registry row for
+  either. The rule-V7 lane recognises their pinned bytes behind an explicit caller
+  decision and warns on every record it reads that way; recognition is what V7
+  calls it, and the draft-lane counts above are never merged into this one.
 - It is not a release. Nothing here is published, tagged or merged by this work, and
   `version` in `package.json` is `0.0.0` to say so.

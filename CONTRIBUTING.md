@@ -20,9 +20,24 @@ the steering-group option described there is not active. Sensitive findings use
 ```sh
 npm ci --ignore-scripts     # exact pins; no lifecycle scripts run
 npm test                    # unit tests + one case per shared conformance vector
+npm run test:ci             # the same suite, accounted: zero tests / missing vector / unexplained skip fails
 npm run conformance         # per-format table over all 291 vectors
-npm run check:vendoring     # vendored copies vs their recorded SHA-256
+npm run check:vendoring     # vendored copies AND pinned drafts vs their recorded SHA-256
+npm run check:drafts        # just the draft pins
+npm run check:matrix        # docs/MATRIX.md still matches src/types.js
+npm run check:docs          # docs/llms.txt vs the registry, the counts, and the draft guard
+npm run check:license       # LICENSE and package.json agree
 ```
+
+`npm run test:ci` is what the primary CI job runs, and it is stricter than
+`npm test`: it fails on an empty run, on a manifest vector with no test, and on any
+skip outside the declared not-run set. If you add a format, add it to
+`src/serializations.js` with its reason - that one declaration is read by the
+runner, the test suite, the guard and the matrix, which is the point.
+
+Two checks (`capability:ajv`, `capability:digest`) need nothing but the installed
+dependencies and run in the primary CI job. The draft-lane runner needs checkouts of
+the two development suites and reports nothing at all without them (exit 3).
 
 Four more checks compare this reader against the released Python toolkit. They are
 **not** part of `npm test` — they need a Python with `fair-bioheaders` installed —
@@ -42,13 +57,40 @@ Run the toolkit comparisons before merging anything that touches `src/lines.js`,
 this library were found to be wrong twice, and how a fix to them is proved rather
 than asserted.
 
+## Changing the draft lane
+
+The lane is the part of this library most able to create a false claim by accident,
+so the rules are narrow and each is checked:
+
+- `schemas/provenance.json` lists released contracts only; the drafts live in
+  `drafts/provenance.json` with `releaseTag`, `w3id` and `registryRow` set to `null`
+  - `scripts/check-vendoring.mjs` fails if one acquires a release shape;
+- re-pinning a draft means changing the bytes, the commit and the digest in the same
+  commit as the prose that quotes them, because `scripts/check-docs.mjs` refuses a
+  document that names a lane without naming the pin it reads;
+- a default (lane-off) reading must not change. `test/goldens/default-gate.json` is
+  a per-vector digest of all 291 shared vectors captured through the public API from
+  the pre-lane tree; `test/default-gate.test.mjs` recomputes and compares. Do not
+  regenerate the golden to make a test pass - if it moved, the change is a
+  default-behaviour change and needs saying so out loud;
+- an FHGM verdict never alters the FHGFF3 result, and a K4 or a predecessor verdict
+  is never implied: K4 is declared not-supported-yet unless the caller supplies the
+  gene-row ids, and an unsupplied predecessor link is `unresolvable` or `unchecked`,
+  never `verified`;
+- the primary CI job stays native. `test/workflow.test.mjs` reads the workflow and
+  fails if a foreign runtime appears in it, if an acceptance command disappears from
+  it, if a step is allowed to fail softly, or if a job that installs Python stops
+  calling itself supplemental.
+
 ## What belongs here, and what belongs somewhere else
 
 | Change | Where it goes |
 | --- | --- |
 | a new metadata field, enum value, constraint or changed meaning | FAIR-bioHeaders-Specification, as a labelled schema addition with its own cycle — never adopted downstream first |
 | a rule you believe the shared vectors state incorrectly | FAIR-bioHeaders-Specification, with the vector id; this library follows the suite, it does not arbitrate it |
-| FHT or FHGM behaviour of any kind | nowhere yet: both are drafts with no released contract, and rule V7 gives a draft no release form |
+| FHT or FHGM contract design | their own repositories (FHT-Specification, FHGM-Specification) and FAIR-bioHeaders-Specification#204 for FHGM: this library changes no draft's bytes and takes no position on their content |
+| a draft becoming "supported" | not here at all: the V7 lane recognises pinned bytes behind an explicit caller decision, and support arrives only with publication (`v0.7.0`, `v0.8.0`) and a registry row written by the specification repository |
+| vendoring draft records or draft vectors | no: rule V7 keeps a record that cites a draft in the development repository that owns it. The development suites are read from a checkout the caller points at (`scripts/capability/draft-vectors.mjs`), never copied in |
 | GFF3 feature, SO-term or biology validation | `gff3-validator` |
 | writing a header, computing a new checksum, JSON-LD/schema.org/microdata output | the Python toolkit (`fair-bioheaders`); if a JavaScript writer is needed, open an issue here first |
 | this library's own reader, checker and stripper, its docs, skills and CI | here |

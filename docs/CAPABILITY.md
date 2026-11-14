@@ -4,15 +4,39 @@ Executed on this host on 2026-11-14 before any implementation was chosen, and
 re-runnable:
 
 ```sh
-npm run capability:ajv        # draft/2020-12 dialect and the released contracts
+npm run capability:ajv        # draft/2020-12 dialect, the released contracts and the two pinned drafts
 npm run capability:digest     # SHA-512/256, proved against the shared vectors
 npm run capability:yaml       # R12/R13 read, differentially against the toolkit
 npm run capability:toolkit    # validity and strip bytes, against the toolkit CLI
+npm run capability:draft -- --fht <checkout> --fhgm <checkout>   # the two development suites, through the lane
 ```
 
 Each script exits non-zero on a failed expectation and exits 3 with a message when
 its external reference (a Python with the released toolkit) is absent — none of
 them reports a pass it did not compute.
+
+## (0) What the two drafts are, and what reading them does not mean
+
+FHT and FHGM are drafts with no released contract, no `schemaVersion` of their own
+in the registry, no w3id URL and no support claim. Rule V7 gives a reader one way
+to recognise them - an explicit opt-in lane, reading bytes pinned by commit and
+SHA-256, warning on every record - and this build implements that lane while
+keeping every one of those negatives true. `docs/MATRIX.md` states the resulting
+capability cell by cell; `docs/CONFORMANCE.md` holds the draft-suite counts, kept
+apart from the shared 291.
+
+Findings from executing the lane against the pinned bytes:
+
+| Question | Finding |
+| --- | --- |
+| Do the draft contracts need a different validator configuration? | No. Both declare `"$schema": …/draft/2020-12/schema`, both compile under the same `strict: true, strictRequired: false, strictTypes: false, validateFormats: true, allowUnionTypes: true` configuration the released bytes force, and both keep their remote-free `$ref` graphs local (29 refs in `fht.json`, 15 in the FHGM record contract, all `#/…`). |
+| Is `format` still asserted inside the lane? | Yes, and it is checked rather than assumed: a record with `dateCreated: "2022-13-45"` is refused by the pinned FHT contract with `/dateCreated: must match format "date" (format)`, and the same record with a valid date passes. |
+| Does the draft contract really close the schema URL (C2)? | Yes - an arbitrary URL fails `/schema: must match pattern …`, while the pinned raw-main citation passes the same pattern. |
+| Where is the lane stricter than the draft contract? | Here, and it matters. The pinned `fht.json` pattern also admits a release-tag citation of its own repository (`…/FHT-Specification/vX.Y.Z/fht.json`) and the alias-shaped form a published FHT URL would one day use (`…/fair-bioheaders/fht/vX.Y.Z`) - and neither of those forms exists yet, because the registry publishes no FHT release. V7 recognises the raw-main citation and nothing else, so those release-shaped values are not read as a draft at all: they stay "any other value" under V5 and are read as FHR, with the lane open or shut. The schema's own tolerance is not the reader's licence, and `test/draft-lane.test.mjs` asserts all six shapes. |
+| Does the FHGM transport overlay admit a current FHGFF3 header? | No, and this is a real divergence rather than a detail. The overlay pins the v0.5.0 FHGFF3 citation and `schemaVersion` `"1.1"` outright, so a `v0.6.0`/`1.2` header carrying `x-fhgm-models` fails the overlay while satisfying R15 (extension fields are admitted from 1.1). This build therefore applies the R15 reading by default and exposes the overlay verbatim as `checkFhgmModels(header, {overlay: true})`, so a caller reproducing the upstream checker's narrower verdict can. The difference is recorded here so the FHGM publication (`v0.8.0`) has to settle it deliberately. |
+| Does the FHGM record contract express everything the checker enforces? | Not entirely, and the same is true upstream: model-id uniqueness (K3), feature-target resolution (K4) and predecessor resolution (K6) are checker rules, not schema constraints. This build implements K3, K5 and K6 natively and declares K4 not-supported-yet, because resolving a `featureId` means reading the GFF3 feature layer, which belongs to gff3-validator. |
+| What does the lane refuse to do? | Read a draft whose bytes no longer match the recorded digest: `verifyDraftBytes()` and `loadDraft()` report the mismatch (`drafts/<file>: sha256 …, expected …; the draft moved and this build was not re-pinned`) instead of quietly choosing newer bytes. Verified locally by appending one byte to a copy of the overlay: `check:vendoring --drafts-only` exits 1, and exits 0 again once restored. |
+| Does any of this move the default? | No. `test/goldens/default-gate.json` holds a per-vector digest of all 291 shared vectors plus the three examples, captured from the pre-lane tree through the public API (`node scripts/golden-default-off.mjs print` → aggregate `cefb059e520e76fe49321e3015b525f68e883429f0bbf88cbed5beb0ae503baf`), and `test/default-gate.test.mjs` fails on any difference. The aggregate after the lane landed is the same digest, which is the byte-identity claim in one line. |
 
 ## Environment
 
@@ -24,6 +48,7 @@ them reports a pass it did not compute.
 | `js-yaml` | 5.5.0 (MIT) |
 | reference toolkit | `fair-bioheaders` 0.11.0 from PyPI (no `direct_url.json`: index-installed, not a checkout), Python 3.15.0 |
 | contracts | FAIR-bioHeaders-Specification `v0.6.0` (`fhr.json` `694ab5af…`, `fhp.json` `92a0b3cb…`, `fhgff3.json` `1942be4c…`), `main` at `a60bc02` schema-identical to the tag |
+| pinned drafts (V7 lane only) | FHT: FHT-Specification `226f923c28b680edb3c546e99a751482d06aef1a`, `fht.json`, sha256 `59ad9641adcb0e55…`, 29430 B. FHGM: FHGM-Specification `ac3d37b3033312844fc3151217731928ae33aa54`, `development/model/fhgm-model.schema.json`, sha256 `bf1553cac04dc88d…`, 9564 B, plus its transport overlay `development/model/fhgm-draft.schema.json`, sha256 `dd9f69274f26860b…`, 1363 B |
 
 All three dependency versions are exact pins in `package.json`, not ranges, so a
 future `npm install` on a clean tree gets what was measured here.
@@ -42,7 +67,8 @@ NOTE  plain `ajv` (draft-07 entry point) on the released fhp.json:
 ```
 
 The 2020-12 entry point (`ajv/dist/2020`) compiles and evaluates all 17 bundled
-copies. `npm run capability:ajv` reports **42 pass, 0 fail**; each check that a
+copies and both pinned draft contracts. `npm run capability:ajv` reports
+**55 pass, 0 fail**; each check that a
 construct *fires* is paired with the same record at a version where it must pass,
 so a validator that silently ignored a conditional would fail the script instead
 of passing it:

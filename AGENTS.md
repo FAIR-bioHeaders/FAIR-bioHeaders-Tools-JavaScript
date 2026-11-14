@@ -26,7 +26,7 @@ repositories (with `FAIR-bioHeaders-Tools-R`, `-Java` and `-Julia`) created
 | --- | --- |
 | FAIR-bioHeaders-Specification | publication authority: the released contracts, the version registry, the format rules and the shared conformance vectors |
 | FAIR-bioHeaders-Tools | the Python toolkit and the family's reference implementation; not a dependency of this package |
-| this repository | a native JavaScript reader/validator/stripper for the released contracts, consumable on its own |
+| this repository | a native JavaScript reader/validator/stripper for the released contracts, consumable on its own, plus the explicit rule-V7 lane for the two drafts |
 
 David and Adam jointly hold schema and release authority
 ([GOVERNANCE.md](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/GOVERNANCE.md));
@@ -52,18 +52,64 @@ explicit in README, `llms.txt`, docs and code comments, in both directions:
   evidence that it works;
 - a result from this library is never described as the website's result;
 - GFF3 feature, SO-term and biology validation belong to `gff3-validator`. This
-  library reads the FHGFF3 header and nothing below it.
+  library reads the FHGFF3 header and nothing below it — which is also why FHGM's
+  K4 (resolving a record `featureId` to a gene row) is declared not-supported-yet
+  here rather than quietly implemented: it needs the feature layer.
 
 ## Drafts take no release form (rule V7)
 
 FHT and FHGM are drafts. They have no released contract, no row in
 `schemas/versions.json`, no `schemaVersion`, no w3id URL and no support claim —
-here or in any documentation, skill or packaging metadata in this repository. Do
-not add them to `schemas/provenance.json`, do not implement the V7 opt-in lane, and
-do not describe a draft URL as "supported": under V5 such a value is read as FHR,
-which is the default behaviour rule V7 requires when the lane is off. Scheduled
-future releases (FHT as `v0.7.0`, FHGM as `v0.8.0`) are decisions about *those*
-types, not licenses to pre-implement them here.
+here or in any documentation, skill or packaging metadata in this repository.
+A scheduled future release (FHT as `v0.7.0`, FHGM as `v0.8.0`) is a decision about
+*those* types, not a licence to publish them here.
+
+This library implements the V7 lane, because V7 is a published rule about reader
+behaviour and the maintainer direction of 2026-11-14
+([FAIR-bioHeaders-Specification#211](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/211)
+round 10, this repository's #2 and #3) asks each language library to recognise the
+drafts the way the reference toolkit does. Earlier guidance here said "do not
+implement the V7 opt-in lane"; that was this repository's own scope decision at
+PR #1, and it is superseded deliberately, not silently — everything below is the
+change. What implementing the lane means, and what it must never mean:
+
+- **opt-in only.** The lane opens on an explicit caller decision:
+  `inspectBytes(bytes, { container, drafts: ['FHT'] })`, or `{ drafts: true }` for
+  every pinned draft. It is never the default, there is no environment switch, and
+  `schemas/provenance.json` stays a registry of released contracts only.
+- **digest-pinned.** The draft bytes are vendored under `drafts/` with their own
+  `drafts/provenance.json` recording the owning repository, the commit and the
+  SHA-256. `src/drafts.js` re-verifies the digest before reading and reports drift
+  instead of quietly reading something newer; `npm run check:drafts` and
+  `node scripts/ci/draft-pins.mjs --check <checkout>` are what notice it.
+- **loud.** Every record read through the lane carries the V7 warning naming the
+  citation, the commit and the digest, and saying the result is not a
+  released-contract result. A V7 reading reports `release: null` and
+  `schemaVersion: null`.
+- **no release form, ever.** A w3id URL or a release-tag URL for a type the registry
+  does not list is still "any other value" under V5, with the lane open or shut. Do
+  not add FHT or FHGM to `schemas/provenance.json`, do not mint them a
+  `schemaVersion`, a tag URL or an alias, and never write that either type is
+  supported.
+- **default behaviour unchanged.** `test/goldens/default-gate.json` is a per-vector
+  digest of the lane-off reading of all 291 shared vectors, captured from the
+  pre-lane tree; `test/default-gate.test.mjs` fails on any difference. Regenerating
+  that golden *is* a change to default behaviour: it needs its own reviewed
+  reason, never a drive-by rewrite.
+- **FHGM is not a header type.** Its records carry no `schema`, ride inside an
+  FHGFF3 header under the R15 key `x-fhgm-models`, and the file is routed by its
+  released FHGFF3 citation under V1 to V3. The FHGM verdict is a separate block and
+  must never be blended into, or allowed to alter, the released FHGFF3 result.
+- **no draft vectors vendored here.** A record that cites a draft stays in the
+  development repository that owns it (V7). The draft suites are run as separate,
+  labelled evidence — `node scripts/capability/draft-vectors.mjs --fht <checkout>
+  --fhgm <checkout>` — and their counts are never added to the shared 291.
+
+`scripts/check-docs.mjs` enforces the release-form half: a w3id or release-tag URL
+for a draft, a registry row, a stated draft `schemaVersion`, a support claim, or a
+document that names the lane without naming its pin and its opt-in condition fails
+the build. Do not relax that guard to land a change; if a documented fact reads as
+a release form, the fact is the bug.
 
 ## Schema additions and their own development cycle
 
@@ -93,6 +139,15 @@ Selection is by the record's own `schema` value, per V1-V6, against the vendored
 copies. Never substitute current `main` for an unknown release; report
 `unsupported-version` instead (V4). Do not fetch schemas at run time.
 
+V7 sits beside V1, not inside it: it is a caller decision (`{drafts: [...]}`), it
+recognises only the pinned raw-main citation of the repository that owns the draft,
+and it widens nothing else — see the section above. `src/types.js` is the single
+declaration of which of the five types is released and which is a draft, which
+serialization each belongs to, and what each operation can do; `docs/MATRIX.md` is
+rendered from it by `scripts/make-matrix.mjs`, so the published capability matrix
+cannot drift from the code. Adding a type at publication is a row there plus a
+provenance row — not a rewrite.
+
 ## Dialect and digest are constraints, not preferences
 
 - The contracts declare `"$schema": "https://json-schema.org/draft/2020-12/schema"`.
@@ -117,9 +172,14 @@ From this checkout:
 ```sh
 npm ci --ignore-scripts
 npm test                    # unit tests + the shared vectors, one test per vector
-npm run conformance         # per-format pass/fail/not-run table
-npm run check:vendoring     # vendored bytes vs their recorded provenance
+npm run test:ci            # the same suite, accounted: zero tests, a missing vector or
+                            # an unexplained skip fails, even when nothing failed
+npm run conformance         # per-format pass/fail/not-run table over the shared 291
+npm run check:vendoring     # vendored bytes AND pinned drafts vs their provenance
+npm run check:drafts        # just the draft pins, against their recorded digests
 npm run check:docs          # docs/llms.txt vs the registry and the manifest, and the draft guard
+npm run check:matrix        # docs/MATRIX.md is what src/types.js renders; edit the code, not the doc
+npm run matrix              # regenerate docs/MATRIX.md after changing the registry
 npm run check:license       # LICENSE and package.json agree; body matches canonical MPL-2.0
 ```
 
@@ -129,13 +189,24 @@ absent:
 ```sh
 FHR_PYTHON=…/bin/python npm run capability:yaml        # R12/R13 vs the toolkit
 FHR_TOOLKIT_BIN=…/bin npm run capability:toolkit       # validity and strip bytes vs the CLI
-npm run capability:ajv                                 # 2020-12 constructs and the version gates
-npm run capability:digest                              # digests against every valid vector
+node scripts/ci/draft-pins.mjs --check <FHT checkout> <FHGM checkout>   # draft pins vs live bytes
+npm run capability:draft -- --fht <FHT checkout> --fhgm <FHGM checkout> # the two draft suites, through the lane
 ```
 
+`npm run capability:ajv` and `npm run capability:digest` run inside the primary CI job:
+they are native JavaScript and need no reference. The two Python differentials run only
+in the labelled supplemental job; they are evidence, never the oracle, and no test here
+depends on them.
+
+The draft-lane run is *labelled draft evidence*, not acceptance: it reads the
+development suites that live in the repositories owning FHT and FHGM, from the pinned
+commits, and its counts are never added to the shared 291.
+
 Record the checks actually run, with counts, and say plainly what was not run:
-`microdata` and `jsonld` vectors are not implemented here and must stay reported as
-not-run rather than being dropped from the table. For `AGENTS.md`-only changes,
+`microdata` (26 vectors) and `jsonld` (37) are not implemented here and must stay
+reported as not-run rather than being dropped from the table, and FHGM's K4 stays
+not-supported-yet for the reason above. A reported hole is a deliverable; a hole
+filled with a claim is a defect. For `AGENTS.md`-only changes,
 inspect the diff, links and repository identity and run `git diff --check`;
 executable suites are unnecessary unless behaviour changed.
 
@@ -187,11 +258,20 @@ Only this tree. Concretely:
 - the public surface is ESM JavaScript on Node 20+, with no build step and no
   generated files; there is no bundler, no TypeScript emit and no browser entry;
 - `src/` is the library, `scripts/run-conformance.mjs` is the acceptance runner,
-  `scripts/capability/` holds the dependency study and the toolkit differentials;
+  `scripts/check-test-report.mjs` is the accounting guard, `scripts/make-matrix.mjs`
+  renders `docs/MATRIX.md`, `scripts/capability/` holds the dependency study, the
+  toolkit differentials and the draft-lane runner, `scripts/ci/` holds the workflow
+  glue;
+- `testutil/` holds the test fixture builders. It is deliberately outside `test/`:
+  `node --test` treats every file under `test/` as a test file, so a helper there
+  would run as a zero-test file and pollute the accounting;
 - `schemas/`, `conformance/` and `examples/` are vendored, read-only copies with
   their own `provenance.json`; refresh means re-copying from a pinned upstream
   revision and updating that provenance in the same commit, and
   `npm run check:vendoring` is what notices drift;
+- `drafts/` holds the rule-V7 draft contracts: pinned bytes with their own
+  `provenance.json`, digested like everything else, never a released copy and
+  never listed in `schemas/provenance.json`;
 - implementation scope today is read + validate + checksum-verify + strip. A
   writer (`combine`), a CLI, JSON-LD/microdata readers, streaming input, Node
   `Readable`/`Writable` helpers, published type declarations and browser support are
