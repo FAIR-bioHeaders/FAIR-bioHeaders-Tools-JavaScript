@@ -197,8 +197,9 @@ fasta 98/98, gfa 56/56, fhp-fasta 36/36, fhgff3 38/38 — and **63 vectors are n
 run** (jsonld 37, microdata 26) because those reader paths are not implemented.
 They are reported as skipped with a reason, never as passes. With the V7 lane
 requested, the same reading path is exercised against the two development suites
-that own the drafts: **92 draft vectors pass and 5 are not run** (FHT 66/66; FHGM
-26 pass with the 5 K4-dependent vectors not run), from the pinned commits, under
+that own the drafts, read at the commits the contracts are pinned to: **91 draft
+vectors pass and 5 are not run** (FHT 65/65 at `226f923c`; FHGM 26 pass with the 5
+K4-dependent vectors not run), under
 `node scripts/capability/draft-vectors.mjs`. Those counts are draft evidence and
 are never added to the 291. Full breakdown, and
 the list of what is not implemented or claimed:

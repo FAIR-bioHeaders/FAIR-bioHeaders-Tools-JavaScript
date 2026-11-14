@@ -141,10 +141,18 @@ can be done - and is, by `node scripts/capability/draft-vectors.mjs`, also run i
 against the pinned commits - is to read those repositories' own development suites
 through the lane and report them separately.
 
-| draft suite | pinned at | vectors | pass | fail | not run, and why |
+| draft suite | contract pinned at | vectors at that commit | pass | fail | not run, and why |
 | --- | --- | --- | --- | --- | --- |
-| FHT (`FHT-Specification/conformance`) | `226f923c28b680edb3c546e99a751482d06aef1a`, sha256 `59ad9641adcb0e55…` | 66 | 66 | 0 | none |
+| FHT (`FHT-Specification/conformance`) | `226f923c28b680edb3c546e99a751482d06aef1a`, sha256 `59ad9641adcb0e55…` | 65 | 65 | 0 | none |
 | FHGM (`FHGM-Specification/development/conformance`) | `ac3d37b3033312844fc3151217731928ae33aa54`, sha256 `bf1553cac04dc88d…` | 31 | 26 | 0 | 5 - every vector whose verdict depends on K4, which resolves a `featureId` against the GFF3 feature layer this library does not read |
+
+The suite is read **at the commit the contract is pinned to**, which is what CI does,
+and the count is that suite's size at that revision: FHT held 65 vectors at
+`226f923c` and holds 66 at that repository's later head `156bda63` (the extra is
+`fht-fasta-parent-mixed-verdicts`, added after the pin). Reading the later head too -
+which is what a local run against a current checkout does - gives 66 pass, 0 fail;
+both numbers are reported here rather than one of them, because the pin is the claim
+and the moving `main` is not.
 
 Each of those rows is a *draft* result: it says the lane reads the pinned bytes and
 reports what the pinned contract and the drafted rules say. It is not a
