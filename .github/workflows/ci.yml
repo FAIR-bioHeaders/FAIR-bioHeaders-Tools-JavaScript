@@ -33,7 +33,7 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Vendored copies still match their provenance
         run: node scripts/check-vendoring.mjs
-      - name: Licences: the file, the manifest, and dependency ids unchanged
+      - name: Check the licence in LICENSE and package.json
         run: node scripts/check-license.mjs
       - name: Capability (i) - draft/2020-12 against the released contracts
         run: node scripts/capability/ajv-dialect.mjs
