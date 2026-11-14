@@ -1,0 +1,117 @@
+# Contributing
+
+Start with an issue describing the use case or the failure and a small reproducible
+example — for a reader, that example is usually a file. Open a focused branch and
+PR with the behaviour, the compatibility implication and the checks you ran. Link
+the relevant work in
+[FAIR-bioHeaders-Specification](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification)
+when a change spans repositories, and `Refs`
+[FAIR-bioHeaders-Specification#52](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/52)
+(the umbrella issue for the per-language libraries). Do not put private genome data,
+credentials or unrelated formatting into fixtures.
+
+David and Adam are the maintainers and jointly hold schema and release authority
+([GOVERNANCE](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/GOVERNANCE.md));
+the steering-group option described there is not active. Sensitive findings use
+[SECURITY.md](SECURITY.md), not an issue.
+
+## Setup and checks
+
+```sh
+npm ci --ignore-scripts     # exact pins; no lifecycle scripts run
+npm test                    # unit tests + one case per shared conformance vector
+npm run conformance         # per-format table over all 291 vectors
+npm run check:vendoring     # vendored copies vs their recorded SHA-256
+```
+
+Four more checks compare this reader against the released Python toolkit. They are
+**not** part of `npm test` — they need a Python with `fair-bioheaders` installed —
+and each exits 3 with a message rather than reporting a pass when the reference is
+missing:
+
+```sh
+FHR_PYTHON=/path/to/.venvs/converter-0.11.0/bin/python npm run capability:yaml -- --sweep
+FHR_TOOLKIT_BIN=/path/to/.venvs/converter-0.11.0/bin  npm run capability:toolkit
+npm run capability:ajv      # needs nothing but the installed dependencies
+npm run capability:digest   # needs nothing but the installed dependencies
+```
+
+Run the toolkit comparisons before merging anything that touches `src/lines.js`,
+`src/checksum.js`, `src/scalars.js`, `src/yaml.js`, `src/selection.js` or
+`src/validate.js`, and paste the output into the PR. They are how the R12 tables in
+this library were found to be wrong twice, and how a fix to them is proved rather
+than asserted.
+
+## What belongs here, and what belongs somewhere else
+
+| Change | Where it goes |
+| --- | --- |
+| a new metadata field, enum value, constraint or changed meaning | FAIR-bioHeaders-Specification, as a labelled schema addition with its own cycle — never adopted downstream first |
+| a rule you believe the shared vectors state incorrectly | FAIR-bioHeaders-Specification, with the vector id; this library follows the suite, it does not arbitrate it |
+| FHT or FHGM behaviour of any kind | nowhere yet: both are drafts with no released contract, and rule V7 gives a draft no release form |
+| GFF3 feature, SO-term or biology validation | `gff3-validator` |
+| writing a header, computing a new checksum, JSON-LD/schema.org/microdata output | the Python toolkit (`fair-bioheaders`); if a JavaScript writer is needed, open an issue here first |
+| this library's own reader, checker and stripper, its docs, skills and CI | here |
+
+A change that would need a new vector is two changes: the vectors come from
+`scripts/make_conformance.py` in the specification repository and are regenerated
+and reviewed there, then vendored here by re-copying from a pinned revision. Adding a
+hand-written case to `conformance/` is not how this repository grows.
+
+## Vendored copies
+
+`schemas/`, `conformance/` and `examples/` are byte-for-byte copies of files from
+FAIR-bioHeaders-Specification, each with a `provenance.json` naming the repository,
+release or commit, source path and SHA-256. The rules:
+
+- never edit a vendored file; if it looks wrong, the copy is wrong or upstream is,
+  and both are fixed outside this tree;
+- a refresh is a re-copy from a stated revision plus the rewritten provenance in the
+  same commit, so `npm run check:vendoring` passes on the result and the diff shows
+  exactly which contract bytes moved;
+- `.gitattributes` keeps these paths free of line-ending conversion — several
+  vectors are CR or CRLF cases on purpose;
+- `conformance/**` carries no generated-at timestamps, so a re-copy is reviewable as
+  content, not as churn.
+
+## Code style
+
+Plain ESM JavaScript with JSDoc types, no build step and no transpilation: what is
+committed is what runs. Node built-ins are imported with the `node:` prefix. Every
+rejection names the rule it enforces (`FORMAT.md` R1-R15, `FHP.md` P1-P2,
+`FHGFF3.md` G1-G3, `SCHEMA-VERSIONS.md` V1-V6) in its message, because that string is
+what a caller reports and what the vector table compares against — a message that
+loses its rule id is a behavioural change.
+
+Comments explain a rule or a measured constraint, never a line of code. Where a
+decision came from a capability finding (the ajv strict-mode relaxations, the two
+YAML dialect tables, the `$id` collision between release copies), the comment points
+at [`docs/CAPABILITY.md`](docs/CAPABILITY.md) rather than restating it.
+
+Keep required metadata and runtime dependencies small, and prefer an interoperable
+increment to a speculative framework — the same reading of the context paper the
+toolkit uses. New runtime dependencies need a licence check against MPL-2.0 stated in
+the PR; if a genuine conflict exists, it is a maintainer decision, not something to
+resolve by quietly dropping the file.
+
+## Documentation and citation
+
+Behaviour changes move docs with them: README's API and limits tables, `llms.txt`
+(which is the machine-readable summary, and duplicates the version facts — keep them
+in step), the relevant `docs/` page, and `skills/fair-bioheaders-javascript/SKILL.md`
+if the workflow an agent follows changed. State versions as read from
+`schemas/versions.json` at a release, never from memory, and never let an implemented
+subset read as full-family support.
+
+Release preparation authorises nothing: no npm publication, no tag, no merge, no
+DOI. Keep companion PRs linked where a change spans repositories.
+
+## Licence of contributions
+
+New FAIR BioHeaders project contributions from March 2025 onward are MPL-2.0,
+subject to [LICENSE](LICENSE) and its provenance split. Historical USDA-ARS material
+stays public domain within the United States, third-party material keeps its own
+licences and notices, previously distributed versions keep the permissions they were
+distributed under, and a file's most recent modification date does not determine the
+status of its parts. Do not label all contributors as government employees, and do not
+import historical or third-party material without carrying its notice.
