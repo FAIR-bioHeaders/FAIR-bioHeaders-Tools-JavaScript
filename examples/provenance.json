@@ -1,0 +1,23 @@
+{
+  "description": "Byte-for-byte copies of the shared specification's minimal examples, used by this repository's tests and capability scripts as valid records of each type. They are synthetic records with placeholder names and checksums; nothing here is real data, and no checksum in these files covers these bytes (they are metadata records, not header-bearing sequence files).",
+  "source": {
+    "repository": "FAIR-bioHeaders-Specification",
+    "release": "v0.6.0",
+    "commit": "0ae18b00ee4bd71ab2dc28bae706b0f9d195076b",
+    "retrieved": "2026-11-14"
+  },
+  "files": {
+    "minimal-predicted.fhp.json": {
+      "sourcePath": "examples/fhp/minimal-predicted.fhp.json",
+      "sha256": "87b95f044d0a2a0664c0ace06308e08c0a0738fc889f34263660cff744dbdcfe"
+    },
+    "minimal-reference.fhgff3.json": {
+      "sourcePath": "examples/fhgff3/minimal-reference.fhgff3.json",
+      "sha256": "01fc3332c3dd070062c36a82d0498fea6dd1ae1283e8e90403086eaf19c7aa9d"
+    },
+    "minimal.fhr.json": {
+      "sourcePath": "examples/minimal.fhr.json",
+      "sha256": "97c875c01be3439d54a4323add9bc07e067064c547ec782e22941892f9ba96ea"
+    }
+  }
+}
