@@ -1,0 +1,22 @@
+# Dependencies and generated output
+node_modules/
+coverage/
+*.tgz
+npm-debug.log*
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# Local scratch: a checkout of the shared specification used for an
+# --upstream comparison, or a candidate suite under review, must not be
+# committed here. Vector bytes belong to FAIR-bioHeaders-Specification.
+/tmp/
+.upstream/
+spec-checkout/
+
+# Nothing in this repository is bundled or transpiled: the library is plain ESM
+# JavaScript, so there is no build output to ignore beyond the above.

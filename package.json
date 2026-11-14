@@ -1,0 +1,63 @@
+{
+  "name": "fair-bioheaders",
+  "version": "0.0.0",
+  "description": "Read, validate and strip FAIR-bioHeaders (FHR, FHP, FHGFF3) headers in JavaScript: native Node.js, no Python or WebAssembly",
+  "type": "module",
+  "license": "MPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools-JavaScript.git"
+  },
+  "bugs": {
+    "url": "https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools-JavaScript/issues"
+  },
+  "homepage": "https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools-JavaScript#readme",
+  "keywords": [
+    "FAIR-bioHeaders",
+    "FHR",
+    "FHP",
+    "FHGFF3",
+    "bioinformatics",
+    "FASTA",
+    "GFA",
+    "GFF3",
+    "metadata",
+    "provenance",
+    "checksum",
+    "SHA-512/256",
+    "JSON-Schema"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/",
+    "schemas/",
+    "examples/",
+    "docs/",
+    "LICENSE",
+    "README.md",
+    "llms.txt"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "conformance": "node scripts/run-conformance.mjs",
+    "check:vendoring": "node scripts/check-vendoring.mjs",
+    "capability:ajv": "node scripts/capability/ajv-dialect.mjs",
+    "capability:digest": "node scripts/capability/digest.mjs conformance",
+    "capability:yaml": "node scripts/capability/yaml-portability-differential.mjs",
+    "capability:toolkit": "node scripts/capability/toolkit-crosscheck.mjs conformance",
+    "check:docs": "node scripts/check-docs.mjs --commands",
+    "check:license": "node scripts/check-license.mjs"
+  },
+  "dependencies": {
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "js-yaml": "5.5.0"
+  }
+}
