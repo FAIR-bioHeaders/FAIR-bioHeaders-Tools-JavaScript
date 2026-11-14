@@ -72,7 +72,10 @@ describe('shared conformance vectors', () => {
     assert.equal(supported.length + unsupportedVectors.length, 291);
   });
 
+  // PROBE - REVERT: the same wrong expectation, so the accounted native test run
+  // fails too and not only the table step.
   for (const vector of supported) {
+    if (vector.id === 'fasta-lf') vector.expected = vector.expected === 'valid' ? 'invalid' : 'valid';
     it(`${vector.id} (${vector.format}, expected ${vector.expected})`, () => {
       const reading = inspectBytes(read(vector), { container: containerFor(vector.format) });
       if (vector.expected === 'valid') {
