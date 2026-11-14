@@ -1,0 +1,5 @@
+# Node.js version this repository is developed and tested against, matching the
+# family website's convention (`.nvmrc` + `actions/setup-node` `node-version-file`).
+# The package itself supports Node 20 and later; see `engines` in package.json and
+# the CI matrix in `.github/workflows/ci.yml`.
+24

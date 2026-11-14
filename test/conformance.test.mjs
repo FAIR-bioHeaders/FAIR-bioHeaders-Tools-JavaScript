@@ -1,0 +1,109 @@
+/**
+ * The acceptance test: FAIR-bioHeaders-Specification's shared conformance
+ * vectors, run against this library.
+ *
+ * This file adds no new cases. It reads `conformance/manifest.json` — a vendored
+ * copy of the shared suite, byte-exact and pinned in `conformance/provenance.json`
+ * — and asserts, per vector, what the manifest says: a `valid` file must be
+ * accepted, its checksum recomputed to the stated digest and its named metadata
+ * values parsed; an `invalid` file must be rejected, and an invalid V4 vector
+ * must be reported as `unsupported-version` rather than checked against another
+ * schema.
+ *
+ * `microdata` and `jsonld` vectors are reported as skipped with the reason, never
+ * as passes: those reader paths are not implemented by this build. See
+ * `docs/CONFORMANCE.md` for the counts.
+ */
+
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { describe, it } from 'node:test';
+
+import { inspectBytes, stripBytes } from '../src/reader.js';
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const SUITE = join(ROOT, 'conformance');
+const manifest = JSON.parse(readFileSync(join(SUITE, 'manifest.json'), 'utf8'));
+
+/** Formats this build reads, and the container each lives in. */
+const SUPPORTED = { fasta: 'fasta', gfa: 'gfa', 'fhp-fasta': 'fasta', fhgff3: 'gff3' };
+
+/** Why an unsupported format cannot be scored here. */
+const NOT_RUN = {
+  microdata: 'the HTML microdata binding (docs/MICRODATA.md M1-M5) is not implemented by this build',
+  jsonld: 'the canonical JSON-LD reader (docs/JSONLD.md J1-J9) is not implemented; J3-J5 also need a JSON-LD processor',
+};
+
+/**
+ * @param {unknown} expected
+ * @param {unknown} actual
+ * @returns {boolean} JSON-typed equality: numbers compare by value, and a string
+ *   is never equal to a number (conformance README)
+ */
+function sameValue(expected, actual) {
+  if (expected === null) return actual === null;
+  if (Array.isArray(expected)) {
+    return Array.isArray(actual) && actual.length === expected.length && expected.every((item, index) => sameValue(item, actual[index]));
+  }
+  if (typeof expected === 'object') {
+    if (actual === null || typeof actual !== 'object' || Array.isArray(actual)) return false;
+    const a = /** @type {Record<string, unknown>} */ (actual);
+    const e = /** @type {Record<string, unknown>} */ (expected);
+    return Object.keys(e).every((key) => key in a && sameValue(e[key], a[key]));
+  }
+  return expected === actual;
+}
+
+/**
+ * @param {object} vector
+ * @returns {Uint8Array}
+ */
+function read(vector) {
+  const raw = new Uint8Array(readFileSync(join(SUITE, vector.file)));
+  return raw;
+}
+
+const supported = manifest.vectors.filter((vector) => vector.format in SUPPORTED);
+const unsupportedVectors = manifest.vectors.filter((vector) => vector.format in NOT_RUN);
+
+describe('shared conformance vectors', () => {
+  it('cover the 291 vectors this suite was pinned at', () => {
+    assert.equal(manifest.vectors.length, 291);
+    assert.equal(supported.length + unsupportedVectors.length, 291);
+  });
+
+  for (const vector of supported) {
+    it(`${vector.id} (${vector.format}, expected ${vector.expected})`, () => {
+      const reading = inspectBytes(read(vector), { container: SUPPORTED[vector.format] });
+      if (vector.expected === 'valid') {
+        assert.deepEqual(reading.errors, [], 'a valid vector must be accepted');
+        if (typeof vector.checksum === 'string') {
+          assert.equal(reading.checksum.computed, vector.checksum, 'the recomputed checksum must equal the manifest digest');
+        }
+        for (const [key, want] of Object.entries(vector.metadata ?? {})) {
+          assert.ok(sameValue(want, reading.metadata[key]), `metadata.${key} must read ${JSON.stringify(want)}, got ${JSON.stringify(reading.metadata[key])}`);
+        }
+        for (const rule of vector.warnings ?? []) {
+          assert.ok(reading.warnings.some((line) => line.includes(rule)), `a valid vector with warnings must produce one naming ${rule}`);
+        }
+        // strip must remove bytes and nothing else about the payload changes.
+        const stripped = stripBytes(read(vector), { container: SUPPORTED[vector.format] });
+        assert.ok(stripped.length < read(vector).length, 'strip must remove the header lines');
+      } else {
+        assert.equal(reading.valid, false, `an invalid vector (${vector.rule}: ${vector.reason}) must be rejected`);
+        if (vector.result === 'unsupported-version') {
+          assert.ok(
+            reading.errors.join(' ').includes('unsupported schema version'),
+            `V4 requires the reader to report unsupported-version, got: ${reading.errors.join('; ')}`,
+          );
+        }
+      }
+    });
+  }
+
+  for (const vector of unsupportedVectors) {
+    it(`${vector.id} (${vector.format}) — not run`, { skip: NOT_RUN[vector.format] }, () => {});
+  }
+});

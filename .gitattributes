@@ -1,0 +1,26 @@
+# Line-ending policy, read bottom-up: in a .gitattributes file a later matching
+# pattern overrides an earlier one, so the general rule comes FIRST and the
+# byte-exactness rules come after it.
+* text=auto eol=lf
+*.mjs text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+LICENSE text eol=lf
+
+# Vendored trees must stay byte-exact, and the rules above must not reach them.
+#
+# The shared conformance vectors carry CR and CRLF cases on purpose -
+# fasta-crlf, gfa-cr, fhgff3-crlf and the checksum-terminator vectors are defined
+# by their exact bytes - and every file here is digest-checked by
+# scripts/check-vendoring.mjs, so a line-ending conversion in a checkout would
+# both change what a vector tests and break its recorded SHA-256. The contract
+# copies under schemas/ are hashed the same way. This mirrors the rule the shared
+# specification sets for its own conformance directory.
+conformance/** -text
+schemas/** -text
+examples/** -text
+
+# Compressed vectors are transport, not text, in either direction.
+*.gz binary
