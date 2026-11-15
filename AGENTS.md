@@ -191,7 +191,12 @@ FHR_PYTHON=…/bin/python npm run capability:yaml        # R12/R13 vs the toolki
 FHR_TOOLKIT_BIN=…/bin npm run capability:toolkit       # validity and strip bytes vs the CLI
 node scripts/ci/draft-pins.mjs --check <FHT checkout> <FHGM checkout>   # draft pins vs live bytes
 npm run capability:draft -- --fht <FHT checkout> --fhgm <FHGM checkout> # the two draft suites, through the lane
+node scripts/ci/draft-pin-freshness.mjs   # advisory: pinned digests vs the owning repositories' live default branch
 ```
+
+The last one is a network read of two public repositories and nothing else; it gates
+nothing, repairs nothing, and exits 2 rather than naming a winner when its own probe
+control did not answer. CI runs it as an advisory job, separate from acceptance.
 
 `npm run capability:ajv` and `npm run capability:digest` run inside the primary CI job:
 they are native JavaScript and need no reference. The two Python differentials run only

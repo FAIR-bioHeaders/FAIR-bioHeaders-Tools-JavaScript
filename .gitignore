@@ -9,6 +9,8 @@ npm-debug.log*
 test-report.json
 conformance-table.txt
 draft-lane-evidence.txt
+draft-freshness.json
+draft-freshness.txt
 
 # Editors and operating systems
 .DS_Store
