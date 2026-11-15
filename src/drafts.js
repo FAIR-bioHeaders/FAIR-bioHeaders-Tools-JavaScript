@@ -13,6 +13,13 @@
  *   SHA-256 of the exact bytes, recorded in `drafts/provenance.json` and
  *   re-verified the first time a draft is loaded, so selection can never run
  *   against a moving `main`;
+ * - two revisions are pinned per draft, and they are different claims. `commit`
+ *   pins the contract bytes this module compiles; `suiteCommit` plus
+ *   `suiteManifestSha256` pin the development conformance suite whose manifest
+ *   `scripts/capability/draft-vectors.mjs` executes. Both are surfaced on the
+ *   entry (`draftEntry()`) and through `draftSuitePin()`, and the suite pair is
+ *   verified against a checkout by `scripts/ci/suite-pin.mjs`. A pin nothing
+ *   reads is documentation, not a control;
  * - every record read through the lane carries a loud warning naming the draft,
  *   its commit and its digest, and saying the result is not a
  *   released-contract result;
@@ -72,8 +79,73 @@ export const DRAFT_TYPES = Object.freeze(Object.keys(draftProvenance.drafts));
  * @property {null} releaseTag a draft has no release tag, by rule
  * @property {null} w3id a draft has no w3id URL, by rule
  * @property {null} registryRow a draft has no `schemas/versions.json` row, by rule
+ * @property {string|null} suiteCommit revision of the owning repository whose
+ *   **development conformance suite** this build's draft-lane evidence is a claim
+ *   about, or null when the registry states none. This is a different revision from
+ *   `commit`, which pins the contract bytes: the two files move at different times,
+ *   and a claim about the suite's rule labels is a claim about the suite revision.
+ *   Where they are equal, `drafts/provenance.json` repeats the value so the check is
+ *   uniform.
+ * @property {string|null} suiteManifest that suite's manifest, relative to the owning
+ *   repository, or null when no suite pin is stated
+ * @property {string|null} suiteManifestSha256 digest of those manifest bytes, or null
+ *   when no suite pin is stated
+ * @property {number|null} suiteManifestBytes byte count the registry records with it
+ * @property {number|null} suiteVectors vector count the registry records with it
+ * @property {readonly string[]|null} suiteRules rule ids the suite labels its vectors
+ *   with at that revision, or null when no suite pin is stated
  * @property {DraftEntry} [overlay] FHGM only: the transport overlay pinned beside it
  */
+
+/**
+ * @typedef {object} SuitePin
+ * @property {boolean} stated whether the registry states a suite pin at all
+ * @property {boolean} partial whether it states one field of a pin and not another,
+ *   which is a registry defect rather than an absence
+ * @property {string|null} commit
+ * @property {string|null} manifest
+ * @property {string|null} sha256
+ * @property {number|null} bytes
+ * @property {number|null} vectors
+ * @property {readonly string[]|null} rules
+ * @property {string} type
+ * @property {string|null} repository
+ */
+
+/** The fields that together make a suite pin a claim; a subset of them is not one. */
+const SUITE_PIN_FIELDS = ['suiteCommit', 'suiteManifest', 'suiteManifestSha256'];
+
+/**
+ * The suite pin this build states for a draft, in the shape `scripts/ci/suite-pin.mjs`
+ * verifies a checkout against.
+ *
+ * Surfaced rather than left in the JSON because a pin nothing reads is documentation,
+ * not a control: `suiteCommit` and `suiteManifestSha256` sat in `drafts/provenance.json`
+ * with no consumer anywhere in `src/`, `scripts/` or `test/`, which is how the
+ * draft-lane run came to report a suite revision it had never checked.
+ *
+ * @param {string} type
+ * @returns {SuitePin} `stated: false` for a draft with no suite pin, never undefined
+ */
+export function draftSuitePin(type) {
+  const row = draftProvenance.drafts[type];
+  if (row === undefined) {
+    return { type, repository: null, stated: false, partial: false, commit: null, manifest: null, sha256: null, bytes: null, vectors: null, rules: null };
+  }
+  const present = SUITE_PIN_FIELDS.filter((field) => row[field] !== undefined && row[field] !== null);
+  return {
+    type,
+    repository: row.repository ?? null,
+    stated: present.length === SUITE_PIN_FIELDS.length,
+    partial: present.length > 0 && present.length < SUITE_PIN_FIELDS.length,
+    commit: row.suiteCommit ?? null,
+    manifest: row.suiteManifest ?? null,
+    sha256: row.suiteManifestSha256 ?? null,
+    bytes: typeof row.suiteManifestBytes === 'number' ? row.suiteManifestBytes : null,
+    vectors: typeof row.suiteVectors === 'number' ? row.suiteVectors : null,
+    rules: Array.isArray(row.suiteRules) ? Object.freeze([...row.suiteRules]) : null,
+  };
+}
 
 /**
  * @param {string} type
@@ -82,6 +154,7 @@ export const DRAFT_TYPES = Object.freeze(Object.keys(draftProvenance.drafts));
 export function draftEntry(type) {
   const row = draftProvenance.drafts[type];
   if (row === undefined) return undefined;
+  const pin = draftSuitePin(type);
   const built = {
     type,
     status: row.status,
@@ -96,6 +169,12 @@ export function draftEntry(type) {
     releaseTag: row.releaseTag ?? null,
     w3id: row.w3id ?? null,
     registryRow: row.registryRow ?? null,
+    suiteCommit: pin.commit,
+    suiteManifest: pin.manifest,
+    suiteManifestSha256: pin.sha256,
+    suiteManifestBytes: pin.bytes,
+    suiteVectors: pin.vectors,
+    suiteRules: pin.rules,
   };
   if (row.transportOverlay !== undefined) {
     const overlay = row.transportOverlay;

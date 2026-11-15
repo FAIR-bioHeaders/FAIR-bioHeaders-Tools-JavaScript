@@ -72,6 +72,17 @@ so the rules are narrow and each is checked:
 - re-pinning a draft means changing the bytes, the commit and the digest in the same
   commit as the prose that quotes them, because `scripts/check-docs.mjs` refuses a
   document that names a lane without naming the pin it reads;
+- the suite is a **second** pin, and it is enforced rather than merely recorded.
+  `suiteCommit`, `suiteManifest` and `suiteManifestSha256` are exposed by `draftEntry()`
+  and `draftSuitePin()`; `node scripts/ci/suite-pin.mjs --check <checkout>` verifies a
+  checkout against them; and `scripts/capability/draft-vectors.mjs` runs that check before
+  it scores anything and exits 2 when the manifest does not digest to the recorded value.
+  A draft that states no suite pin is reported `UNPINNED`, never `verified` - today that
+  is FHGM. The reported FHT count is 66, from the suite pin `24d3b033ab951ef7…`; the
+  65-vector pre-rename manifest at the contract revision is a `DRIFT` to the guard and is
+  not scored. The three owners of "is the pin checked" are listed in
+  `docs/CONFORMANCE.md`; keep it that way, because two half-owners is how the FHT count
+  came to be reported against a revision nothing had verified;
 - live drift is **detected, not repaired**. `node scripts/ci/draft-pin-freshness.mjs`
   compares each pinned digest with the owning repository's live default-branch bytes and
   prints `MATCH` or `DRIFT`, and CI runs it as an advisory, `continue-on-error` job

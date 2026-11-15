@@ -141,37 +141,51 @@ can be done - and is, by `node scripts/capability/draft-vectors.mjs`, also run i
 against the pinned commits - is to read those repositories' own development suites
 through the lane and report them separately.
 
-| draft suite | contract pinned at | vectors at that commit | pass | fail | not run, and why |
-| --- | --- | --- | --- | --- | --- |
-| FHT (`FHT-Specification/conformance`) | contract `226f923c28b680edb3c546e99a751482d06aef1a`, sha256 `59ad9641adcb0e55…`; suite run at that same revision by CI, or at `24d3b033…` for the `C1`-`C3` labels | 65 (66 at the suite revision) | 65 (66) | 0 | none |
-| FHGM (`FHGM-Specification/development/conformance`) | `ac3d37b3033312844fc3151217731928ae33aa54`, sha256 `bf1553cac04dc88d…` | 31 | 26 | 0 | 5 - every vector whose verdict depends on K4, which resolves a `featureId` against the GFF3 feature layer this library does not read |
+| draft suite | contract pinned at | suite scored | vectors | pass | fail | not run, and why |
+| --- | --- | --- | --- | --- | --- | --- |
+| FHT (`FHT-Specification/conformance`) | `226f923c28b680edb3c546e99a751482d06aef1a`, sha256 `59ad9641adcb0e55…` | `24d3b033ab951ef79ee9f6d17419d8ba700f1b0a`, manifest sha256 `9b07179497bdc724…`, verified before the run | 66 | 66 | 0 | none |
+| FHGM (`FHGM-Specification/development/conformance`) | `ac3d37b3033312844fc3151217731928ae33aa54`, sha256 `bf1553cac04dc88d…` | **no suite pin stated**, so the run is labelled `UNPINNED`: the revision it scored is the checkout it was given, not a checked claim | 31 | 26 | 0 | 5 - every vector whose verdict depends on K4, which resolves a `featureId` against the GFF3 feature layer this library does not read |
 
-Two revisions are involved and they are not the same thing, so both are stated.
+**FHT is 66, and that is the only FHT count this repository reports.** Two revisions are
+involved and they are not the same claim:
 
-- The **contract** pin is `226f923c`. That is the revision whose `fht.json` bytes this
-  build compiles, and it is what CI clones and runs.
-- That repository's conformance suite moved on afterwards. At `226f923c` the suite has
-  **65 vectors** and labels its three contract rules **`T1`, `T2`, `T3`** - the
-  provisional ids that `FHT-Specification#36`/#38 later retired in favour of
-  `C1`/`C2`/`C3`. At the suite revision `24d3b033ab951ef79ee9f6d17419d8ba700f1b0a`
-  (manifest sha256 `9b07179497bdc7247d6ead2404d9d5fdee48308a58b385bd4cd9a7e91450053a`,
-  56250 bytes, both verified over HTTPS and from an independent archive of that
-  commit) the suite has **66 vectors** - the extra is `fht-fasta-parent-mixed-verdicts` -
-  and uses the `C1`/`C2`/`C3` ids.
+- The **contract** pin, `226f923c`, is the revision whose `fht.json` bytes this build
+  compiles. `scripts/ci/draft-pins.mjs --check` confirms them.
+- The **suite** pin, `24d3b033` (`suiteCommit` in `drafts/provenance.json`), is the
+  revision whose manifest the draft-lane evidence is a claim about: 56250 bytes,
+  sha256 `9b07179497bdc7247d6ead2404d9d5fdee48308a58b385bd4cd9a7e91450053a`, **66
+  vectors**, labelled `C1`/`C2`/`C3`. The extra vector against the older count is
+  `fht-fasta-parent-mixed-verdicts`.
 
-Both readings pass every vector they score: 65 of 65 at the contract pin (which is
-what CI reports), 66 of 66 at the suite revision and at that repository's current
-head. The rule *semantics* are the same across the rename; only the labels differ, and
-whichever id set is quoted describes the suite revision, never the contract revision.
+At the contract revision the same repository holds a **65**-vector manifest (54216 bytes,
+sha256 `d9025104675e69b59ea80f07535762e4eeb07195e40e8dddab7f68e85f697695`) whose three
+contract rules still carry the provisional `T1`/`T2`/`T3` ids that
+`FHT-Specification#36`/#38 later retired in favour of `C1`/`C2`/`C3`. That manifest is not
+a count this build produces any more; the paragraph exists to say why the two revisions
+differ, not to offer a second number. The rule *semantics* are the same across the rename,
+and the ids this repository quotes describe the suite revision, never the contract
+revision. Before this section was rewritten, CI cloned the contract revision and printed
+its vector count under a header that cited the contract pin, while the registry's
+`suiteVectors: 66` and `suiteRules: ["C1","C2","C3"]` described the later revision and
+were read by no code at all. The runner now verifies the manifest digest first and refuses
+anything else, so a checkout at `226f923c` is `DRIFT` to `scripts/ci/suite-pin.mjs`, and
+`draft-vectors.mjs` exits 2 against it rather than scoring it.
 
-Each of those rows is a *draft* result: it says the lane reads the pinned bytes and
-reports what the pinned contract and the drafted rules say. It is not a
-released-contract result, it is not added to the 228 above, and it is not support
-for either type. The FHT row covers C1 contract validation, C2 schema-URL closure,
-C3 parent-link verdicts (checked-pass, checked-fail and unchecked all reached), the
-R1-R15 header rules and the two V5 cases the suite includes; the FHGM row covers B1,
-K1, K2, K3, K5 and K6, with the predecessor verdicts exercised against the prior
-snapshots the suite names.
+Each row is a *draft* result: it says the lane reads the pinned bytes and reports what the
+pinned contract and the drafted rules say. It is not a released-contract result, it is not
+added to the 228 above, and it is not support for either type. The FHT row covers C1
+contract validation, C2 schema-URL closure, C3 parent-link verdicts (checked-pass,
+checked-fail and unchecked all reached), the R1-R15 header rules and the two V5 cases the
+suite includes; the FHGM row covers B1, K1, K2, K3, K5 and K6, with the predecessor
+verdicts exercised against the prior snapshots the suite names.
+
+Three checkers, three different questions, one owner each:
+
+| question | owner | outcome if it fails |
+| --- | --- | --- |
+| are the contract bytes in this checkout the bytes the pin names? | `node scripts/ci/draft-pins.mjs --check <checkout>…` | the labelled draft job goes red |
+| is the development suite about to be executed the suite the pin names? | `node scripts/ci/suite-pin.mjs --check <checkout>…`, and the same check inside `scripts/capability/draft-vectors.mjs` before it scores anything | the labelled draft job goes red, and nothing is scored |
+| does the owning repository's live default branch still publish those bytes? | `node scripts/ci/draft-pin-freshness.mjs`, proposed in #6 and not on `main` until that merges | advisory only, by design: a draft legitimately moves, and drift is detected, not repaired |
 
 `node scripts/ci/draft-pins.mjs --check <FHT checkout> <FHGM checkout>` is what
 proves the bytes being read are the bytes the pin names; the CI job runs it against

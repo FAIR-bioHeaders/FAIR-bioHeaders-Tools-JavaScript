@@ -80,6 +80,7 @@ export {
   citationIndex as draftCitations,
   draftEntry,
   draftProvenance,
+  draftSuitePin,
   draftSupport,
   draftWarning,
   hasDraft,

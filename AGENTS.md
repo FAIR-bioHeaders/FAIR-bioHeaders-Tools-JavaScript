@@ -81,7 +81,14 @@ change. What implementing the lane means, and what it must never mean:
   `drafts/provenance.json` recording the owning repository, the commit and the
   SHA-256. `src/drafts.js` re-verifies the digest before reading and reports drift
   instead of quietly reading something newer; `npm run check:drafts` and
-  `node scripts/ci/draft-pins.mjs --check <checkout>` are what notice it.
+  `node scripts/ci/draft-pins.mjs --check <checkout>` are what notice it. Two
+  revisions are pinned per draft and both are on the API: `commit`/`sha256` for the
+  contract bytes, and `suiteCommit`/`suiteManifest`/`suiteManifestSha256` for the
+  development suite `scripts/capability/draft-vectors.mjs` executes. A pin no code
+  reads is documentation, not a control, which is why the suite half is exposed
+  through `draftSuitePin()` and enforced by
+  `node scripts/ci/suite-pin.mjs --check <checkout>` - the runner refuses to score a
+  suite whose manifest does not digest to the recorded value.
 - **loud.** Every record read through the lane carries the V7 warning naming the
   citation, the commit and the digest, and saying the result is not a
   released-contract result. A V7 reading reports `release: null` and
@@ -204,8 +211,11 @@ in the labelled supplemental job; they are evidence, never the oracle, and no te
 depends on them.
 
 The draft-lane run is *labelled draft evidence*, not acceptance: it reads the
-development suites that live in the repositories owning FHT and FHGM, from the pinned
-commits, and its counts are never added to the shared 291.
+development suites that live in the repositories owning FHT and FHGM, verifies each
+stated suite manifest against its own pin before scoring anything, and its counts are
+never added to the shared 291. The reported FHT count is 66, from the suite pin
+`24d3b033`; FHGM's row states no suite pin, so its run is labelled `UNPINNED` rather
+than attributed to a revision - see `docs/CONFORMANCE.md` for both.
 
 Record the checks actually run, with counts, and say plainly what was not run:
 `microdata` (26 vectors) and `jsonld` (37) are not implemented here and must stay
