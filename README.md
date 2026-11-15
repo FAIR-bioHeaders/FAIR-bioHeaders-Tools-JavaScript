@@ -125,12 +125,18 @@ FHGM is not a header type at all: its records carry no `schema`, no
 `schemaVersion` and no checksum, and travel in the `x-fhgm-models` extension key of
 an FHGFF3 header, so the file keeps its released FHGFF3 citation and routing. The
 implemented model rules are B1 (the boundary), K1 (transport), K2 (record contract),
-K3 (unique `modelId`), K5 (reference agreement) and K6 (predecessor verdicts against
-snapshots the caller supplies). **K4 is not implemented**: it resolves a
-`featureId` against the GFF3 feature layer, and this library reads the FHGFF3 header
-and nothing below it - feature lines belong to
-[`gff3-validator`](https://github.com/FAIR-bioHeaders/gff3-validator). A caller that
-already has the gene-row ids can pass `{ fhgm: { geneIds } }` and K4 runs.
+K3 (unique `modelId`), K4 (feature-target resolution) and K5 (reference agreement)
+and K6 (predecessor verdicts against snapshots the caller supplies). K4 resolves a
+`featureId`, percent-decoded, against the `ID` and `type` of the GFF3 feature rows —
+exactly one gene row passes. The layer is an injected resolver: by default the lane
+indexes the file's own rows through `src/features.js`, a caller holding the feature
+layer elsewhere can inject `options.features` (row facts or GFF3 content) or the
+older `{ fhgm: { geneIds } }` shorthand, and `features: null` closes the check.
+Indexing two columns of a row resolves a pointer and validates no feature: SO terms,
+coordinates and biology stay with
+[`gff3-validator`](https://github.com/FAIR-bioHeaders/gff3-validator). Without a
+layer K4 is `not-checked`; with an untrustworthy one (a row without nine fields) it
+is `unchecked` — never a pass, never a rejection.
 
 [`docs/MATRIX.md`](docs/MATRIX.md) is the full type x operation x serialization
 matrix, generated from the same registry the reader uses; it states every hole with
@@ -153,7 +159,7 @@ All functions are named exports of the package root. The library is ESM only.
 | `validateRecord(record, selection)` | contract validation, format assertion and warnings |
 | `TYPES`, `TYPE_IDS`, `RELEASED_TYPES`, `DRAFT_TYPE_IDS`, `capability(...)`, `capabilityRows()`, `headerTypesByContainer(...)`, `describeType(...)` | the five-type registry the capability matrix is rendered from |
 | `draftSupport()`, `draftEntry(type)`, `draftSuitePin(type)`, `loadDraft(type)`, `verifyDraftBytes(dir)` | the rule-V7 pin: what it is, where the bytes are, whether they still match, and which development-suite revision this build's draft evidence names |
-| `checkFhgmModels(header, {base, overlay, predecessors, geneIds})` | the FHGM draft verdict: B1, K1, K2, K3, K5, K6 (K4 only with `geneIds`) |
+| `checkFhgmModels(header, {base, overlay, predecessors, features, geneIds})` | the FHGM draft verdict: B1, K1, K2, K3, K5, K6, and K4 against `features` (row facts or GFF3 content) or `geneIds`; `inspectBytes` defaults `features` to the file's own bytes when the lane names FHGM |
 | `verifyParentLinks(record, {resolveParent})` | FHT draft rule C3: checked-pass / checked-fail / unchecked, against parent bytes the caller hands over |
 | `validateRecord(record, selection)` | contract validation, format assertion and warnings |
 | `containerOf(path)`, `decompress(bytes)`, `sha512_256Available()` | helpers |
@@ -200,13 +206,16 @@ run** (jsonld 37, microdata 26) because those reader paths are not implemented.
 They are reported as skipped with a reason, never as passes. With the V7 lane
 requested, the same reading path is exercised against the two development suites
 that own the drafts, each verified against its own pin before anything is scored:
-**92 draft vectors pass and 5 are not run** — FHT **66/66** at the suite revision
+**97 draft vectors pass and none is left unrun** — FHT **66/66** at the suite revision
 `24d3b033` (`C1`/`C2`/`C3`, the labels the registry states; the contract itself is pinned
-separately at `226f923c`), and FHGM 26 pass with the 5 K4-dependent vectors not run,
-labelled `UNPINNED` because this build states no suite pin for FHGM and therefore cannot
+separately at `226f923c`), and FHGM **31/31** — the five K4-dependent vectors that earlier
+builds reported not run now resolve against the file's own feature rows — labelled
+`UNPINNED` because this build states no suite pin for FHGM and therefore cannot
 name the revision it scored. `node scripts/capability/draft-vectors.mjs` refuses a suite
 whose manifest digest is not the one it pins, so a draft count here names a checked
-revision or says it names none. Those counts are draft evidence and are never added to
+revision or says it names none. A K4 vector whose feature layer is absent or
+untrustworthy is still reported not-run with that state, never scored by assumption.
+Those counts are draft evidence and are never added to
 the 291. Full breakdown, and the list of what is not implemented or claimed:
 [`docs/CONFORMANCE.md`](docs/CONFORMANCE.md), and [`docs/USAGE.md`](docs/USAGE.md) for recipes.
 
@@ -251,7 +260,8 @@ in [`docs/MATRIX.md`](docs/MATRIX.md):
   processor; `docs/MICRODATA.md` M2 needs HTML parsing with implied end tags).
   Nothing here reads a `.jsonld` or `.html` file.
 - **no GFF3 feature validation**, and deliberately so: `gff3-validator` owns feature
-  lines, SO terms and biology. This is also why FHGM's K4 is not implemented.
+  lines, SO terms and biology. The FHGM lane's K4 reads two columns of each feature
+  row (`type` and `ID`) to resolve a `featureId` pointer; it judges none of them.
 - **no parent-link verification by default.** A released record's parent checksum is
   metadata this library reports without recomputing. C3 recomputation runs only
   inside the FHT lane, only against parent bytes the caller hands over, and an

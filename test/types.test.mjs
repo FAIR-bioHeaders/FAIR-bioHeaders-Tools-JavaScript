@@ -163,10 +163,11 @@ describe('the capability matrix', () => {
     }
   });
 
-  it('states the FHGM rule this build does not run', () => {
+  it('states the FHGM rules this build runs, and the boundary on K4', () => {
     const cell = capability('FHGM', 'validateContract', 'model-records');
     assert.equal(cell.support, SUPPORT.nativeDraft);
-    assert.match(cell.reason, /K4 is not/);
+    assert.match(cell.reason, /K4 feature-target resolution/);
+    assert.match(cell.reason, /not-checked or unchecked, never a pass/);
     const featureLayer = capability('FHGM', 'read', 'gff3');
     assert.equal(featureLayer.support, SUPPORT.notApplicable, 'FHGM has no GFF3 header of its own');
     assert.match(featureLayer.reason, /not a header type/);

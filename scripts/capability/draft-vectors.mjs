@@ -36,10 +36,12 @@
  *   3  no suite given, or a given path holds no suite. Nothing is reported as
  *      passed, because nothing ran.
  *
- * A vector whose rejection depends on a rule this build declares
- * not-supported-yet (FHGM K4, which needs the GFF3 feature layer) is reported
- * not-run with that reason, never as a pass and never as a failure of a check
- * this library does not run.
+ * A vector whose verdict depends on FHGM K4 is scored when this build can reach
+ * a K4 verdict for it - the lane resolves the `featureId` against the file's own
+ * feature rows by default. It stays not-run, with the state that produced the
+ * gap as the reason, when K4 comes back `not-checked` or `unchecked`: a layer
+ * that was absent or untrustworthy is never scored as a pass and never scored as
+ * a rejection either.
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -54,10 +56,10 @@ import { selectSchema } from '../../src/selection.js';
 import { validateRecord } from '../../src/validate.js';
 import { VERDICTS } from '../../src/parent-links.js';
 
-/** Rules whose verdicts this build declares not-supported-yet, per type. */
+/** Rules whose verdicts this build can still be unable to reach, per type. */
 const NOT_RUN_RULES = {
   FHGM: {
-    K4: 'K4 resolves a featureId against the GFF3 feature layer, which this library does not read; a rejection that depends on K4 cannot be scored here',
+    K4: 'K4 resolves a featureId against the GFF3 feature layer; the layer this reading reached was absent or untrustworthy, so no expectation that depends on K4 is scored',
   },
 };
 
@@ -301,9 +303,6 @@ function runFhgmVector(vector, layout) {
   const { base: from, guard } = layout;
   const cited = [vector.rule ?? null, ...(vector.rules ?? [])].filter((rule) => typeof rule === 'string');
   const dependsOnK4 = cited.includes('K4') || (vector.layers?.model === 'reject' && typeof vector.reason === 'string' && vector.reason.includes('gene row'));
-  if (dependsOnK4) {
-    return { id: vector.id, outcome: 'not-run', problems: [], note: `not-supported-yet: ${NOT_RUN_RULES.FHGM.K4}` };
-  }
   const path = resolveWithin(from, guard, vector.file);
   if (path === null || !existsSync(path)) return { id: vector.id, outcome: 'not-run', problems: [], note: `unreadable path ${vector.file}` };
   const raw = bytesOf(path);
@@ -324,6 +323,13 @@ function runFhgmVector(vector, layout) {
   // schema one.
   const contract = validateRecord(base.metadata, selectSchema(base.metadata));
   if (fhgm === undefined) return { id: vector.id, outcome: 'fail', problems: ['the FHGM lane did not report on an FHGFF3 file'], note: 'missing result' };
+  // The honesty gate: a vector whose expectation needs K4 is only scored when K4
+  // reached a verdict against rows this reading actually got. `not-checked` and
+  // `unchecked` mean the feature layer was absent or untrustworthy, and an
+  // unscoreable expectation stays not-run with that state as the reason.
+  if (dependsOnK4 && fhgm.rules.K4 !== 'pass' && fhgm.rules.K4 !== 'reject') {
+    return { id: vector.id, outcome: 'not-run', problems: [], note: `K4 ${fhgm.rules.K4}: ${NOT_RUN_RULES.FHGM.K4}` };
+  }
 
   const problems = [];
   const layers = vector.layers ?? {};

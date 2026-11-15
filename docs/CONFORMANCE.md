@@ -127,8 +127,11 @@ Also unexercised by the suite, so untested by anything here rather than merely
 - the v0.3.0 copy of `fhr.json`, which no vector cites (v0.3.1 is the FHR 1 release
   V6 names) — it is bundled so V2/V3 can answer a v0.3.0 citation as a known
   release rather than as `unsupported-version`;
-- FHGM K4 (feature-target resolution), declared not-supported-yet above rather than
-  approximated from the header alone;
+- FHGM K4 (feature-target resolution) when a reading has no feature layer, or one
+  whose rows cannot be trusted: the default lane indexes the enclosing file's own
+  rows for their `ID` and `type`, and without usable rows the verdict is
+  `not-checked` or `unchecked` - a declared gap, never a pass and never a
+  rejection;
 - parent-link recomputation for the released types: no released rule makes a
   recomputed mismatch a rejection, so `verifyParentLinks` runs only inside the FHT
   lane, against parent bytes the caller hands over.
@@ -144,7 +147,7 @@ through the lane and report them separately.
 | draft suite | contract pinned at | suite scored | vectors | pass | fail | not run, and why |
 | --- | --- | --- | --- | --- | --- | --- |
 | FHT (`FHT-Specification/conformance`) | `226f923c28b680edb3c546e99a751482d06aef1a`, sha256 `59ad9641adcb0e55…` | `24d3b033ab951ef79ee9f6d17419d8ba700f1b0a`, manifest sha256 `9b07179497bdc724…`, verified before the run | 66 | 66 | 0 | none |
-| FHGM (`FHGM-Specification/development/conformance`) | `ac3d37b3033312844fc3151217731928ae33aa54`, sha256 `bf1553cac04dc88d…` | **no suite pin stated**, so the run is labelled `UNPINNED`: the revision it scored is the checkout it was given, not a checked claim | 31 | 26 | 0 | 5 - every vector whose verdict depends on K4, which resolves a `featureId` against the GFF3 feature layer this library does not read |
+| FHGM (`FHGM-Specification/development/conformance`) | `ac3d37b3033312844fc3151217731928ae33aa54`, sha256 `bf1553cac04dc88d…` | **no suite pin stated**, so the run is labelled `UNPINNED`: the revision it scored is the checkout it was given, not a checked claim | 31 | 31 | 0 | none: the five K4-dependent vectors resolve against the file's own feature rows - a vector whose layer is absent or untrustworthy stays not-run with that state as the reason |
 
 **FHT is 66, and that is the only FHT count this repository reports.** Two revisions are
 involved and they are not the same claim:

@@ -13,7 +13,9 @@
  * no CPython runs under the hood, and no result from this library may be
  * described as the website's validation (fair-bioheaders.github.io#23). It also
  * performs no GFF3 feature or biology validation: that belongs to
- * `gff3-validator`.
+ * `gff3-validator`. The FHGM draft lane alone reads two columns below the header
+ * - each feature row's `type` and `ID` - because FHGM K4 resolves a record
+ * `featureId` against them; that index resolves pointers and judges no feature.
  *
  * @module reader
  */
@@ -165,7 +167,9 @@ function recordMarkerWarnings(text, container) {
  * @param {string[]|true} [options.drafts] the V7 lane: draft type ids to recognise,
  *   or `true` for every draft this build pins. Absent, the lane stays shut.
  * @param {import('./fhgm.js').FhgmOptions} [options.fhgm] FHGM lane options
- *   (`{overlay: true}`, `{predecessors: [...]}`); read only when the lane names FHGM
+ *   (`{overlay: true}`, `{predecessors: [...]}`, `{features: ...}` for a K4
+ *   resolver); read only when the lane names FHGM. With the lane open and no
+ *   resolver chosen, K4 resolves against this file's own feature rows.
  * @returns {Reading}
  */
 export function inspectBytes(data, options = {}) {
@@ -225,9 +229,13 @@ export function inspectBytes(data, options = {}) {
     }
     // The FHGM draft lane reports beside the file's own result, never inside it:
     // a verdict on nested records must not become, or alter, the released FHGFF3
-    // result of the file that carries them.
+    // result of the file that carries them. K4 resolves against the file's own
+    // feature rows unless the caller chose a different resolver (`features`) or
+    // brought only ids (`geneIds`); `options.fhgm.features: null` closes it.
     if (drafts.has('FHGM') && selection.type === 'FHGFF3') {
-      reading.fhgm = checkFhgmModels(metadata, { base: { valid: errors.length === 0 }, ...(options.fhgm ?? {}) });
+      const fhgmOptions = { base: { valid: errors.length === 0 }, ...(options.fhgm ?? {}) };
+      if (fhgmOptions.features === undefined && fhgmOptions.geneIds === undefined) fhgmOptions.features = bytes;
+      reading.fhgm = checkFhgmModels(metadata, fhgmOptions);
     }
     return reading;
   } catch (error) {

@@ -247,7 +247,7 @@ export function capability(typeId, operation, serialization) {
     case 'validateContract':
       if (serialization === 'model-records') {
         return draft
-          ? cell(SUPPORT.nativeDraft, `${REASONS.draftOnly(typeId)}; K1 transport, K2 record contract, K3 modelId uniqueness, K5 reference agreement and K6 predecessor verdicts are implemented here, K4 is not`)
+          ? cell(SUPPORT.nativeDraft, `${REASONS.draftOnly(typeId)}; K1 transport, K2 record contract, K3 modelId uniqueness, K4 feature-target resolution against the enclosing file's own row IDs or an injected resolver, K5 reference agreement and K6 predecessor verdicts are implemented here; K4 without a feature layer reports not-checked or unchecked, never a pass`)
           : cell(SUPPORT.notSupportedYet, 'no FHGM check runs unless the V7 lane names FHGM');
       }
       return draft

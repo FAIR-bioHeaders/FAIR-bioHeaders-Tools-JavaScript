@@ -150,7 +150,7 @@ verifyParentLinks(reading.metadata, {
 const annotation = inspectFile('models.fhgff3.gff3', { drafts: ['FHGM'] });
 annotation.valid;      // the released FHGFF3 result — no draft verdict touches it
 annotation.fhgm.valid; // the draft verdict on x-fhgm-models
-annotation.fhgm.rules; // { B1, K1, K2, K3, K4: 'not-supported-yet', K5, K6 }
+annotation.fhgm.rules; // { B1, K1, K2, K3, K4: 'pass'|'reject'|'not-checked'|'unchecked', K5, K6 }
 ```
 
 Three things the lane will not do:
@@ -176,9 +176,13 @@ Three things the lane will not do:
 K6 resolves predecessor pointers only against snapshots the caller supplies:
 `{ fhgm: { predecessors: [{ checksum, header }] } }`. A pointer with no supplied
 history is `unresolvable`, which is a rejection under the draft rule - and it is
-never reported as verified. K4, which needs the GFF3 feature layer, is
-not-supported-yet; `{ fhgm: { geneIds } }` closes it for a caller that resolved the
-feature layer elsewhere.
+never reported as verified. K4 resolves a `featureId` against the GFF3 feature
+layer: by default the lane indexes the file's own rows for their `ID` and `type`
+(`src/features.js`); a caller holding the layer elsewhere passes
+`{ fhgm: { features } }` (row facts `[{id, type}]` or GFF3 content) or the older
+`{ fhgm: { geneIds } }` shorthand, and `{ fhgm: { features: null } }` closes it.
+Without a usable layer K4 reports `not-checked` or `unchecked` — never a pass,
+never a rejection.
 
 To run the owning repositories' development suites through the lane - separate,
 labelled draft evidence, never counted with the shared 291:
