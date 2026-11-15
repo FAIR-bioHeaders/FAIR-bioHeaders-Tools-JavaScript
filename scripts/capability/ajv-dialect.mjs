@@ -24,13 +24,15 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { CURRENT_RELEASE, DIALECT, has as hasSchema, loadSchema } from '../../src/registry.js';
-import { validateRecord, validator } from '../../src/validate.js';
+import { AJV_CONFIG, createCompiler, validateRecord, validator } from '../../src/validate.js';
 import { DRAFT_TYPES, draftEntry, draftWarning, loadDraft } from '../../src/drafts.js';
 
 const require = createRequire(import.meta.url);
-const Ajv2020 = require('ajv/dist/2020').default;
+// Every 2020-12 instance in this study comes from createCompiler(), the library's own
+// seam, so the study measures the configuration in use: if AJV_CONFIG moves, the results
+// below move with it instead of agreeing with a hand-maintained copy of the old literals.
+// The draft-07 build stays a literal here because it is the counterparty, not the config.
 const AjvDraft07 = require('ajv').default;
-const addFormats = require('ajv-formats').default;
 const ajvVersion = require('ajv/package.json').version;
 const formatsVersion = require('ajv-formats/package.json').version;
 const yamlVersion = require('js-yaml/package.json').version;
@@ -56,7 +58,8 @@ function contract(type, release) {
 }
 
 console.log(`node ${process.version} | ajv ${ajvVersion} | ajv-formats ${formatsVersion} | js-yaml ${yamlVersion}`);
-console.log(`contracts: ${CURRENT_RELEASE} copies, dialect ${DIALECT}\n`);
+console.log(`contracts: ${CURRENT_RELEASE} copies, dialect ${DIALECT}`);
+console.log(`configuration under study — the library's own export, src/validate.js AJV_CONFIG: ${JSON.stringify(AJV_CONFIG)}\n`);
 
 // --- 0. the released contracts compile and accept their own examples -------
 const minimal = {
@@ -71,16 +74,14 @@ for (const [type, record] of Object.entries(minimal)) {
 
 // --- 1. $defs / definitions and $ref are really dereferenced --------------
 {
-  const ajv = new Ajv2020({ strict: true, strictRequired: false, strictTypes: false, validateFormats: true, allowUnionTypes: true });
-  addFormats(ajv, { formats: ['date', 'uri'] });
+  const ajv = createCompiler();
   const fhp = contract('FHP', CURRENT_RELEASE);
   delete fhp.$id;
   fhp.$defs.Author = { type: 'string' };
   const v = ajv.compile(fhp);
   check('#/$defs/Author is dereferenced (patching it invalidates the valid FHP example)', v(minimal.FHP) === false);
 
-  const ajv2 = new Ajv2020({ strict: true, strictRequired: false, strictTypes: false, validateFormats: true, allowUnionTypes: true });
-  addFormats(ajv2, { formats: ['date', 'uri'] });
+  const ajv2 = createCompiler();
   const fhrSchema = contract('FHR', CURRENT_RELEASE);
   delete fhrSchema.$id;
   fhrSchema.definitions.sha2 = { type: 'string', pattern: 'ZZZZZ' };
@@ -168,7 +169,11 @@ for (const [type, record] of Object.entries(minimal)) {
 
 // --- 6. format is an opt-in annotation in 2020-12 -----------------------
 {
-  const noFormats = new Ajv2020({ strict: true, strictRequired: false, strictTypes: false, validateFormats: false, allowUnionTypes: true });
+  // Counterfactual: the library's configuration with `validateFormats` turned off, and
+  // that key only. `createCompiler` registers the formats either way; measured on
+  // ajv 8.20.0, `validateFormats: false` ignores them whether or not they are
+  // registered, so this differs from the library build in the one named key.
+  const noFormats = createCompiler({ validateFormats: false });
   const s = contract('FHR', CURRENT_RELEASE);
   delete s.$id;
   const v = noFormats.compile(s);
@@ -189,8 +194,7 @@ for (const [type, record] of Object.entries(minimal)) {
 
 // --- 8. bundling several releases in one validator instance -------------
 {
-  const ajv = new Ajv2020({ strict: true, strictRequired: false, strictTypes: false, validateFormats: true, allowUnionTypes: true });
-  addFormats(ajv, { formats: ['date', 'uri'] });
+  const ajv = createCompiler();
   let collision = '';
   try {
     ajv.addSchema(contract('FHP', 'v0.5.0'), 'fhp-v0.5.0');
@@ -207,8 +211,11 @@ for (const [type, record] of Object.entries(minimal)) {
 {
   let complaint = '';
   try {
-    const ajv = new Ajv2020({ strict: true, validateFormats: true, allowUnionTypes: true });
-    addFormats(ajv, { formats: ['date', 'uri'] });
+    // Counterfactual: the two documented relaxations not applied, i.e. ajv's own
+    // default strict mode. Measured here and in test/ajv-config.test.mjs: with the keys
+    // omitted (the default) and with them set true, the released fhp-1.2.json and
+    // fhgff3-1.2.json throw the same first complaint, so this says what it prints.
+    const ajv = createCompiler({ strictRequired: true, strictTypes: true });
     ajv.compile(contract('FHP', CURRENT_RELEASE));
     complaint = 'compiled with default strict settings';
   } catch (error) {

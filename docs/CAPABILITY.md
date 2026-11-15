@@ -109,21 +109,66 @@ NOTE  ajv 8 default strict mode on the released fhp.json: strict mode: required
       "…/main/fhp.json#/allOf/1/if" (strictRequired)
 ```
 
-and `strictTypes` similarly objects to `then: {properties: {completeness: …}}`
-whose target is a `$ref` without its own `type`. Both are compile-time style
-checks, not semantics, and `strict: 'log'` does not downgrade them — they still
-throw. So `src/validate.js` uses:
+and `strictTypes` objects to `then: {properties: {completeness: …}}` whose target
+is a `$ref` without its own `type`:
 
-```js
-new Ajv2020({ strict: true, strictRequired: false, strictTypes: false,
-              validateFormats: true, allowUnionTypes: true })
+```text
+strict mode: missing type "object" for keyword "properties" at "#/allOf/1/then/properties/completeness" (strictTypes)   # fhp-1.2.json
+strict mode: missing type "array" for keyword "contains" at "#/anyOf/1/properties/derivedFrom" (strictTypes)            # fhgff3-1.2.json
 ```
 
-plus `addFormats(ajv, {formats: ['date', 'uri']})`. `allowUnionTypes` is needed
-because the contracts use `type` arrays (the legacy software string-or-array
-field). Vendored copies share one `$id` — their raw-main URL — so `ajv` refuses a
-second `addSchema`; each copy is compiled with `$id` removed and keyed by type and
-release. The files on disk keep their released bytes, which is what
+Both are compile-time style checks, not semantics, so `src/validate.js` relaxes
+exactly those two keys and nothing else. Measured on `ajv` 8.20.0 against the
+vendored `v0.6.0` bytes, with `ajv`'s `logger` captured so "it compiled" and "it
+compiled and said nothing" are separate answers (2026-11-14):
+
+| configuration | the released bytes |
+| --- | --- |
+| `strict: true` + `strictRequired: false` + `strictTypes: false` (**this library**) | FHR, FHP, FHGFF3 compile, 0 complaints |
+| `strict: true`, relaxations not applied | FHP **throws** `required property "completeness" is not defined at "#/allOf/1/if" (strictRequired)`; FHGFF3 **throws** `required property "genomeReference" is not defined at "#/anyOf/0" (strictRequired)`; FHR compiles |
+| `strictTypes: true` with `strictRequired` still relaxed | FHP and FHGFF3 **throw** the `strictTypes` complaints quoted above |
+| `strict: false` | compiles, complaints not produced |
+| `strict: 'log'`, relaxations kept | compiles, **0 complaints** — indistinguishable from this library on these bytes |
+| `strict: 'log'`, relaxations not applied | compiles, 5 complaints logged for FHP and 11 for FHGFF3 — **not** thrown |
+
+An earlier revision of this document said `strict: 'log'` "does not downgrade them —
+they still throw". It does. `ajv` 8's `checkStrictMode` throws only when the mode is
+the boolean `true`; for any other truthy mode it calls `logger.warn`. That row is
+also the reason the configuration is a value rather than a call-site literal. Every
+other drift you can inject into it is visible to a test — a draft-07 entry point,
+`validateFormats: false`, or either relaxation removed all fail loudly — but
+`strict: 'log'` alongside the two explicit relaxations changes nothing a vector can
+observe: with it written into `AJV_CONFIG`, `node scripts/check-test-report.mjs`
+reported `441 leaf tests, passed 378, failed 0` and exit 0 before this was
+defended. So the configuration is exported and frozen and the study reads it from
+the export:
+
+```js
+export const AJV_ENTRY = 'ajv/dist/2020';
+export const AJV_CONFIG = Object.freeze({ strict: true, strictRequired: false,
+  strictTypes: false, validateFormats: true, allowUnionTypes: true, allErrors: false });
+export const AJV_FORMATS = Object.freeze(['date', 'uri']);
+export function createCompiler(overrides = {}) { /* the only construction site */ }
+```
+
+`test/ajv-config.test.mjs` asserts the value key by key, asserts that an un-relaxed
+strict violation is still *thrown* rather than logged (on a schema carrying an
+unknown keyword, which is where `true` and `'log'` differ), and asserts that
+`scripts/capability/ajv-dialect.mjs` imports the configuration instead of restating
+it. Until now that script wrote the same literals out at four of its five 2020-12
+construction sites (and a partial fifth for the strict-mode counterfactual), and none
+of the five carried `allErrors`, so its results described a configuration the library
+did not use. With the export in place the study prints the object it measured
+(`configuration under study — src/validate.js AJV_CONFIG: {...}`) and its 55 checks
+are unchanged in outcome. Verified: `strict: 'log'` written into `AJV_CONFIG` now
+exits 1 with `AJV_CONFIG.strict must be the boolean true, not "log"` and
+`AJV_CONFIG must make an un-relaxed strict violation an error, saw compiled in
+silence (and 1 complaint(s) logged)`.
+
+`allowUnionTypes` is needed because the contracts use `type` arrays (the legacy
+software string-or-array field). Vendored copies share one `$id` — their raw-main URL
+— so `ajv` refuses a second `addSchema`; each copy is compiled with `$id` removed and
+keyed by type and release. The files on disk keep their released bytes, which is what
 `npm run check:vendoring` verifies.
 
 ## (ii) SHA-512/256 is native, and byte-equal to the reference
