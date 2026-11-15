@@ -16,6 +16,14 @@
  * rejection while an unsupplied one does not, and do the FHGM model rules report
  * beside the FHGFF3 result instead of inside it.
  *
+ * Before it scores anything it verifies the **suite** pin (`drafts/provenance.json`'s
+ * `suiteCommit` / `suiteManifest` / `suiteManifestSha256`, checked by
+ * `scripts/ci/suite-pin.mjs`). A suite whose manifest does not digest to the recorded
+ * value is refused, not scored: an evidence table naming a revision nobody checked is
+ * how a draft claim goes quietly stale. A draft whose registry row states no suite pin
+ * is run and reported as `UNPINNED`, with the revision named as unknown, never as
+ * verified.
+ *
  *     node scripts/capability/draft-vectors.mjs \
  *       --fht  /path/to/FHT-Specification \
  *       --fhgm /path/to/FHGM-Specification
@@ -23,7 +31,8 @@
  * Exit status:
  *   0  every runnable draft vector agreed with this build's lane;
  *   1  at least one agreed to disagree - the lane is wrong somewhere;
- *   2  a given argument is unusable;
+ *   2  a given argument is unusable, or a supplied suite is not the suite this build
+ *      pins (its manifest digest differs from `suiteManifestSha256`);
  *   3  no suite given, or a given path holds no suite. Nothing is reported as
  *      passed, because nothing ran.
  *
@@ -39,6 +48,7 @@ import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { computeChecksum, digest } from '../../src/checksum.js';
 import { HeaderError } from '../../src/errors.js';
 import { draftEntry } from '../../src/drafts.js';
+import { verifySuitePin } from '../ci/suite-pin.mjs';
 import { decompress, inspectBytes } from '../../src/reader.js';
 import { selectSchema } from '../../src/selection.js';
 import { validateRecord } from '../../src/validate.js';
@@ -348,19 +358,46 @@ function runFhgmVector(vector, layout) {
 /**
  * Run one draft suite and print its table.
  *
+ * The suite pin is verified first, and a mismatch refuses the run rather than scoring
+ * it: the numbers in the evidence table are a claim about `suiteCommit`, so they have to
+ * be checked against the bytes being read before anything is counted.
+ *
  * @param {'FHT'|'FHGM'} type
  * @param {string} repoPath a checkout of the owning development repository
- * @returns {{pass: number, fail: number, notRun: number}}
+ * @returns {{pass: number, fail: number, notRun: number, refused: boolean, unpinned: boolean}}
  */
 let VERBOSE = false;
+
+/** @type {string[]} */
+const refusals = [];
 
 function runSuite(type, repoPath) {
   const entry = draftEntry(type);
   const layout = layoutFor(type, repoPath);
-  console.log(`\n=== ${type} draft suite, pinned at ${entry.repository} ${entry.commit.slice(0, 12)} (sha256 ${entry.sha256.slice(0, 12)}...) ===`);
+  const pin = verifySuitePin(type, repoPath);
+  console.log(`\n=== ${type} draft suite ===`);
+  console.log(`contract pinned: ${entry.repository} ${entry.commit.slice(0, 12)}, sha256 ${entry.sha256.slice(0, 12)}… (the bytes this build compiles)`);
+  if (pin.state === 'unpinned') {
+    console.log(`suite:         UNPINNED - ${pin.message}`);
+  } else if (pin.state !== 'verified') {
+    console.log(`suite:         REFUSED - ${pin.message}`);
+    refusals.push(pin.message);
+    return { pass: 0, fail: 0, notRun: 0, refused: true, unpinned: false };
+  } else {
+    console.log(`suite:         ${pin.message.replace(/^[A-Z]+: /, '')}`);
+    // The guard and the reader must be looking at the same file. `layoutFor()` is where
+    // this runner's paths come from; the registry says where the pin's path comes from.
+    // If those two ever disagree, the verified manifest is not the one being scored.
+    if (resolve(pin.path) !== resolve(layout.manifest)) {
+      const message = `${type}: the manifest this build verifies (${pin.path}) is not the one this runner reads (${layout.manifest}); one of the two is wrong and neither claim can be reported`;
+      console.log(`suite:         REFUSED - ${message}`);
+      refusals.push(message);
+      return { pass: 0, fail: 0, notRun: 0, refused: true, unpinned: false };
+    }
+  }
   if (!existsSync(layout.manifest)) {
     console.log(`${type}: no manifest.json at ${layout.manifest} - not run, nothing claimed`);
-    return { pass: 0, fail: 0, notRun: 0 };
+    return { pass: 0, fail: 0, notRun: 0, refused: false, unpinned: pin.state === 'unpinned' };
   }
   const manifest = JSON.parse(readFileSync(layout.manifest, 'utf8'));
   console.log(`manifest vectors: ${manifest.vectors.length} (a draft suite, separate from the shared 291)`);
@@ -383,7 +420,8 @@ function runSuite(type, repoPath) {
       failures.push(`  ${vector.id} [${type}] ${vector.expected} (${result.note})\n    ${result.problems.join('\n    ')}`);
     }
   }
-  console.log(`${type}: ${pass} pass, ${fail} fail, ${notRun} not-run`);
+  const revision = pin.state === 'verified' ? ` (suite ${entry.suiteCommit.slice(0, 12)})` : ' (suite revision unpinned: this build states no pin for it)';
+  console.log(`${type}: ${pass} pass, ${fail} fail, ${notRun} not-run${revision}`);
   if (skipped.length > 0) {
     console.log('not run, with the reason:');
     for (const line of skipped) console.log(line);
@@ -392,7 +430,7 @@ function runSuite(type, repoPath) {
     console.log('failures:');
     for (const line of failures) console.log(line);
   }
-  return { pass, fail, notRun };
+  return { pass, fail, notRun, refused: false, unpinned: pin.state === 'unpinned' };
 }
 
 const args = parseArgs(process.argv.slice(2));
@@ -411,6 +449,7 @@ console.log('draft-lane evidence only. The shared acceptance run is `npm run con
 console.log('nothing below is a released-contract result, and no FHT or FHGM support is claimed.');
 
 let totals = { pass: 0, fail: 0, notRun: 0 };
+const unpinned = [];
 for (const [type, path] of [['FHT', args.fht], ['FHGM', args.fhgm]]) {
   if (path === null) continue;
   if (!existsSync(path)) {
@@ -419,7 +458,19 @@ for (const [type, path] of [['FHT', args.fht], ['FHGM', args.fhgm]]) {
   }
   const result = runSuite(/** @type {'FHT'|'FHGM'} */ (type), path);
   totals = { pass: totals.pass + result.pass, fail: totals.fail + result.fail, notRun: totals.notRun + result.notRun };
+  if (result.unpinned) unpinned.push(type);
 }
 
 console.log(`\nTOTAL draft-lane evidence: ${totals.pass} pass, ${totals.fail} fail, ${totals.notRun} not-run (labelled draft; never counted with the shared 291)`);
-process.exitCode = totals.fail > 0 ? 1 : 0;
+if (unpinned.length > 0) {
+  console.log(`unpinned suite(s): ${unpinned.join(', ')} - that suite's revision is not stated in drafts/provenance.json, so the count above names no revision for it`);
+}
+if (refusals.length > 0) {
+  console.error(`\n${refusals.length} suite(s) refused, nothing scored against them:`);
+  for (const line of refusals) console.error(`  ${line}`);
+  console.error('a refused suite means the checkout is not the revision this build pins. Verify it with');
+  console.error('`node scripts/ci/suite-pin.mjs --check <checkout>`; re-pin deliberately, never here.');
+  process.exitCode = 2;
+} else {
+  process.exitCode = totals.fail > 0 ? 1 : 0;
+}

@@ -18,7 +18,12 @@
  *   pin check, the licence check, the docs and matrix check, the native test suite
  *   through the accounting guard, and the shared conformance runner;
  * - the guard script itself is missing from the job, which is how a silent skip of
- *   the accounting step would otherwise look.
+ *   the accounting step would otherwise look;
+ * - the labelled draft job stops confirming the contract bytes and the suite bytes at
+ *   their own two revisions, scores a suite before verifying it, or hardcodes a commit
+ *   sha that the registry is supposed to state;
+ * - the draft job's negative controls for the suite-pin guard are removed or softened,
+ *   including the one that proves the byte mutation actually changed bytes.
  */
 
 import assert from 'node:assert/strict';
@@ -125,15 +130,52 @@ describe('the CI workflow is native where it has to be', () => {
   });
 
   it('runs the draft lane as labelled draft evidence, never as acceptance', () => {
-    const draft = Object.entries(ci.jobs).find(([, job]) => /draft/i.test(String(job.name ?? '')));
-    assert.ok(draft !== undefined, 'ci.yml should run the draft-lane evidence job');
-    const [id, job] = draft;
+    // Selected by job id: ci.yml has more than one job whose name contains "draft", and a
+    // by-name search lets one draft job answer for the other.
+    const job = ci.jobs['draft-lane'];
+    assert.ok(job !== undefined, 'ci.yml must define a "draft-lane" job');
     assert.match(String(job.name), /draft/i);
     assert.match(String(job.name), /not acceptance|labelled draft/i, 'the draft job must say it is not acceptance');
     assert.ok(!String(job.needs ?? '').includes(PRIMARY), 'the draft job must not gate, or be gated by, acceptance');
     const run = jobText(job);
     assert.match(run, /draft-vectors\.mjs/);
-    assert.ok(!FOREIGN_RUNTIME.test((job.steps ?? []).map((step) => String(step.run ?? '')).join('\n')), `${id}: the draft lane is native JavaScript and must not need a foreign runtime`);
+    assert.ok(!FOREIGN_RUNTIME.test((job.steps ?? []).map((step) => String(step.run ?? '')).join('\n')), 'draft-lane: the draft lane is native JavaScript and must not need a foreign runtime');
+    // The contract bytes and the suite bytes are two claims, so the job checks each at its
+    // own revision rather than reading one and describing the other.
+    assert.match(run, /draft-pins\.mjs --check/, 'draft-lane: the contract bytes must be confirmed at the contract pin');
+    assert.match(run, /suite-pin\.mjs --check/, 'draft-lane: the suite must be confirmed at the suite pin');
+  });
+
+  it('moves the suite checkout to the suite revision, and only after the contract check', () => {
+    const steps = ci.jobs['draft-lane'].steps ?? [];
+    const text = (step) => `${String(step.name ?? '')}\n${String(step.run ?? '')}`;
+    const at = (matcher) => steps.findIndex((step) => matcher.test(text(step)));
+    const contract = at(/draft-pins\.mjs --check/);
+    const move = at(/Move each checkout to the suite revision/);
+    const suite = at(/suite-pin\.mjs --check/);
+    const runner = at(/draft-vectors\.mjs/);
+    assert.ok(contract >= 0 && move >= 0 && suite >= 0 && runner >= 0, `all four steps must exist (contract=${contract}, move=${move}, suite=${suite}, runner=${runner})`);
+    assert.ok(contract < move, 'the contract bytes are confirmed at the contract revision before the checkout moves');
+    assert.ok(move < suite, 'the suite is verified at the revision the pin names');
+    assert.ok(suite < runner, 'nothing is scored before the suite it will score has been verified');
+    assert.match(text(steps[move]), /suite-commit/, 'the revision it moves to comes from the registry output, not a literal in the workflow');
+    assert.ok(!/24d3b033|226f923c/.test(jobText(ci.jobs['draft-lane'])), 'no commit sha is hardcoded in the draft-lane job');
+  });
+
+  it('shows on Linux that the suite-pin guard can fail, in three ways', () => {
+    const steps = ci.jobs['draft-lane'].steps ?? [];
+    const control = steps.find((step) => /Negative controls for the suite-pin guard/.test(String(step.name ?? '')));
+    assert.ok(control !== undefined, 'the draft-lane job must prove the guard is capable of failing, on the case-sensitive runner');
+    const script = String(control.run ?? '');
+    assert.match(script, /cmp -s/, 'the byte mutation must be proven to change bytes before it is trusted');
+    assert.match(script, /vacuous no-op/, 'and the step must say so out loud when it does not');
+    assert.match(script, /grep -q VERIFIED/, 'the pinned bytes must be shown accepted');
+    assert.match(script, /grep -q DRIFT/, 'one changed byte must be shown refused');
+    assert.match(script, /grep -q ABSENT/, 'a path differing only in case must be shown unresolved');
+    assert.match(script, /wrong-case|Conformance/, 'including the case-variant fixture this control exists for');
+    assert.ok(!/continue-on-error/.test(script), 'a control that stops behaving is a failure, not a warning');
+    // The controls are in the labelled draft job, never in the acceptance job.
+    assert.ok(!(ci.jobs[PRIMARY].steps ?? []).some((step) => /suite-pin/.test(String(step.run ?? ''))), 'the primary job does not run suite controls: it needs no upstream checkout');
   });
 });
 

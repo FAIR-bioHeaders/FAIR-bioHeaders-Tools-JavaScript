@@ -150,7 +150,7 @@ All functions are named exports of the package root. The library is ESM only.
 | `selectSchema(record, {drafts})` | V1-V6 selection over the bundled copies; `{drafts: [...]}` opens the V7 lane |
 | `validateRecord(record, selection)` | contract validation, format assertion and warnings |
 | `TYPES`, `TYPE_IDS`, `RELEASED_TYPES`, `DRAFT_TYPE_IDS`, `capability(...)`, `capabilityRows()`, `headerTypesByContainer(...)`, `describeType(...)` | the five-type registry the capability matrix is rendered from |
-| `draftSupport()`, `draftEntry(type)`, `loadDraft(type)`, `verifyDraftBytes(dir)` | the rule-V7 pin: what it is, where the bytes are, whether they still match |
+| `draftSupport()`, `draftEntry(type)`, `draftSuitePin(type)`, `loadDraft(type)`, `verifyDraftBytes(dir)` | the rule-V7 pin: what it is, where the bytes are, whether they still match, and which development-suite revision this build's draft evidence names |
 | `checkFhgmModels(header, {base, overlay, predecessors, geneIds})` | the FHGM draft verdict: B1, K1, K2, K3, K5, K6 (K4 only with `geneIds`) |
 | `verifyParentLinks(record, {resolveParent})` | FHT draft rule C3: checked-pass / checked-fail / unchecked, against parent bytes the caller hands over |
 | `validateRecord(record, selection)` | contract validation, format assertion and warnings |
@@ -197,14 +197,15 @@ fasta 98/98, gfa 56/56, fhp-fasta 36/36, fhgff3 38/38 — and **63 vectors are n
 run** (jsonld 37, microdata 26) because those reader paths are not implemented.
 They are reported as skipped with a reason, never as passes. With the V7 lane
 requested, the same reading path is exercised against the two development suites
-that own the drafts, read at the commits the contracts are pinned to: **91 draft
-vectors pass and 5 are not run** (FHT 65/65 at `226f923c`, or 66/66 at that
-repository's suite revision `24d3b033`, where the three contract rules carry their
-current `C1`/`C2`/`C3` labels instead of the retired `T1`/`T2`/`T3`; FHGM 26 pass with
-the 5 K4-dependent vectors not run), under
-`node scripts/capability/draft-vectors.mjs`. Those counts are draft evidence and
-are never added to the 291. Full breakdown, and
-the list of what is not implemented or claimed:
+that own the drafts, each verified against its own pin before anything is scored:
+**92 draft vectors pass and 5 are not run** — FHT **66/66** at the suite revision
+`24d3b033` (`C1`/`C2`/`C3`, the labels the registry states; the contract itself is pinned
+separately at `226f923c`), and FHGM 26 pass with the 5 K4-dependent vectors not run,
+labelled `UNPINNED` because this build states no suite pin for FHGM and therefore cannot
+name the revision it scored. `node scripts/capability/draft-vectors.mjs` refuses a suite
+whose manifest digest is not the one it pins, so a draft count here names a checked
+revision or says it names none. Those counts are draft evidence and are never added to
+the 291. Full breakdown, and the list of what is not implemented or claimed:
 [`docs/CONFORMANCE.md`](docs/CONFORMANCE.md), and [`docs/USAGE.md`](docs/USAGE.md) for recipes.
 
 The same vectors were also run through the released Python toolkit
@@ -271,7 +272,7 @@ in [`docs/MATRIX.md`](docs/MATRIX.md):
 | `drafts/` | the rule-V7 draft contracts, pinned by commit and SHA-256 in their own `provenance.json`; released-contract-only is `schemas/`, and that split is the point |
 | `conformance/` | vendored shared vectors plus `provenance.json` (source commit, per-file digests) |
 | `examples/` | vendored shared minimal examples used as valid fixtures |
-| `scripts/` | `run-conformance.mjs`, `check-test-report.mjs` (the accounting guard), `make-matrix.mjs`, `golden-default-off.mjs`, `check-vendoring.mjs`, `check-docs.mjs`, `check-license.mjs`, `capability/` (the dependency study, the differential checks against the toolkit and the draft-lane runner), `ci/` (workflow glue) |
+| `scripts/` | `run-conformance.mjs`, `check-test-report.mjs` (the accounting guard), `make-matrix.mjs`, `golden-default-off.mjs`, `check-vendoring.mjs`, `check-docs.mjs`, `check-license.mjs`, `capability/` (the dependency study, the differential checks against the toolkit and the draft-lane runner), `ci/` (`draft-pins.mjs`: pinned contract bytes against a checkout at that commit; `suite-pin.mjs`: the pinned development suite against a checkout at the suite commit) |
 | `test/` | unit tests, the vector-driven acceptance test, the default-gate golden and the workflow guard |
 | `testutil/` | test fixture builders, kept out of `test/` because `node --test` treats every file under `test/` as a test file |
 | `docs/` | `MATRIX.md` (the generated capability matrix), `CAPABILITY.md` (dependency and dialect findings), `CONFORMANCE.md` (vector results and boundaries), `USAGE.md` (recipes and the warning taxonomy) |

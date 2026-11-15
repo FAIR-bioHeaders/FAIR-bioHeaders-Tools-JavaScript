@@ -121,10 +121,20 @@ claim and no w3id URL, and neither is supported here. The lane below is the one 
 this library recognises them, and it is a caller decision.
 
 ```js
-import { inspectFile, inspectBytes, draftSupport, verifyDraftBytes, checkFhgmModels, verifyParentLinks } from 'fair-bioheaders';
+import { inspectFile, inspectBytes, draftSupport, draftSuitePin, verifyDraftBytes, checkFhgmModels, verifyParentLinks } from 'fair-bioheaders';
 
 draftSupport();
 // [{ type: 'FHT', citation: '…/FHT-Specification/main/fht.json', commit: '226f923c…', sha256: '59ad9641…', status: 'draft' }, …]
+
+// The suite is a separate pin from the contract, and it is the one that names the
+// development suite `scripts/capability/draft-vectors.mjs` scores. A draft that states no
+// suite pin reports `stated: false`, and the runner labels its run UNPINNED instead of
+// attributing a revision it never checked.
+draftSuitePin('FHT');
+// { type: 'FHT', repository: 'FHT-Specification', stated: true, partial: false,
+//   commit: '24d3b033…', manifest: 'conformance/manifest.json', sha256: '9b071794…',
+//   bytes: 56250, vectors: 66, rules: ['C1', 'C2', 'C3'] }
+draftSuitePin('FHGM').stated; // false - no suite pin is stated for FHGM
 
 const reading = inspectFile('rna.fht.fasta', { drafts: ['FHT'] });
 reading.schema;  // { type: 'FHT', release: null, schemaVersion: null, rule: 'V7' }
@@ -153,6 +163,11 @@ Three things the lane will not do:
 - **read a moved draft.** `src/drafts.js` re-verifies the vendored bytes against
   `drafts/provenance.json` before compiling them, and a digest mismatch is reported
   (`the draft moved and this build was not re-pinned`) instead of being read.
+- **score a suite it cannot check.** `scripts/capability/draft-vectors.mjs` verifies the
+  development suite against `suiteCommit` / `suiteManifestSha256` first (through
+  `scripts/ci/suite-pin.mjs`) and exits 2 on a mismatch, so a draft count never names a
+  revision nobody checked. A draft whose row states no suite pin - FHGM today - is scored
+  and labelled `UNPINNED`, never `verified`.
 - **take a release form.** A w3id URL or a release-tag URL for either type is not
   recognised with the lane open; it falls through to V5. A draft reading reports
   `release: null` and `schemaVersion: null` and names the commit and digest it was

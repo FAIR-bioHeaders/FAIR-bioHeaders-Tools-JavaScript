@@ -40,6 +40,12 @@ if (args.includes('--github-output')) {
     lines.push(`${key}-repo=${entry.repository}`);
     lines.push(`${key}-path=${entry.sourcePath}`);
     lines.push(`${key}-sha256=${entry.sha256}`);
+    // The suite is a second, separate claim, so it gets its own keys. An empty value is
+    // the honest one: this build states no suite pin for that type, and `suite-pin.mjs`
+    // reports it as unpinned instead of inventing a revision to blame.
+    lines.push(`${key}-suite-commit=${entry.suiteCommit ?? ''}`);
+    lines.push(`${key}-suite-manifest=${entry.suiteManifest ?? ''}`);
+    lines.push(`${key}-suite-sha256=${entry.suiteManifestSha256 ?? ''}`);
   }
   const output = process.env.GITHUB_OUTPUT;
   console.log(lines.join('\n'));

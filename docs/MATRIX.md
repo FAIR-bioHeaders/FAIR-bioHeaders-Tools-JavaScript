@@ -151,7 +151,21 @@ number 1 against `schemas/fhr-1.json`, v0.3.1, with a deprecation warning.
 ## Draft-lane rules, by name
 
 FHT's rules are C1 to C3 and FHGM's are B1 and K1 to K6, drafted in their own
-repositories. Which of them run here, and which do not:
+repositories.
+
+The lane reads two pinned things and they are separate claims: the contract bytes at
+`226f923c28b680edb3c546e99a751482d06aef1a` (sha256 `59ad9641adcb0e55…`), and the development suite this
+build verifies at `24d3b033ab951ef79ee9f6d17419d8ba700f1b0a` - manifest `conformance/manifest.json`, sha256
+`9b07179497bdc724…`, 66 vectors, whose three contract
+rules carry the C1/C2/C3 ids listed below. The guard is
+`scripts/ci/suite-pin.mjs`, and it refuses any other suite revision, so no draft
+count in this repository is attributed to a revision that was never checked.
+
+FHGM states no suite pin in `drafts/provenance.json`, so its draft-lane run is
+labelled `UNPINNED`: the numbers it prints describe the checkout it was handed,
+and this build makes no claim about which revision that was.
+
+Which of the rules run here, and which do not:
 
 | rule | type | here | what it covers, or why it does not run |
 | --- | --- | --- | --- |

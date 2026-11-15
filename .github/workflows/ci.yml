@@ -139,6 +139,60 @@ jobs:
           git -C .upstream/FHGM-Specification rev-parse HEAD
       - name: Confirm the checked-out draft bytes still match this build's pin
         run: node scripts/ci/draft-pins.mjs --check .upstream/FHT-Specification .upstream/FHGM-Specification
+      # The suite is a separate claim from the contract, pinned to a separate revision:
+      # FHT's contract bytes are pinned at one commit and its 66-vector `C1`-`C3` suite
+      # manifest at a later one. So the checkout moves to the suite revision only after the
+      # contract bytes above have been confirmed, and the manifest is then verified before a
+      # single vector is scored. A type whose registry row states no suite pin stays where
+      # it is, and says so as UNPINNED rather than being silently blessed.
+      - name: Move each checkout to the suite revision its pin names
+        run: |
+          set -eu
+          for pair in "FHT-Specification ${{ steps.pins.outputs.fht-suite-commit }}" "FHGM-Specification ${{ steps.pins.outputs.fhgm-suite-commit }}"; do
+            dir=${pair%% *}
+            rev=${pair##* }
+            if [ -n "$rev" ] && [ "$rev" != "$(git -C ".upstream/$dir" rev-parse HEAD)" ]; then
+              git -C ".upstream/$dir" checkout --detach --quiet "$rev"
+            fi
+            echo "$dir at $(git -C ".upstream/$dir" rev-parse HEAD)"
+          done
+      - name: Confirm each development suite is the suite this build's pin names
+        run: node scripts/ci/suite-pin.mjs --check .upstream/FHT-Specification .upstream/FHGM-Specification
+      # The guard above has to be shown capable of failing, or its verdict is decoration.
+      # Three controls, on the case-sensitive Linux runner: the pinned bytes are accepted;
+      # the same bytes with one character appended are refused with DRIFT; and a path that
+      # differs from the pinned one only in case is refused with ABSENT rather than being
+      # resolved by a case-insensitive filesystem. This step exits non-zero if any control
+      # behaves the wrong way, including if the byte mutation turns out to change nothing.
+      - name: Negative controls for the suite-pin guard
+        run: |
+          set -eu
+          good="$RUNNER_TEMP/suite-controls/good"
+          moved="$RUNNER_TEMP/suite-controls/one-byte"
+          cased="$RUNNER_TEMP/suite-controls/wrong-case"
+          rm -rf "$RUNNER_TEMP/suite-controls"
+          mkdir -p "$good/conformance" "$moved/conformance" "$cased/Conformance"
+          cp .upstream/FHT-Specification/conformance/manifest.json "$good/conformance/manifest.json"
+          cp .upstream/FHT-Specification/conformance/manifest.json "$moved/conformance/manifest.json"
+          cp .upstream/FHT-Specification/conformance/manifest.json "$cased/Conformance/manifest.json"
+          printf 'x' >> "$moved/conformance/manifest.json"
+          if cmp -s "$good/conformance/manifest.json" "$moved/conformance/manifest.json"; then
+            echo "control 2 is a vacuous no-op: the mutation changed zero bytes"
+            exit 1
+          fi
+          node scripts/ci/suite-pin.mjs --check "$good" > "$RUNNER_TEMP/suite-controls/good.log" 2>&1
+          grep -q VERIFIED "$RUNNER_TEMP/suite-controls/good.log"
+          if node scripts/ci/suite-pin.mjs --check "$moved" > "$RUNNER_TEMP/suite-controls/moved.log" 2>&1; then
+            echo "control 2 failed: a manifest with one extra byte was accepted as the pinned suite"
+            exit 1
+          fi
+          grep -q DRIFT "$RUNNER_TEMP/suite-controls/moved.log"
+          if node scripts/ci/suite-pin.mjs --check "$cased" > "$RUNNER_TEMP/suite-controls/cased.log" 2>&1; then
+            echo "control 3 failed: conformance/manifest.json resolved through a differently cased directory"
+            exit 1
+          fi
+          grep -q ABSENT "$RUNNER_TEMP/suite-controls/cased.log"
+          echo "suite-pin controls behaved: pinned bytes VERIFIED, one byte DRIFT, wrong case ABSENT"
       - name: Run both development suites through the lane
         run: node scripts/capability/draft-vectors.mjs --fht .upstream/FHT-Specification --fhgm .upstream/FHGM-Specification --verbose | tee draft-lane-evidence.txt
       - name: Upload the draft-lane evidence

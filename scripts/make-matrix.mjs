@@ -164,7 +164,30 @@ lines.push('');
 lines.push('## Draft-lane rules, by name');
 lines.push('');
 lines.push('FHT\'s rules are C1 to C3 and FHGM\'s are B1 and K1 to K6, drafted in their own');
-lines.push('repositories. Which of them run here, and which do not:');
+lines.push('repositories.');
+lines.push('');
+const fhtPin = draftEntry('FHT');
+if (fhtPin.suiteCommit !== null && fhtPin.suiteManifestSha256 !== null) {
+  lines.push('The lane reads two pinned things and they are separate claims: the contract bytes at');
+  lines.push(`\`${fhtPin.commit}\` (sha256 \`${fhtPin.sha256.slice(0, 16)}…\`), and the development suite this`);
+  lines.push(`build verifies at \`${fhtPin.suiteCommit}\` - manifest \`${fhtPin.suiteManifest}\`, sha256`);
+  lines.push(`\`${fhtPin.suiteManifestSha256.slice(0, 16)}…\`, ${fhtPin.suiteVectors} vectors, whose three contract`);
+  lines.push(`rules carry the ${(fhtPin.suiteRules ?? []).join('/')} ids listed below. The guard is`);
+  lines.push('`scripts/ci/suite-pin.mjs`, and it refuses any other suite revision, so no draft');
+  lines.push('count in this repository is attributed to a revision that was never checked.');
+} else {
+  lines.push('No FHT suite pin is stated, so this build names no suite revision for FHT and no');
+  lines.push('draft count here may claim one.');
+}
+const fhgmPin = draftEntry('FHGM');
+if (fhgmPin.suiteCommit === null) {
+  lines.push('');
+  lines.push('FHGM states no suite pin in `drafts/provenance.json`, so its draft-lane run is');
+  lines.push('labelled `UNPINNED`: the numbers it prints describe the checkout it was handed,');
+  lines.push('and this build makes no claim about which revision that was.');
+}
+lines.push('');
+lines.push('Which of the rules run here, and which do not:');
 lines.push('');
 lines.push('| rule | type | here | what it covers, or why it does not run |');
 lines.push('| --- | --- | --- | --- |');
