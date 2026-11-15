@@ -37,7 +37,11 @@ runner, the test suite, the guard and the matrix, which is the point.
 
 Two checks (`capability:ajv`, `capability:digest`) need nothing but the installed
 dependencies and run in the primary CI job. The draft-lane runner needs checkouts of
-the two development suites and reports nothing at all without them (exit 3).
+the two development suites and reports nothing at all without them (exit 3). Next to
+it, `node scripts/ci/draft-pin-freshness.mjs` needs neither a checkout nor a
+dependency: it digests each pinned target's live default-branch bytes and prints
+`MATCH` or `DRIFT`, as an advisory CI job with `continue-on-error`. Live drift is
+detected there, never repaired - see "Changing the draft lane".
 
 Four more checks compare this reader against the released Python toolkit. They are
 **not** part of `npm test` — they need a Python with `fair-bioheaders` installed —
@@ -79,6 +83,12 @@ so the rules are narrow and each is checked:
   not scored. The three owners of "is the pin checked" are listed in
   `docs/CONFORMANCE.md`; keep it that way, because two half-owners is how the FHT count
   came to be reported against a revision nothing had verified;
+- live drift is **detected, not repaired**. `node scripts/ci/draft-pin-freshness.mjs`
+  compares each pinned digest with the owning repository's live default-branch bytes and
+  prints `MATCH` or `DRIFT`, and CI runs it as an advisory, `continue-on-error` job
+  because a draft is allowed to move. Nothing re-pins automatically, the job writes no
+  commit and pushes nothing, and a drift there is a signal for the deliberate re-pin
+  above - never a change to what the lane reads, and never a red acceptance run;
 - a default (lane-off) reading must not change. `test/goldens/default-gate.json` is
   a per-vector digest of all 291 shared vectors captured through the public API from
   the pre-lane tree; `test/default-gate.test.mjs` recomputes and compares. Do not

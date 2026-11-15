@@ -51,7 +51,9 @@ checksum or emits a header. See [What is not implemented](#what-is-not-implement
 
 **It is not a Python wrapper.** The primary CI job installs no Python and runs no
 foreign runtime; the reference-toolkit differentials are a separate, labelled
-supplemental job. See [Conformance](#conformance).
+supplemental job, and the check that the pinned drafts still match the owning
+repositories' live default branch is a third job, advisory and non-gating. See
+[Conformance](#conformance).
 
 ## Install
 
@@ -272,7 +274,7 @@ in [`docs/MATRIX.md`](docs/MATRIX.md):
 | `drafts/` | the rule-V7 draft contracts, pinned by commit and SHA-256 in their own `provenance.json`; released-contract-only is `schemas/`, and that split is the point |
 | `conformance/` | vendored shared vectors plus `provenance.json` (source commit, per-file digests) |
 | `examples/` | vendored shared minimal examples used as valid fixtures |
-| `scripts/` | `run-conformance.mjs`, `check-test-report.mjs` (the accounting guard), `make-matrix.mjs`, `golden-default-off.mjs`, `check-vendoring.mjs`, `check-docs.mjs`, `check-license.mjs`, `capability/` (the dependency study, the differential checks against the toolkit and the draft-lane runner), `ci/` (`draft-pins.mjs`: pinned contract bytes against a checkout at that commit; `suite-pin.mjs`: the pinned development suite against a checkout at the suite commit) |
+| `scripts/` | `run-conformance.mjs`, `check-test-report.mjs` (the accounting guard), `make-matrix.mjs`, `golden-default-off.mjs`, `check-vendoring.mjs`, `check-docs.mjs`, `check-license.mjs`, `capability/` (the dependency study, the differential checks against the toolkit and the draft-lane runner), `ci/` (`draft-pins.mjs`: pinned contract bytes against a checkout at that commit; `suite-pin.mjs`: the pinned development suite against a checkout at the suite commit; `draft-pin-freshness.mjs`: pinned digests against the owning repository's live default branch, advisory and non-gating) |
 | `test/` | unit tests, the vector-driven acceptance test, the default-gate golden and the workflow guard |
 | `testutil/` | test fixture builders, kept out of `test/` because `node --test` treats every file under `test/` as a test file |
 | `docs/` | `MATRIX.md` (the generated capability matrix), `CAPABILITY.md` (dependency and dialect findings), `CONFORMANCE.md` (vector results and boundaries), `USAGE.md` (recipes and the warning taxonomy) |

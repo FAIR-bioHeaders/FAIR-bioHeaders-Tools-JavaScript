@@ -192,6 +192,23 @@ proves the bytes being read are the bytes the pin names; the CI job runs it agai
 checkouts of the pinned commits, and it was verified locally to report `DRIFT` on a
 stale checkout and `MATCH` on the pinned one.
 
+That check answers "is this checkout the commit we pinned". It cannot answer the
+other question, which is whether the pin is still what the owning repository
+publishes today, and a draft legitimately moves: `node
+scripts/ci/draft-pin-freshness.mjs` asks it, digesting each target's live default-branch
+bytes - the two contracts, the FHGM transport overlay, and the FHT development-suite
+manifest this build quotes - against the SHA-256 in `drafts/provenance.json`, and
+reporting `MATCH` or `DRIFT`. It is advisory and it repairs nothing: live drift is
+**detected, not repaired**, there is no automatic re-pinning here, and the job runs with
+`continue-on-error`, so a moved draft can never turn the released-contract result red.
+Re-pinning stays the deliberate act it was: bytes, commit, digest and the prose that
+quotes them change in one commit. Before judging anything the script digests its own
+`drafts/` copies against the registry and fetches a path no repository publishes from
+each owning repository, and if either step does not come out right it reports the run as
+inconclusive rather than naming a winner - a check that cannot fail cannot pass.
+Redirects are not followed, for the same reason: a digest taken after a redirect
+describes wherever the redirect landed, not the URL this build cites.
+
 ## Accounting the suite
 
 `npm run test:ci` (`scripts/check-test-report.mjs`) runs Node's own test runner with

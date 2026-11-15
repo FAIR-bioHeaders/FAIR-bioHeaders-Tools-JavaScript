@@ -24,6 +24,9 @@
  *   sha that the registry is supposed to state;
  * - the draft job's negative controls for the suite-pin guard are removed or softened,
  *   including the one that proves the byte mutation actually changed bytes.
+ * - the advisory draft-pin freshness job stops saying it is advisory, loses the
+ *   nonsense-path control that makes its answer mean anything, starts following
+ *   redirects, or gains a step that could write a re-pin back somewhere.
  */
 
 import assert from 'node:assert/strict';
@@ -176,6 +179,35 @@ describe('the CI workflow is native where it has to be', () => {
     assert.ok(!/continue-on-error/.test(script), 'a control that stops behaving is a failure, not a warning');
     // The controls are in the labelled draft job, never in the acceptance job.
     assert.ok(!(ci.jobs[PRIMARY].steps ?? []).some((step) => /suite-pin/.test(String(step.run ?? ''))), 'the primary job does not run suite controls: it needs no upstream checkout');
+  });
+
+  it('keeps draft-pin freshness advisory, native, and incapable of reporting a verdict it cannot support', () => {
+    const job = ci.jobs['draft-pin-freshness'];
+    assert.ok(job !== undefined, 'ci.yml must define a "draft-pin-freshness" job: a pin that nothing checks against live main is a stale claim waiting to happen');
+    assert.match(String(job.name), /advisory/i, 'the job must say it is advisory');
+    assert.match(String(job.name), /not acceptance|labelled draft/i, 'and must not be mistaken for acceptance');
+    assert.equal(job['continue-on-error'], true, 'a moved draft is expected news, not a red build: the released-contract result must not depend on it');
+    assert.ok(!String(job.needs ?? '').includes(PRIMARY), 'the advisory job must not gate, or be gated by, acceptance');
+    const steps = job.steps ?? [];
+    const run = steps.map((step) => String(step.run ?? '')).join('\n');
+    assert.match(run, /scripts\/ci\/draft-pin-freshness\.mjs/, 'the check runs in CI, not only on a developer machine');
+    assert.ok(!FOREIGN_RUNTIME.test(run), 'draft-pin-freshness: the probes are native fetch, not a curl or python shim');
+    // No auto-repinning, in the strongest sense the file can show: the job installs no
+    // dependencies, writes nothing back, and no step touches a pin registry.
+    assert.ok(!/check-vendoring|draft-pins\.mjs --check/.test(run), 'the freshness job must not double as the pinned-commit check');
+    assert.ok(!/\bgit (push|commit|checkout --)\b/.test(run), 'the freshness job writes no commit and pushes nothing');
+    assert.ok(!steps.some((step) => /setup-python|setup-java|julia|rust/.test(String(step.uses ?? ''))), 'the advisory job installs no foreign runtime');
+    const uploaded = steps.flatMap((step) => String(step.with?.path ?? '').split('\n'));
+    assert.ok(uploaded.some((path) => /draft-freshness\.json/.test(path)), 'the run leaves a machine-readable report behind');
+
+    // The nonsense-path control is what makes either outcome mean anything. It lives in
+    // the script, so the source is the place to prove it is there and is a precondition.
+    const script = readFileSync(join(ROOT, 'scripts', 'ci', 'draft-pin-freshness.mjs'), 'utf8');
+    assert.match(script, /CONTROL_FILE/, 'the script must state a nonsense control path');
+    assert.match(script, /no-such-file/, 'and it must be a path no repository publishes');
+    assert.match(script, /control failed/, 'a failed control must be reported as a failed control');
+    assert.match(script, /redirect: 'manual'/, "redirects must not be followed: a digest of a redirect's target is not a digest of the cited URL");
+    assert.ok(script.indexOf('probe control failed') < script.indexOf('const rows = []'), 'the control must run before any target is judged');
   });
 });
 

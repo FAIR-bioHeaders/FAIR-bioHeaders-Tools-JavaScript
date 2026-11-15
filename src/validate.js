@@ -19,6 +19,11 @@
  * - required values are non-empty;
  * - R14 link schemes.
  *
+ * The `ajv` entry point, configuration and asserted formats are exported values
+ * (`AJV_ENTRY`, `AJV_CONFIG`, `AJV_FORMATS`) and every instance comes from
+ * `createCompiler()`, so the guarantee is a thing a test can read rather than a
+ * thing a call site can quietly change. `test/ajv-config.test.mjs` asserts it.
+ *
  * @module validate
  */
 
@@ -28,8 +33,68 @@ import { HeaderError } from './errors.js';
 import { loadSchema } from './registry.js';
 import { loadDraft } from './drafts.js';
 
+/**
+ * The `ajv` entry point this library validates on: the draft/2020-12 build.
+ *
+ * Exported because it is load-bearing rather than incidental. The released contracts
+ * declare `"$schema": "https://json-schema.org/draft/2020-12/schema"` and
+ * `fhgff3.json` uses `contains`/`minContains`, a 2019-09-and-later keyword. The plain
+ * `ajv` entry point is a draft-07 build: it refuses the released bytes outright
+ * (`no schema with key or ref "…/draft/2020-12/schema"`), and where it does not refuse
+ * them it reads the cardinality rule differently. Measured, not assumed:
+ * `test/ajv-config.test.mjs` asserts the refusal from the vendored bytes.
+ */
+export const AJV_ENTRY = 'ajv/dist/2020';
+
+/**
+ * The configuration every contract this build compiles is compiled with.
+ *
+ * This object is the library's dialect guarantee, so it is an exported value rather
+ * than a literal inside a private function: `test/ajv-config.test.mjs` asserts it key
+ * by key, and `scripts/capability/ajv-dialect.mjs` builds its study instances from it
+ * through `createCompiler()`, so the capability study measures the configuration in
+ * use instead of a hand-maintained copy of it.
+ *
+ * `strictRequired` and `strictTypes` are off because `ajv`'s default strict mode
+ * rejects the released `fhp.json` and `fhgff3.json` for two stylistic reasons (a
+ * version gate whose `if` lists `completeness` in `required` without redeclaring it in
+ * `properties`, and a `then` whose target property is a `$ref` without its own `type`).
+ * Both are compile-time style checks; neither changes what a record means.
+ *
+ * `strict` itself stays the boolean `true`, and that is the key a vector cannot see:
+ * every other drift in this object is observable through a failing test (a draft-07
+ * entry point, `validateFormats: false`, or either relaxation removed all fail loudly),
+ * but `strict: 'log'` alongside the two explicit relaxations compiles the same bytes
+ * with the same silence, so it would pass the whole suite while voiding the guarantee
+ * that the strict checks are still enforced for everything that is *not* deliberately
+ * relaxed. `docs/CAPABILITY.md` records the measurement.
+ *
+ * `validateFormats` stays on because `format` is only an annotation in 2020-12: with it
+ * off, `dateCreated: "2022-13-45"` validates. `allowUnionTypes` is needed because the
+ * contracts use `type` arrays. `allErrors: false` is `ajv`'s own default and is stated
+ * so that the reported set is part of the declared configuration.
+ *
+ * @type {Readonly<import('ajv').Options>}
+ */
+export const AJV_CONFIG = Object.freeze({
+  strict: true,
+  strictRequired: false,
+  strictTypes: false,
+  validateFormats: true,
+  allowUnionTypes: true,
+  allErrors: false,
+});
+
+/**
+ * The `format` keywords asserted, registered from `ajv-formats`.
+ *
+ * `docs/SCHEMA-VERSIONS.md` ("`format` is asserted") requires every declared format to
+ * be checked; these are the two the released contracts declare.
+ */
+export const AJV_FORMATS = Object.freeze(['date', 'uri']);
+
 const require = createRequire(import.meta.url);
-const Ajv2020 = require('ajv/dist/2020').default;
+const Ajv2020 = require(AJV_ENTRY).default;
 const addFormats = require('ajv-formats').default;
 
 /**
@@ -69,29 +134,33 @@ let ajv = null;
 const compiled = new Map();
 
 /**
- * The shared `ajv` instance for released family contracts.
+ * A fresh `ajv` instance carrying the configuration this library guarantees.
  *
- * `strictRequired` and `strictTypes` are off: `ajv`'s default strict mode
- * rejects the released `fhp.json` and `fhgff3.json` for two stylistic reasons
- * (a version gate whose `if` lists `completeness` in `required` without
- * redeclaring it in `properties`, and a `then` whose target property is a `$ref`
- * without its own `type`). Both are compile-time style checks; neither changes
- * what a record means. See `docs/CAPABILITY.md`.
+ * This is the only place an `ajv` instance is constructed. The capability study and
+ * the tests build theirs through here, so a change to `AJV_CONFIG` changes what they
+ * measure; a study that restated the literals would keep reporting the properties of
+ * a configuration the library no longer uses.
+ *
+ * Overrides exist for counterfactuals and are explicit at every call site, so each one
+ * names the key it varies — `createCompiler({ validateFormats: false })` is a statement
+ * about `validateFormats`, not an undocumented second configuration.
+ *
+ * @param {Partial<import('ajv').Options>} [overrides]
+ * @returns {import('ajv').default}
+ */
+export function createCompiler(overrides = {}) {
+  const instance = new Ajv2020({ ...AJV_CONFIG, ...overrides });
+  addFormats(instance, { formats: [...AJV_FORMATS] });
+  return instance;
+}
+
+/**
+ * The shared `ajv` instance for released family contracts.
  *
  * @returns {import('ajv').default}
  */
 function compiler() {
-  if (ajv === null) {
-    ajv = new Ajv2020({
-      strict: true,
-      strictRequired: false,
-      strictTypes: false,
-      validateFormats: true,
-      allowUnionTypes: true,
-      allErrors: false,
-    });
-    addFormats(ajv, { formats: ['date', 'uri'] });
-  }
+  if (ajv === null) ajv = createCompiler();
   return ajv;
 }
 

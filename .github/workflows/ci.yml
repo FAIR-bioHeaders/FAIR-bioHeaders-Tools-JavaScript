@@ -102,6 +102,47 @@ jobs:
           FHR_TOOLKIT_BIN: ${{ runner.temp }}/fhr-reference/bin
         run: node scripts/capability/toolkit-crosscheck.mjs conformance
 
+  # Draft-pin freshness. Advisory, and it gates nothing.
+  #
+  # `draft-pins.mjs --check`, below in the draft-lane job, compares the pinned digests
+  # against a checkout of the owning repository AT the pinned commit. That is the
+  # acceptance-relevant question for the lane. This job asks the different one the lane
+  # must never be confused with: is the revision this build pinned still what the owning
+  # repository publishes on its DEFAULT BRANCH? A draft legitimately moves, so a DRIFT is
+  # expected news rather than a broken build, and the job runs with continue-on-error.
+  # Nothing here re-pins: re-pinning is the deliberate act of changing bytes, commit,
+  # digest and the prose that quotes them in one commit (CONTRIBUTING.md). The script
+  # fetches a nonsense path from each owning repository before judging anything and stops
+  # if that does not come back 404, so neither a pass nor a drift can be an artefact of a
+  # portal page or a soft-200 error document.
+  draft-pin-freshness:
+    name: Draft-pin freshness against live raw main (advisory, labelled draft, not acceptance)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Compare every pinned draft target with the owning repository's live default branch
+        # No `npm ci` and no dependency: the script imports only this repository's own
+        # source and uses node:crypto and the global fetch. Native, and read-only towards
+        # the two development repositories - it fetches over anonymous HTTPS and writes
+        # nothing outside its own report file.
+        run: node scripts/ci/draft-pin-freshness.mjs --json draft-freshness.json | tee draft-freshness.txt
+      - name: Upload the freshness report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: draft-pin-freshness
+          path: |
+            draft-freshness.json
+            draft-freshness.txt
+          if-no-files-found: error
+
   draft-lane:
     name: Draft lane against the owning repositories' development suites (labelled draft, not acceptance)
     runs-on: ubuntu-latest
