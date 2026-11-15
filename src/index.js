@@ -46,7 +46,17 @@ export {
   loadSchema,
   releasesFor,
 } from './registry.js';
-export { emptyValueWarnings, hasAcceptedLinkScheme, linkSchemeWarnings, validateRecord, validator } from './validate.js';
+export {
+  AJV_CONFIG,
+  AJV_ENTRY,
+  AJV_FORMATS,
+  createCompiler,
+  emptyValueWarnings,
+  hasAcceptedLinkScheme,
+  linkSchemeWarnings,
+  validateRecord,
+  validator,
+} from './validate.js';
 export { containerOf, decompress, inspectBytes, inspectFile, stripBytes, stripFile } from './reader.js';
 
 // The five-type registry: what this build knows, and what it can do with it.
