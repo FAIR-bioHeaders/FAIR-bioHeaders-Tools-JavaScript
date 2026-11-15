@@ -18,7 +18,10 @@
  *   pin check, the licence check, the docs and matrix check, the native test suite
  *   through the accounting guard, and the shared conformance runner;
  * - the guard script itself is missing from the job, which is how a silent skip of
- *   the accounting step would otherwise look.
+ *   the accounting step would otherwise look;
+ * - the advisory draft-pin freshness job stops saying it is advisory, loses the
+ *   nonsense-path control that makes its answer mean anything, starts following
+ *   redirects, or gains a step that could write a re-pin back somewhere.
  */
 
 import assert from 'node:assert/strict';
@@ -125,15 +128,45 @@ describe('the CI workflow is native where it has to be', () => {
   });
 
   it('runs the draft lane as labelled draft evidence, never as acceptance', () => {
-    const draft = Object.entries(ci.jobs).find(([, job]) => /draft/i.test(String(job.name ?? '')));
-    assert.ok(draft !== undefined, 'ci.yml should run the draft-lane evidence job');
-    const [id, job] = draft;
+    // Selected by job id: `draft-pin-freshness` below also names the drafts, and a
+    // by-name search would let one draft job answer for the other.
+    const job = ci.jobs['draft-lane'];
+    assert.ok(job !== undefined, 'ci.yml must define a "draft-lane" job');
     assert.match(String(job.name), /draft/i);
     assert.match(String(job.name), /not acceptance|labelled draft/i, 'the draft job must say it is not acceptance');
     assert.ok(!String(job.needs ?? '').includes(PRIMARY), 'the draft job must not gate, or be gated by, acceptance');
     const run = jobText(job);
     assert.match(run, /draft-vectors\.mjs/);
-    assert.ok(!FOREIGN_RUNTIME.test((job.steps ?? []).map((step) => String(step.run ?? '')).join('\n')), `${id}: the draft lane is native JavaScript and must not need a foreign runtime`);
+    assert.ok(!FOREIGN_RUNTIME.test((job.steps ?? []).map((step) => String(step.run ?? '')).join('\n')), 'draft-lane: the draft lane is native JavaScript and must not need a foreign runtime');
+  });
+
+  it('keeps draft-pin freshness advisory, native, and incapable of reporting a verdict it cannot support', () => {
+    const job = ci.jobs['draft-pin-freshness'];
+    assert.ok(job !== undefined, 'ci.yml must define a "draft-pin-freshness" job: a pin that nothing checks against live main is a stale claim waiting to happen');
+    assert.match(String(job.name), /advisory/i, 'the job must say it is advisory');
+    assert.match(String(job.name), /not acceptance|labelled draft/i, 'and must not be mistaken for acceptance');
+    assert.equal(job['continue-on-error'], true, 'a moved draft is expected news, not a red build: the released-contract result must not depend on it');
+    assert.ok(!String(job.needs ?? '').includes(PRIMARY), 'the advisory job must not gate, or be gated by, acceptance');
+    const steps = job.steps ?? [];
+    const run = steps.map((step) => String(step.run ?? '')).join('\n');
+    assert.match(run, /scripts\/ci\/draft-pin-freshness\.mjs/, 'the check runs in CI, not only on a developer machine');
+    assert.ok(!FOREIGN_RUNTIME.test(run), 'draft-pin-freshness: the probes are native fetch, not a curl or python shim');
+    // No auto-repinning, in the strongest sense the file can show: the job installs no
+    // dependencies, writes nothing back, and no step touches a pin registry.
+    assert.ok(!/check-vendoring|draft-pins\.mjs --check/.test(run), 'the freshness job must not double as the pinned-commit check');
+    assert.ok(!/\bgit (push|commit|checkout --)\b/.test(run), 'the freshness job writes no commit and pushes nothing');
+    assert.ok(!steps.some((step) => /setup-python|setup-java|julia|rust/.test(String(step.uses ?? ''))), 'the advisory job installs no foreign runtime');
+    const uploaded = steps.flatMap((step) => String(step.with?.path ?? '').split('\n'));
+    assert.ok(uploaded.some((path) => /draft-freshness\.json/.test(path)), 'the run leaves a machine-readable report behind');
+
+    // The nonsense-path control is what makes either outcome mean anything. It lives in
+    // the script, so the source is the place to prove it is there and is a precondition.
+    const script = readFileSync(join(ROOT, 'scripts', 'ci', 'draft-pin-freshness.mjs'), 'utf8');
+    assert.match(script, /CONTROL_FILE/, 'the script must state a nonsense control path');
+    assert.match(script, /no-such-file/, 'and it must be a path no repository publishes');
+    assert.match(script, /control failed/, 'a failed control must be reported as a failed control');
+    assert.match(script, /redirect: 'manual'/, "redirects must not be followed: a digest of a redirect's target is not a digest of the cited URL");
+    assert.ok(script.indexOf('probe control failed') < script.indexOf('const rows = []'), 'the control must run before any target is judged');
   });
 });
 
