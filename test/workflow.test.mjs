@@ -36,6 +36,8 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
 
+import { draftEntry } from '../src/drafts.js';
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
 const yaml = require('js-yaml');
@@ -162,7 +164,22 @@ describe('the CI workflow is native where it has to be', () => {
     assert.ok(move < suite, 'the suite is verified at the revision the pin names');
     assert.ok(suite < runner, 'nothing is scored before the suite it will score has been verified');
     assert.match(text(steps[move]), /suite-commit/, 'the revision it moves to comes from the registry output, not a literal in the workflow');
-    assert.ok(!/24d3b033|226f923c/.test(jobText(ci.jobs['draft-lane'])), 'no commit sha is hardcoded in the draft-lane job');
+    // No commit sha is ever written into this job: it comes from the registry, so a re-pin
+    // cannot leave a stale revision in the workflow. Derived from the registry rather than a
+    // literal list, because a literal list goes stale exactly when the pins move - which is
+    // the only moment it would have needed to catch something.
+    const literalShas = new Set(
+      ['FHT', 'FHGM'].flatMap((type) => {
+        const entry = draftEntry(type);
+        const overlay = entry.overlay;
+        return [entry.commit, entry.suiteCommit, overlay?.commit].filter((sha) => typeof sha === 'string' && sha !== '');
+      }),
+    );
+    const text2 = jobText(ci.jobs['draft-lane']);
+    for (const sha of literalShas) {
+      assert.ok(!text2.includes(sha.slice(0, 12)), `no commit sha (${sha.slice(0, 12)}) may be hardcoded in the draft-lane job`);
+    }
+    assert.ok(literalShas.size >= 3, `the control must have something to check (found ${literalShas.size} pinned revisions: ${[...literalShas].map((s) => s.slice(0, 8)).join(', ')})`);
   });
 
   it('shows on Linux that the suite-pin guard can fail, in three ways', () => {

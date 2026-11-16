@@ -34,6 +34,9 @@ import { DRAFT_TYPES, draftEntry, draftProvenance } from '../src/drafts.js';
 /** SHA-256 the way the script computes it, so a probe answer is a real digest. */
 const digest = (text) => createHash('sha256').update(text).digest('hex');
 
+/** Every digest this build states, across both drafts: the number of probes a complete run owes. */
+const TARGETS = DRAFT_TYPES.reduce((total, type) => total + pinTargets(type).length, 0);
+
 const target = (overrides = {}) => ({
   type: 'FHT',
   part: 'contract',
@@ -147,7 +150,7 @@ describe('controlUrlFor and commitUrlFor', () => {
 describe('pinTargets', () => {
   it('covers every digest this build states for a draft', () => {
     const parts = Object.fromEntries(DRAFT_TYPES.map((type) => [type, pinTargets(type).map((row) => row.part)]));
-    assert.deepEqual(parts, { FHT: ['contract', 'suite-manifest'], FHGM: ['contract', 'transport-overlay'] });
+    assert.deepEqual(parts, { FHT: ['contract', 'suite-manifest'], FHGM: ['contract', 'suite-manifest', 'transport-overlay'] });
 
     for (const type of DRAFT_TYPES) {
       const entry = draftEntry(type);
@@ -200,7 +203,7 @@ describe('evaluatePins', () => {
       }
       const clean = await evaluatePins(injected(currentAnswers()), DRAFT_TYPES, dir);
       assert.equal(clean.local.ok, true, 'and on the committed bytes the local check passes');
-      assert.deepEqual(clean.counts, { match: 4 });
+      assert.deepEqual(clean.counts, { match: TARGETS });
 
       // One byte appended to one vendored copy: the digests this build states are now
       // false about its own tree, so no statement about live main can mean anything.
@@ -226,8 +229,9 @@ describe('evaluatePins', () => {
     const report = await evaluatePins(injected(currentAnswers()));
     assert.equal(report.fatal, null);
     assert.equal(report.ok, true);
-    assert.equal(report.rows.length, 4, 'FHT contract + suite manifest, FHGM contract + transport overlay');
-    assert.deepEqual(report.counts, { match: 4 });
+    assert.equal(report.rows.length, TARGETS, 'FHT contract + suite manifest, FHGM contract + suite manifest + transport overlay');
+    assert.equal(TARGETS, 5, 'five pinned targets: a moved or removed one changes what this run can claim, so it is stated, not inferred in silence');
+    assert.deepEqual(report.counts, { match: TARGETS });
     for (const row of report.rows) assert.equal(row.state, 'match', `${row.type} ${row.part}: ${row.message}`);
     assert.equal(report.rows.every((row) => row.state !== 'drift'), true);
   });
@@ -239,7 +243,7 @@ describe('evaluatePins', () => {
     const report = await evaluatePins(injected(answers));
     assert.equal(report.ok, false);
     assert.equal(report.fatal, null, 'a real drift is a finding, not a broken check');
-    assert.deepEqual(report.counts, { match: 3, drift: 1 });
+    assert.deepEqual(report.counts, { match: TARGETS - 1, drift: 1 });
     const drifted = report.rows.find((row) => row.state === 'drift');
     assert.deepEqual([drifted.type, drifted.part], ['FHGM', 'transport-overlay']);
     for (const row of report.rows.filter((each) => each.state !== 'drift')) {
@@ -254,7 +258,7 @@ describe('evaluatePins', () => {
     const report = await evaluatePins(injected(answers));
     assert.match(String(report.fatal), /not usable/);
     assert.equal(report.ok, false);
-    assert.deepEqual(report.counts, { match: 3, 'invalid-probe': 1 });
+    assert.deepEqual(report.counts, { match: TARGETS - 1, 'invalid-probe': 1 });
   });
 
   it('corroborates a 404 against the pinned commit inside the run', async () => {

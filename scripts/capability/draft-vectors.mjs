@@ -41,7 +41,11 @@
  * feature rows by default. It stays not-run, with the state that produced the
  * gap as the reason, when K4 comes back `not-checked` or `unchecked`: a layer
  * that was absent or untrustworthy is never scored as a pass and never scored as
- * a rejection either.
+ * a rejection either. The same discipline covers `layers.gff3`, the feature-layer
+ * verdict this library does not compute at all: a vector expecting that layer to
+ * `reject` is left not-run rather than passed by a build that cannot see the
+ * reason, and one expecting `accept` is scored only on the layers this build
+ * actually judges - see docs/CONFORMANCE.md for what that does and does not prove.
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -303,6 +307,20 @@ function runFhgmVector(vector, layout) {
   const { base: from, guard } = layout;
   const cited = [vector.rule ?? null, ...(vector.rules ?? [])].filter((rule) => typeof rule === 'string');
   const dependsOnK4 = cited.includes('K4') || (vector.layers?.model === 'reject' && typeof vector.reason === 'string' && vector.reason.includes('gene row'));
+
+  // `layers.gff3` is the feature-layer verdict, and this library does not evaluate it:
+  // reading a header is where its boundary stops and `gff3-validator` begins. The
+  // asymmetry is deliberate. An expectation of `accept` cannot be falsified here, so a
+  // pass on such a vector says nothing about that layer (recorded in docs/CONFORMANCE.md
+  // rather than silently credited); an expectation of `reject` would be *granted* by a
+  // build that cannot see the reason for it, which is a false pass. Only the second can
+  // be scored wrongly by accident, so that is the one this lane refuses to score - and it
+  // refuses before the file is even opened, because the gap is in the expectation, not in
+  // the bytes.
+  const gff3Layer = (vector.layers ?? {}).gff3;
+  if (gff3Layer !== undefined && gff3Layer !== 'accept') {
+    return { id: vector.id, outcome: 'not-run', problems: [], note: `layers.gff3 = ${JSON.stringify(gff3Layer)}: the GFF3 feature layer is validated by gff3-validator, not by this library, so no expectation that depends on it is scored` };
+  }
   const path = resolveWithin(from, guard, vector.file);
   if (path === null || !existsSync(path)) return { id: vector.id, outcome: 'not-run', problems: [], note: `unreadable path ${vector.file}` };
   const raw = bytesOf(path);
@@ -428,6 +446,17 @@ function runSuite(type, repoPath) {
   }
   const revision = pin.state === 'verified' ? ` (suite ${entry.suiteCommit.slice(0, 12)})` : ' (suite revision unpinned: this build states no pin for it)';
   console.log(`${type}: ${pass} pass, ${fail} fail, ${notRun} not-run${revision}`);
+  // A draft suite can carry vectors whose *expectation* is not yet reviewed even though
+  // the file and its digest are real: FHT-Specification marks its promoted pilot cases
+  // `promotion: candidate-unreviewed` in the manifest. Printing the tally keeps a 72/72
+  // from reading as 72 reviewed facts, and reads the field rather than a hardcoded id list
+  // so the line stays true when the suite moves again.
+  const unreviewed = manifest.vectors.filter((vector) => vector.promotion !== undefined && vector.promotion !== null);
+  if (unreviewed.length > 0) {
+    console.log(`of the ${manifest.vectors.length}, ${unreviewed.length} carry an upstream promotion marker, i.e. the owning repository has not finished reviewing the expectation itself:`);
+    for (const vector of unreviewed) console.log(`  ${vector.id}: promotion=${typeof vector.promotion === 'string' ? vector.promotion : JSON.stringify(vector.promotion)}`);
+    console.log('a pass on those vectors says this build agrees with the recorded expectation; it is not evidence that the expectation was reviewed');
+  }
   if (skipped.length > 0) {
     console.log('not run, with the reason:');
     for (const line of skipped) console.log(line);

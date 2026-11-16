@@ -72,15 +72,41 @@ so the rules are narrow and each is checked:
 - re-pinning a draft means changing the bytes, the commit and the digest in the same
   commit as the prose that quotes them, because `scripts/check-docs.mjs` refuses a
   document that names a lane without naming the pin it reads;
+- **the digest is the pin; the count is a note about it.** Move the SHA-256 and the commit
+  from bytes you actually downloaded, then re-read the vector count out of those same
+  bytes. Never the reverse: a re-pin driven by a count is how a build comes to name a
+  suite it never checked, and `scripts/ci/suite-pin.mjs` refuses a manifest whose digest
+  matches while its `vectors` array disagrees with `suiteVectors`.
+- measure with the contents API at a `ref`, not with the branch-named CDN and not with a
+  `HEAD` content-length. `GET /repos/<owner>/<repo>/contents/<path>?ref=main` answers with
+  the git blob sha and the body; decode the body to a file, hash the bytes on disk, and
+  compare the recomputed blob sha with the one the API states - that is what proves the
+  download is whole. `raw.githubusercontent.com/main/…` was observed on 2026-11-16 serving
+  pre-merge bytes for minutes after a merge, and a content-length is an assertion about a
+  response, not a measurement of a file;
+- a suite pin may legitimately name a different commit from its contract, and stating one
+  is not the same as stating the other. Where the two are equal the registry repeats the
+  value so the check is uniform; where a commit moved only one of them, that is what the
+  `suiteCommitNote` says, with the blob shas that prove it;
 - the suite is a **second** pin, and it is enforced rather than merely recorded.
   `suiteCommit`, `suiteManifest` and `suiteManifestSha256` are exposed by `draftEntry()`
   and `draftSuitePin()`; `node scripts/ci/suite-pin.mjs --check <checkout>` verifies a
   checkout against them; and `scripts/capability/draft-vectors.mjs` runs that check before
   it scores anything and exits 2 when the manifest does not digest to the recorded value.
-  A draft that states no suite pin is reported `UNPINNED`, never `verified` - today that
-  is FHGM. The reported FHT count is 66, from the suite pin `24d3b033ab951ef7…`; the
-  65-vector pre-rename manifest at the contract revision is a `DRIFT` to the guard and is
-  not scored. The three owners of "is the pin checked" are listed in
+  A draft that states no suite pin is reported `UNPINNED`, never `verified` - after the
+  re-pin of 2026-11-16 no draft in this registry is in that state, so the branch is now a
+  guard for a future draft rather than a description of a present one. `UNPINNED` is a
+  label `scripts/capability/draft-vectors.mjs` prints for an absence in this build's own
+  registry, which is the only way a stale literal in a test could reach it: the test in
+  `test/draft-suite-pin.test.mjs` therefore copies the tree to a temporary directory,
+  deletes the suite fields from the copy's `drafts/provenance.json`, and runs the copy's
+  runner - and a test that filtered the live registry for an unpinned draft would run zero
+  iterations and pass by saying nothing. The reported counts are FHT **72**
+  from the suite pin `be9bcc825f55db92…` and FHGM **43** from `c503ecf38deaba28…`; the
+  superseded pins they replaced (`24d3b033ab951ef7…`, 66 vectors, and the 31-vector FHGM
+  suite this build previously scored with no pin stated at all) and the 65-vector
+  pre-rename manifest at the contract revision are all `DRIFT` to the guard and are not
+  scored. The three owners of "is the pin checked" are listed in
   `docs/CONFORMANCE.md`; keep it that way, because two half-owners is how the FHT count
   came to be reported against a revision nothing had verified;
 - live drift is **detected, not repaired**. `node scripts/ci/draft-pin-freshness.mjs`

@@ -171,7 +171,7 @@ if (fhtPin.suiteCommit !== null && fhtPin.suiteManifestSha256 !== null) {
   lines.push('The lane reads two pinned things and they are separate claims: the contract bytes at');
   lines.push(`\`${fhtPin.commit}\` (sha256 \`${fhtPin.sha256.slice(0, 16)}…\`), and the development suite this`);
   lines.push(`build verifies at \`${fhtPin.suiteCommit}\` - manifest \`${fhtPin.suiteManifest}\`, sha256`);
-  lines.push(`\`${fhtPin.suiteManifestSha256.slice(0, 16)}…\`, ${fhtPin.suiteVectors} vectors, whose three contract`);
+  lines.push(`\`${fhtPin.suiteManifestSha256.slice(0, 16)}…\`, ${fhtPin.suiteVectors} vectors across ${fhtPin.suiteManifestBytes} bytes, whose ${(fhtPin.suiteRules ?? []).length} contract`);
   lines.push(`rules carry the ${(fhtPin.suiteRules ?? []).join('/')} ids listed below. The guard is`);
   lines.push('`scripts/ci/suite-pin.mjs`, and it refuses any other suite revision, so no draft');
   lines.push('count in this repository is attributed to a revision that was never checked.');
@@ -180,7 +180,19 @@ if (fhtPin.suiteCommit !== null && fhtPin.suiteManifestSha256 !== null) {
   lines.push('draft count here may claim one.');
 }
 const fhgmPin = draftEntry('FHGM');
-if (fhgmPin.suiteCommit === null) {
+if (fhgmPin.suiteCommit !== null && fhgmPin.suiteManifestSha256 !== null) {
+  lines.push('');
+  lines.push('FHGM is the same shape, over two revisions: the record contract at');
+  lines.push(`\`${fhgmPin.commit}\` (sha256 \`${fhgmPin.sha256.slice(0, 16)}…\`), and then the transport overlay and the`);
+  lines.push('development suite together at a later one - the overlay beside it at');
+  lines.push(`\`${fhgmPin.overlay?.commit}\` (sha256 \`${fhgmPin.overlay?.sha256.slice(0, 16)}…\`), and the suite`);
+  lines.push(`this build verifies at \`${fhgmPin.suiteCommit}\` - manifest`);
+  lines.push(`\`${fhgmPin.suiteManifest}\`, sha256 \`${fhgmPin.suiteManifestSha256.slice(0, 16)}…\`,`);
+  lines.push(`${fhgmPin.suiteVectors} vectors across ${fhgmPin.suiteManifestBytes} bytes, labelled ${(fhgmPin.suiteRules ?? []).join('/')}. Before the`);
+  lines.push('re-pin of 2026-11-16 this registry stated no suite revision for FHGM at all, so its');
+  lines.push('draft-lane run could only print `UNPINNED`; the guard is the same one and it refuses');
+  lines.push('any other suite bytes.');
+} else if (fhgmPin.suiteCommit === null) {
   lines.push('');
   lines.push('FHGM states no suite pin in `drafts/provenance.json`, so its draft-lane run is');
   lines.push('labelled `UNPINNED`: the numbers it prints describe the checkout it was handed,');
@@ -195,7 +207,7 @@ lines.push('| C1 | FHT | yes | the parsed metadata validates against the pinned 
 lines.push('| C2 | FHT | yes | schema-URL closure, inside the pinned bytes: another type\'s URL or an arbitrary URL fails the contract and never selects FHT |');
 lines.push('| C3 | FHT | yes | parent-link verdicts `checked-pass` / `checked-fail` / `unchecked`, against parent bytes the caller supplies; never assumed, never invented |');
 lines.push('| B1 | FHGM | yes | the released FHGFF3 schema and the exact-byte checksum must hold before any model verdict exists; with them false the verdict is `not-checked` |');
-lines.push('| K1 | FHGM | yes | transport: R15 admits extension fields from FHGFF3 1.1, and `x-fhgm-models` holds one or more records. `overlay: true` also applies the pinned transport overlay, which is narrower: it names the v0.5.0 citation and 1.1 outright |');
+lines.push('| K1 | FHGM | yes | transport: R15 admits extension fields from FHGFF3 1.1, and `x-fhgm-models` holds one or more records. `overlay: true` also applies the pinned transport overlay, which since FHGM-Specification#17 admits either released base as a closed pairing - v0.5.0 with 1.1, or v0.6.0 with 1.2 - and refuses a citation and version that contradict each other |');
 lines.push('| K2 | FHGM | yes | every record validates against the pinned record contract (`modelId`, `modelVersion`, `featureId`, `reference` required, objects closed) |');
 lines.push('| K3 | FHGM | yes | `modelId` unique within a snapshot; a shared id is ambiguous and rejects that snapshot, current or supplied predecessor |');
 const k4 = fhgmRuleCoverage().boundaries.K4;

@@ -146,41 +146,82 @@ through the lane and report them separately.
 
 | draft suite | contract pinned at | suite scored | vectors | pass | fail | not run, and why |
 | --- | --- | --- | --- | --- | --- | --- |
-| FHT (`FHT-Specification/conformance`) | `226f923c28b680edb3c546e99a751482d06aef1a`, sha256 `59ad9641adcb0e55…` | `24d3b033ab951ef79ee9f6d17419d8ba700f1b0a`, manifest sha256 `9b07179497bdc724…`, verified before the run | 66 | 66 | 0 | none |
-| FHGM (`FHGM-Specification/development/conformance`) | `ac3d37b3033312844fc3151217731928ae33aa54`, sha256 `bf1553cac04dc88d…` | **no suite pin stated**, so the run is labelled `UNPINNED`: the revision it scored is the checkout it was given, not a checked claim | 31 | 31 | 0 | none: the five K4-dependent vectors resolve against the file's own feature rows - a vector whose layer is absent or untrustworthy stays not-run with that state as the reason |
+| FHT (`FHT-Specification/conformance`) | `226f923c28b680edb3c546e99a751482d06aef1a`, sha256 `59ad9641adcb0e55…` | `be9bcc825f55db92852fd882ffba4c1c214f53db`, manifest sha256 `9fd8c0b2a4638d5d…`, verified before the run | 72 | 72 | 0 | none scored by assumption. Four of the 72 carry `promotion: candidate-unreviewed` upstream, so four *expectations* await a second reader; the runner prints that tally itself |
+| FHGM (`FHGM-Specification/development/conformance`) | `ac3d37b3033312844fc3151217731928ae33aa54`, sha256 `bf1553cac04dc88d…` | `c503ecf38deaba289e8384124ee5e2b8e81b86f1`, manifest sha256 `0d2790151c4a2955…`, verified before the run — the first revision this build can name for FHGM, whose row used to read `UNPINNED` | 43 | 43 | 0 | none scored by assumption. The twelve `dmel-*` vectors promoted from the real-data fixtures are labelled `Status: DRAFT` upstream: their expectations await independent review |
 
-**FHT is 66, and that is the only FHT count this repository reports.** Two revisions are
-involved and they are not the same claim:
+**FHT is 72 and FHGM is 43, and those are the only draft counts this repository
+reports.** Two revisions are involved per draft and they are not the same claim:
 
-- The **contract** pin, `226f923c`, is the revision whose `fht.json` bytes this build
-  compiles. `scripts/ci/draft-pins.mjs --check` confirms them.
-- The **suite** pin, `24d3b033` (`suiteCommit` in `drafts/provenance.json`), is the
-  revision whose manifest the draft-lane evidence is a claim about: 56250 bytes,
-  sha256 `9b07179497bdc7247d6ead2404d9d5fdee48308a58b385bd4cd9a7e91450053a`, **66
-  vectors**, labelled `C1`/`C2`/`C3`. The extra vector against the older count is
-  `fht-fasta-parent-mixed-verdicts`.
+- The **contract** pin is the revision whose contract bytes this build compiles.
+  Neither moved in the re-pin of 2026-11-16: `fht.json` at `226f923c` and the FHGM
+  record contract at `ac3d37b3` both still digest to what the registry says, and
+  `scripts/ci/draft-pins.mjs --check` confirms them in a checkout.
+- The **suite** pin (`suiteCommit` in `drafts/provenance.json`) is the revision whose
+  manifest the draft-lane evidence is a claim about. FHT's moved from `24d3b033`
+  (56250 bytes, sha256 `9b07179497bdc724…`, 66 vectors) to `be9bcc82` (65615 bytes,
+  sha256 `9fd8c0b2a4638d5d…`, 72 vectors); the diff is six added vectors and none
+  removed. FHGM's is stated for the first time: `c503ecf3`, 51114 bytes, sha256
+  `0d2790151c4a2955…`, 43 vectors, twelve more than the 31 this repository had run
+  and reported unpinned.
 
-At the contract revision the same repository holds a **65**-vector manifest (54216 bytes,
+Both suites still carry the same rule labels — FHT `C1`/`C2`/`C3`, FHGM `B1` and
+`K1`-`K6` — and a count is only ever quoted with the revision it was scored at. The
+FHT contract revision `226f923c` still holds the older **65**-vector manifest (54216 bytes,
 sha256 `d9025104675e69b59ea80f07535762e4eeb07195e40e8dddab7f68e85f697695`) whose three
-contract rules still carry the provisional `T1`/`T2`/`T3` ids that
+contract rules carry the provisional `T1`/`T2`/`T3` ids that
 `FHT-Specification#36`/#38 later retired in favour of `C1`/`C2`/`C3`. That manifest is not
 a count this build produces any more; the paragraph exists to say why the two revisions
 differ, not to offer a second number. The rule *semantics* are the same across the rename,
 and the ids this repository quotes describe the suite revision, never the contract
-revision. Before this section was rewritten, CI cloned the contract revision and printed
+revision. Before that section was written, CI cloned the contract revision and printed
 its vector count under a header that cited the contract pin, while the registry's
-`suiteVectors: 66` and `suiteRules: ["C1","C2","C3"]` described the later revision and
-were read by no code at all. The runner now verifies the manifest digest first and refuses
+`suiteVectors` and `suiteRules` described a later revision and were read by no code at
+all. The runner now verifies the manifest digest first and refuses
 anything else, so a checkout at `226f923c` is `DRIFT` to `scripts/ci/suite-pin.mjs`, and
-`draft-vectors.mjs` exits 2 against it rather than scoring it.
+`draft-vectors.mjs` exits 2 against it rather than scoring it - which is what it did
+against `be9bcc82` for the minutes before this re-pin landed.
+
+### What the draft counts did, and did not, prove on 2026-11-16
+
+The re-pin moved the lane from 97 draft vectors to 115, and the split is reported the
+way it came out:
+
+- FHT **66 → 72, all 72 scored**, 0 fail, 0 not-run. The six new vectors are two gzip
+  stream cases (`fht-fasta-gzip-multimember`, `fht-fasta-gzip-sequence-tampered`) and
+  four parent-link cases built from the *Drosophila* pilot
+  (`fht-fasta-parent-subset-citing-whole`, `fht-fasta-parent-masked-exact`,
+  `fht-fasta-parent-real-digest-wrong-file`, `fht-fasta-parent-case-folded-digest`).
+  All four of the latter carry `promotion: candidate-unreviewed` in the manifest: the
+  owning repository has not finished reviewing the *expectation*, so a pass here is
+  agreement with a draft claim, not corroboration of it. The runner prints that tally on
+  the line under its own count rather than leaving a 72/72 to read as 72 reviewed facts.
+- FHGM **31 → 43, all 43 scored**, 0 fail, 0 not-run. The twelve additions are the
+  `dmel-*` vectors promoted by FHGM-Specification#18, and three of them cite K4
+  (`dmel-snapshot-v1`, `dmel-target-absent`, `dmel-target-transcript-row`); with the
+  eight K4-citing vectors already in the suite, K4 is now reached on 8 vectors where
+  earlier builds reached it on 5 and left the rest not-run. Each of the eight produced a
+  `pass` or `reject` verdict against the enclosing file's own feature rows, which is the
+  only way a K4 vector can be scored here: the runner refuses to score one whose K4 comes
+  back `not-checked` or `unchecked`, so a 43/43 is 43 verdicts, not 43 assumptions.
+- One guard came with the growth. Every vector in the pinned FHGM suite states
+  `layers.gff3: accept`, and this library evaluates no feature layer: a pass on such a
+  vector says nothing about that layer. Had a vector stated `layers.gff3: reject`, the
+  old runner would have *granted* it - a rejection this build cannot see - so the runner
+  now leaves any vector whose `layers.gff3` expectation is not `accept` not-run, naming
+  gff3-validator as the owner of that judgement. Nothing at `0d279015…` exercises the
+  refusal yet; `test/draft-suite-pin.test.mjs` exercises it against a synthetic suite.
+
+Neither number is added to the 228 below, and neither is a released-contract result.
 
 Each row is a *draft* result: it says the lane reads the pinned bytes and reports what the
 pinned contract and the drafted rules say. It is not a released-contract result, it is not
 added to the 228 above, and it is not support for either type. The FHT row covers C1
-contract validation, C2 schema-URL closure, C3 parent-link verdicts (checked-pass,
-checked-fail and unchecked all reached), the R1-R15 header rules and the two V5 cases the
-suite includes; the FHGM row covers B1, K1, K2, K3, K5 and K6, with the predecessor
-verdicts exercised against the prior snapshots the suite names.
+contract validation (24 vectors cite it), C2 schema-URL closure (3), C3 parent-link
+verdicts (10; checked-pass, checked-fail and unchecked all reached), the R1-R15 header
+rules and the suite's three V1 and two V5 selection cases; the FHGM row covers B1 and
+K1-K6, with K4 reached on 8 vectors and the predecessor verdicts exercised against the
+prior snapshots the suite names. Label counts are read out of the pinned manifest, not
+carried over from the last revision.
 
 Three checkers, three different questions, one owner each:
 
@@ -188,7 +229,7 @@ Three checkers, three different questions, one owner each:
 | --- | --- | --- |
 | are the contract bytes in this checkout the bytes the pin names? | `node scripts/ci/draft-pins.mjs --check <checkout>…` | the labelled draft job goes red |
 | is the development suite about to be executed the suite the pin names? | `node scripts/ci/suite-pin.mjs --check <checkout>…`, and the same check inside `scripts/capability/draft-vectors.mjs` before it scores anything | the labelled draft job goes red, and nothing is scored |
-| does the owning repository's live default branch still publish those bytes? | `node scripts/ci/draft-pin-freshness.mjs`, proposed in #6 and not on `main` until that merges | advisory only, by design: a draft legitimately moves, and drift is detected, not repaired |
+| does the owning repository's live default branch still publish those bytes? | `node scripts/ci/draft-pin-freshness.mjs`, advisory by design and separate from acceptance | nothing goes red: it reports `DRIFT` and leaves the re-pin to a human |
 
 `node scripts/ci/draft-pins.mjs --check <FHT checkout> <FHGM checkout>` is what
 proves the bytes being read are the bytes the pin names; the CI job runs it against
@@ -199,8 +240,8 @@ That check answers "is this checkout the commit we pinned". It cannot answer the
 other question, which is whether the pin is still what the owning repository
 publishes today, and a draft legitimately moves: `node
 scripts/ci/draft-pin-freshness.mjs` asks it, digesting each target's live default-branch
-bytes - the two contracts, the FHGM transport overlay, and the FHT development-suite
-manifest this build quotes - against the SHA-256 in `drafts/provenance.json`, and
+bytes - the two contracts, both development-suite manifests this build quotes, and the
+FHGM transport overlay - against the SHA-256 in `drafts/provenance.json`, and
 reporting `MATCH` or `DRIFT`. It is advisory and it repairs nothing: live drift is
 **detected, not repaired**, there is no automatic re-pinning here, and the job runs with
 `continue-on-error`, so a moved draft can never turn the released-contract result red.
