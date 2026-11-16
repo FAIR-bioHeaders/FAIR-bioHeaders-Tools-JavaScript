@@ -23,7 +23,7 @@ import { describe, it } from 'node:test';
 import { MODELS_KEY, VERDICTS, admitsExtensionFields, checkFhgmModels, fhgmRuleCoverage } from '../src/fhgm.js';
 import { inspectBytes } from '../src/reader.js';
 import { draftEntry } from '../src/drafts.js';
-import { fhgmHeader, fhgmRecord } from '../testutil/fixtures.mjs';
+import { buildFhgff3File, fhgmHeader, fhgmRecord } from '../testutil/fixtures.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -120,9 +120,9 @@ describe('K2 the record contract, K3 uniqueness, K5 reference agreement', () => 
     assert.equal(shared.valid, true, `an annotates link matching the file's parent link is comparable: ${shared.errors.join('; ')}`);
   });
 
-  it('runs K4 only for a caller that brought the feature layer, and says which', () => {
+  it('runs K4 against a feature layer, and says which state it reached', () => {
     const without = judge(fhgmHeader());
-    assert.equal(without.rules.K4, 'not-supported-yet', 'K4 is declared, not silently skipped');
+    assert.equal(without.rules.K4, 'not-checked', 'no resolver at the direct call means no verdict, stated rather than silently skipped');
     assert.equal(without.records[0].featureTarget, null);
 
     const resolved = judge(fhgmHeader({ models: [fhgmRecord({ featureId: 'toy%2Da' })] }), { geneIds: ['toy-a'] });
@@ -133,6 +133,39 @@ describe('K2 the record contract, K3 uniqueness, K5 reference agreement', () => 
     const missing = judge(fhgmHeader({ models: [fhgmRecord({ featureId: 'absent' })] }), { geneIds: ['toy-a'] });
     assert.equal(missing.rules.K4, 'reject');
     assert.match(missing.errors.join(' '), /must target one local gene row/);
+  });
+
+  it('K4 counts rows and weighs their types: two rows or one transcript row rejects', () => {
+    const dup = judge(fhgmHeader(), { features: [{ id: 'toy-a', type: 'gene' }, { id: 'toy-a', type: 'gene' }] });
+    assert.equal(dup.rules.K4, 'reject', 'exactly one row is the rule; two sharing the ID resolve to no target');
+    assert.match(dup.errors.join(' '), /not exactly one row/);
+
+    const transcript = judge(fhgmHeader({ models: [fhgmRecord({ featureId: 'toy-a-rna' })] }), { features: [{ id: 'toy-a-rna', type: 'lncRNA' }] });
+    assert.equal(transcript.rules.K4, 'reject', 'v0.1 declares no transcript target');
+    assert.match(transcript.errors.join(' '), /not a gene row/);
+
+    const accession = judge(fhgmHeader(), { features: [{ id: 'toy-a', type: 'SO:0000704' }] });
+    assert.equal(accession.rules.K4, 'pass', 'the SO accession for gene is the same row type by name');
+
+    const counted = judge(fhgmHeader(), { geneIds: ['toy-a', 'toy-a'] });
+    assert.equal(counted.rules.K4, 'reject', 'the geneIds shorthand counts a repeated id as two rows');
+  });
+
+  it('K4 reads GFF3 content through the injected resolver, decoded against decoded', () => {
+    const gff3 = ['##gff-version 3', 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=toy%2Da', '##FASTA', 'toy\tpilot\tgene\t1\t1\t.\t+\t.\tID=toy-a'].join('\n');
+    const escaped = judge(fhgmHeader({ models: [fhgmRecord({ featureId: 'toy-a' })] }), { features: gff3 });
+    assert.equal(escaped.rules.K4, 'pass', 'the row is ID=toy%2Da, the record names toy-a, and the second gene row sits after ##FASTA and is not indexed');
+    const sameEscape = judge(fhgmHeader({ models: [fhgmRecord({ featureId: 'toy%2Da' })] }), { features: gff3 });
+    assert.equal(sameEscape.rules.K4, 'pass', 'an escaped record side decodes to the same identifier');
+
+    const broken = judge(fhgmHeader(), { features: 'toy\tpilot\tgene\t10\t30\t.\t+\t.\n' });
+    assert.equal(broken.rules.K4, 'unchecked', 'a row without nine fields makes the layer untrustworthy');
+    assert.equal(broken.valid, true, 'an unchecked layer rejects nothing: K4 claims neither a pass nor a finding');
+    assert.equal(broken.records[0].featureTarget.verdict, 'unchecked');
+    assert.match(broken.records[0].featureTarget.detail, /nine/);
+
+    const closed = judge(fhgmHeader(), { features: null });
+    assert.equal(closed.rules.K4, 'not-checked', 'features: null says there is no layer, and nothing is inferred');
   });
 });
 
@@ -208,6 +241,32 @@ describe('B1 and the separation of a draft verdict from the file result', () => 
     assert.match(result.errors.join(' '), /no parsed FHGFF3 header/);
   });
 
+  it('resolves K4 against the file\'s own bytes when the lane is open, and keeps the released result apart', () => {
+    const header = { ...fhgmHeader(), schema: 'https://w3id.org/fair-bioheaders/fhgff3/v0.5.0', schemaVersion: '1.1' };
+    const geneRow = 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=toy%2Da';
+    const rnaRow = 'toy\tpilot\tlncRNA\t10\t30\t.\t+\t.\tID=toy-a-rna;Parent=toy%2Da';
+    const good = buildFhgff3File(header, { rows: [geneRow, rnaRow] });
+    const plain = inspectBytes(good.bytes, { container: 'gff3' });
+    const lane = inspectBytes(good.bytes, { container: 'gff3', drafts: ['FHGM'] });
+    assert.equal(plain.fhgm, undefined, 'the lane-off reading carries no FHGM block at all');
+    assert.equal(lane.fhgm.rules.K4, 'pass', 'the lane defaults K4 to the file\'s own feature rows: toy-a resolves to the one gene row written ID=toy%2Da');
+    for (const key of ['valid', 'container', 'metadata', 'checksum', 'schema', 'errors']) {
+      assert.deepEqual(lane[key], plain[key], `the released reading of ${key} must not change`);
+    }
+
+    const orphan = buildFhgff3File({ ...header, [MODELS_KEY]: [{ ...header[MODELS_KEY][0], featureId: 'toy-missing' }] }, { rows: [geneRow, rnaRow] });
+    const rejected = inspectBytes(orphan.bytes, { container: 'gff3', drafts: ['FHGM'] });
+    assert.equal(rejected.fhgm.rules.K4, 'reject');
+    assert.equal(rejected.fhgm.valid, false);
+    assert.equal(rejected.valid, true, 'a K4 rejection never reaches into the released FHGFF3 result');
+    assert.deepEqual(rejected.errors, []);
+
+    const replaced = inspectBytes(good.bytes, { container: 'gff3', drafts: ['FHGM'], fhgm: { geneIds: [] } });
+    assert.equal(replaced.fhgm.rules.K4, 'reject', 'a caller-supplied resolver replaces the file default rather than joining it');
+    const closed = inspectBytes(good.bytes, { container: 'gff3', drafts: ['FHGM'], fhgm: { features: null } });
+    assert.equal(closed.fhgm.rules.K4, 'not-checked', 'features: null closes K4 for a caller that must not have the body read');
+  });
+
   it('warns once per checked reading, naming the pin', () => {
     const result = judge(fhgmHeader());
     const line = result.warnings.find((entry) => entry.includes('unreleased draft'));
@@ -216,10 +275,13 @@ describe('B1 and the separation of a draft verdict from the file result', () => 
     assert.ok(line.includes(draftEntry('FHGM').sha256));
   });
 
-  it('states the rule it does not run', () => {
+  it('states every rule it runs and the boundary on the one that needs a resolver', () => {
     const coverage = fhgmRuleCoverage();
-    assert.deepEqual(coverage.notSupported.K4.status, 'not-supported-yet');
-    assert.match(coverage.notSupported.K4.reason, /GFF3 feature layer/);
-    assert.ok(coverage.implemented.includes('K6'));
+    assert.deepEqual(coverage.implemented, ['B1', 'K1', 'K2', 'K3', 'K4', 'K5', 'K6']);
+    assert.deepEqual(coverage.notSupported, {}, 'no FHGM rule is declared unrun anymore; K4 runs against a feature layer and says so when it has none');
+    assert.match(coverage.boundaries.K4.resolves, /feature rows/);
+    assert.match(coverage.boundaries.K4.withoutFeatureLayer, /not-checked/);
+    assert.match(coverage.boundaries.K4.unusableFeatureLayer, /unchecked/);
+    assert.match(coverage.boundaries.K4.stillElsewhere, /gff3-validator/);
   });
 });

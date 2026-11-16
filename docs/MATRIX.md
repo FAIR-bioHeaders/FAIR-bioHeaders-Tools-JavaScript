@@ -176,11 +176,11 @@ Which of the rules run here, and which do not:
 | K1 | FHGM | yes | transport: R15 admits extension fields from FHGFF3 1.1, and `x-fhgm-models` holds one or more records. `overlay: true` also applies the pinned transport overlay, which is narrower: it names the v0.5.0 citation and 1.1 outright |
 | K2 | FHGM | yes | every record validates against the pinned record contract (`modelId`, `modelVersion`, `featureId`, `reference` required, objects closed) |
 | K3 | FHGM | yes | `modelId` unique within a snapshot; a shared id is ambiguous and rejects that snapshot, current or supplied predecessor |
-| K4 | FHGM | no | K4 resolves a record featureId, percent-decoded, to exactly one local gene row, which needs the GFF3 feature layer; this library reads the FHGFF3 header and nothing below it, so feature lines belong to gff3-validator |
+| K4 | FHGM | yes | a record featureId, percent-decoded, against the ID and type of the enclosing file's GFF3 feature rows - two facts per row, read by src/features.js or injected by the caller as options.features; exactly one gene row passes. not-checked: no resolver supplied, so K4 ran against nothing and claims nothing. unchecked: the layer was supplied but cannot be trusted (a row without nine fields, compressed content at the direct call), so K4 neither passes nor rejects. SO-term correctness, coordinates, parent/child structure and every other feature and biology rule belong to gff3-validator; reading two columns of a row does not validate it |
 | K5 | FHGM | yes | a record reference shares at least one comparable form with the file genome link and never contradicts it |
 | K6 | FHGM | yes | predecessor verdicts `resolvable` / `unresolvable` / `ambiguous`, against explicitly supplied prior snapshots only |
 
-The rule ids this module knows are B1, K1, K2, K3, K4, K5, K6; the ones that run are B1, K1, K2, K3, K5, K6.
+The rule ids this module knows are B1, K1, K2, K3, K4, K5, K6; the ones that run are B1, K1, K2, K3, K4, K5, K6.
 
 ## What a lane reading says
 
@@ -259,8 +259,8 @@ draft types' own suites stay in their own repositories and are run separately
 [^33]: FHGM has no jsonld serialization: it is not defined for that container
 [^34]: FHGM has no microdata serialization: it is not defined for that container
 [^35]: an FHGM record carries no schema, schemaVersion or checksum of its own: the file is routed by its FHGFF3 citation under V1 to V3, so there is no contract selection to make at the record
-[^36]: FHGM is a draft: this works only where the caller opened the rule-V7 lane for it, and the reading is labelled draft, not a released-contract result; K1 transport, K2 record contract, K3 modelId uniqueness, K5 reference agreement and K6 predecessor verdicts are implemented here, K4 is not
+[^36]: FHGM is a draft: this works only where the caller opened the rule-V7 lane for it, and the reading is labelled draft, not a released-contract result; K1 transport, K2 record contract, K3 modelId uniqueness, K4 feature-target resolution against the enclosing file's own row IDs or an injected resolver, K5 reference agreement and K6 predecessor verdicts are implemented here; K4 without a feature layer reports not-checked or unchecked, never a pass
 [^37]: the enclosing FHGFF3 file checksum covers every embedded record byte (docs/FORMAT.md R3); the record itself carries no checksum to verify; the recomputation is the FHGFF3 reading's, reported under FHGFF3/verifyChecksum/gff3
 [^38]: strip removes the enclosing FHGFF3 header block, which takes the records with it: it is a byte operation on the header lines and names no contract
 
-Digest of this generated document: `1a62af16176318d9d8b18495f372ab70`.
+Digest of this generated document: `17d49657993008f3581bf7b314fb3b5e`.

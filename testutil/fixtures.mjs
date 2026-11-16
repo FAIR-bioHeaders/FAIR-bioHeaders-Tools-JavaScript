@@ -159,3 +159,45 @@ export function fhgmRecord(overrides = {}) {
     ...overrides,
   };
 }
+
+/**
+ * Assemble a GFF3 file: `##gff-version 3`, then the FHGFF3 header block with
+ * every value on one flow-style line (the serialization the FHGM vectors use),
+ * then the supplied feature rows. The root checksum line is written last in the
+ * header block and digests every other byte, as R3 requires - computed with
+ * `node:crypto` directly, for the reason stated at the top of this file.
+ *
+ * @param {Record<string, unknown>} record the header fields, checksum filled in
+ * @param {object} [options]
+ * @param {string[]} [options.rows] feature rows, tab-separated strings
+ * @param {string} [options.tail] text after the rows, e.g. a `##FASTA` section
+ * @returns {{bytes: Uint8Array, checksum: string}}
+ */
+export function buildFhgff3File(record, options = {}) {
+  const rows = options.rows ?? [];
+  const tail = options.tail ?? '';
+  const body = { ...record };
+  delete body.checksum;
+  const lines = ['##gff-version 3\n'];
+  for (const [key, value] of Object.entries(body)) lines.push(`#~${key}: ${flow(value)}\n`);
+  const before = utf8(lines.join(''));
+  const after = utf8(rows.map((row) => `${row}\n`).join('') + tail);
+  const coveredBytes = new Uint8Array(before.length + after.length);
+  coveredBytes.set(before, 0);
+  coveredBytes.set(after, before.length);
+  const checksum = createHash('sha512-256').update(coveredBytes).digest('base64');
+  const text = lines.join('') + `#~checksum: ${checksum}\n` + rows.map((row) => `${row}\n`).join('') + tail;
+  return { bytes: utf8(text), checksum };
+}
+
+/**
+ * One header value on one line: strings keep the R12-portable quoting of
+ * `scalar()`, objects and arrays are written as JSON flow, which is YAML.
+ *
+ * @param {unknown} value
+ * @returns {string}
+ */
+function flow(value) {
+  if (value === null || typeof value === 'object') return JSON.stringify(value);
+  return scalar(value);
+}

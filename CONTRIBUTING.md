@@ -95,8 +95,10 @@ so the rules are narrow and each is checked:
   regenerate the golden to make a test pass - if it moved, the change is a
   default-behaviour change and needs saying so out loud;
 - an FHGM verdict never alters the FHGFF3 result, and a K4 or a predecessor verdict
-  is never implied: K4 is declared not-supported-yet unless the caller supplies the
-  gene-row ids, and an unsupplied predecessor link is `unresolvable` or `unchecked`,
+  is never implied: K4 resolves a `featureId` only against a feature layer the
+  reading actually got - the file's own rows by default, or one the caller injects -
+  and reports `not-checked` with none or `unchecked` with an untrustworthy layer,
+  while an unsupplied predecessor link is `unresolvable` or `unchecked`,
   never `verified`;
 - the primary CI job stays native. `test/workflow.test.mjs` reads the workflow and
   fails if a foreign runtime appears in it, if an acceptance command disappears from

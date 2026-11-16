@@ -24,7 +24,7 @@ V1-V6 in `docs/SCHEMA-VERSIONS.md`.
 | FHP | protein FASTA | `https://w3id.org/fair-bioheaders/fhp/v0.6.0` | `'1.2'` | yes |
 | FHGFF3 | GFF3 annotation | `https://w3id.org/fair-bioheaders/fhgff3/v0.6.0` | `'1.2'` | yes |
 | FHT | transcriptome | - | - | **no: draft, no released contract.** Readable only through the opt-in `{drafts: ['FHT']}` lane against pinned bytes |
-| FHGM | gene-model records inside an FHGFF3 header | - | - | **no: draft, no released contract.** Same lane; K4 (feature-layer resolution) is declared not implemented |
+| FHGM | gene-model records inside an FHGFF3 header | - | - | **no: draft, no released contract.** Same lane; K4 resolves a `featureId` against the file's own feature rows (or an injected resolver) and states `not-checked`/`unchecked` without a usable layer |
 
 Read versions from the shared registry
 (`schemas/versions.json` at a release tag), never from memory. FHT is scheduled as a
@@ -42,8 +42,10 @@ ones `drafts/provenance.json` pins by commit and SHA-256, and every record read 
 way carries the warning naming them. A V7 reading reports `release: null` and
 `schemaVersion: null`; say "read against a pinned draft", never "validated against the
 FHT contract". FHGM verdicts arrive in a separate `reading.fhgm` block: the file's own
-FHGFF3 result is untouched, and K4 stays not-supported-yet because resolving a
-`featureId` needs the GFF3 feature layer, which belongs to `gff3-validator`.
+FHGFF3 result is untouched, and K4 resolves a `featureId` against the file's own
+feature rows - two columns, `type` and `ID`, nothing judged; feature and biology
+validation belong to `gff3-validator`, and a reading without a usable layer leaves
+K4 `not-checked` or `unchecked`, never a pass.
 
 ## Rules for using it
 

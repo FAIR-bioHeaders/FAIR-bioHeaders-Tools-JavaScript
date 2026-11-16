@@ -52,9 +52,12 @@ explicit in README, `llms.txt`, docs and code comments, in both directions:
   evidence that it works;
 - a result from this library is never described as the website's result;
 - GFF3 feature, SO-term and biology validation belong to `gff3-validator`. This
-  library reads the FHGFF3 header and nothing below it — which is also why FHGM's
-  K4 (resolving a record `featureId` to a gene row) is declared not-supported-yet
-  here rather than quietly implemented: it needs the feature layer.
+  library validates no feature. The FHGM draft lane alone reads two columns below
+  the header - each feature row's `type` and `ID` - because FHGM K4 resolves a
+  record `featureId` against them: by default the lane indexes the file's own
+  bytes (`src/features.js`), a caller may inject its own resolver through
+  `options.features`, and a missing or untrustworthy layer leaves K4
+  `not-checked`/`unchecked`, never a pass and never a rejection.
 
 ## Drafts take no release form (rule V7)
 
@@ -215,12 +218,14 @@ development suites that live in the repositories owning FHT and FHGM, verifies e
 stated suite manifest against its own pin before scoring anything, and its counts are
 never added to the shared 291. The reported FHT count is 66, from the suite pin
 `24d3b033`; FHGM's row states no suite pin, so its run is labelled `UNPINNED` rather
-than attributed to a revision - see `docs/CONFORMANCE.md` for both.
+than attributed to a revision - see `docs/CONFORMANCE.md` for both. FHGM's K4 runs
+against the reading's feature layer (the file's own rows by default); when a layer
+is absent or untrustworthy the vector stays not-run with that state as the reason -
+converting a not-run into a pass by assumption is forbidden, not merely discouraged.
 
 Record the checks actually run, with counts, and say plainly what was not run:
 `microdata` (26 vectors) and `jsonld` (37) are not implemented here and must stay
-reported as not-run rather than being dropped from the table, and FHGM's K4 stays
-not-supported-yet for the reason above. A reported hole is a deliverable; a hole
+reported as not-run rather than being dropped from the table. A reported hole is a deliverable; a hole
 filled with a claim is a defect. For `AGENTS.md`-only changes,
 inspect the diff, links and repository identity and run `git diff --check`;
 executable suites are unnecessary unless behaviour changed.

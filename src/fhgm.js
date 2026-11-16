@@ -43,35 +43,55 @@
  *   this library was not handed, and a resolvable pointer identifies a predecessor
  *   record; it asserts no curator acceptance.
  *
- * Not implemented, and reported rather than skipped:
+ * K4 feature-target resolution, and its boundary:
  *
- * - K4 feature-target resolution: a `featureId` must resolve, percent-decoded, to
- *   exactly one local gene row, which means reading the GFF3 feature layer. This
- *   library reads the FHGFF3 header and nothing below it: feature lines, SO terms
- *   and biology belong to gff3-validator. `rules.K4` is `not-supported-yet`, and a
- *   caller that has the feature layer from elsewhere can pass `geneIds` to close
- *   the check itself.
+ * - K4: a `featureId` must resolve, percent-decoded, to exactly one local gene
+ *   row. Resolving it means reading the GFF3 feature layer below the header, so
+ *   the API is an injected resolver: `options.features` is either row facts the
+ *   caller took from elsewhere (`[{id, type}]`, the same two facts K4 needs that
+ *   gff3-validator or any other feature tool computes) or the GFF3 content
+ *   itself, which `src/features.js` indexes minimally - the `type` and `ID` of
+ *   each feature row, nothing else. `inspectBytes` supplies the default: when
+ *   the FHGM lane is open on a file, K4 resolves against that file's own bytes,
+ *   which is what a reader of the file can honestly claim. This remains not a
+ *   feature validator: SO terms, coordinates, parent/child structure and biology
+ *   belong to gff3-validator, and no row fact read here judges them.
+ * - when no feature layer exists for the reading (a bare `checkFhgmModels` call
+ *   with no resolver) `rules.K4` is `not-checked`; when the layer is present but
+ *   untrustworthy (a row without nine fields, compressed content handed to the
+ *   direct call) `rules.K4` is `unchecked`, with the reason on every record.
+ *   Neither is ever scored as a pass, and neither rejects the file: K4 can only
+ *   reject a `featureId` against rows it actually read.
+ * - `options.geneIds` stays as the shorthand it was - an array of decoded gene
+ *   row ids - and now counts repeated entries, because "exactly one" is what the
+ *   rule says; a caller that can distinguish row types should inject `features`
+ *   instead, which can tell "no such row" from "two rows" from "one transcript
+ *   row".
  *
  * @module fhgm
  */
 
 import { HeaderError } from './errors.js';
 import { draftEntry, draftWarning, loadDraft } from './drafts.js';
+import { indexGff3FeatureRows, isGeneRowType } from './features.js';
 import { draftValidator, emptyValueWarnings, hasAcceptedLinkScheme } from './validate.js';
 
 /** The R15 extension key the draft pilot transports records under. */
 export const MODELS_KEY = 'x-fhgm-models';
 
-/** Rule ids this module knows, including the one it does not run. */
+/** Rule ids this module knows, and runs, including the one that needs a resolver. */
 export const FHGM_RULES = Object.freeze(['B1', 'K1', 'K2', 'K3', 'K4', 'K5', 'K6']);
 
-/** The rule this build does not run, and why, for the capability matrix. */
-export const FHGM_NOT_SUPPORTED = Object.freeze({
-  K4: {
-    status: 'not-supported-yet',
-    reason:
-      'K4 resolves a record featureId, percent-decoded, to exactly one local gene row, which needs the GFF3 feature layer; this library reads the FHGFF3 header and nothing below it, so feature lines belong to gff3-validator',
-  },
+/**
+ * K4's boundary, in the words the capability matrix carries: what it reads, what
+ * it does when the feature layer is not there, and what still belongs to
+ * gff3-validator even now that a `featureId` resolves here.
+ */
+export const FHGM_K4_BOUNDARY = Object.freeze({
+  resolves: 'a record featureId, percent-decoded, against the ID and type of the enclosing file\'s GFF3 feature rows - two facts per row, read by src/features.js or injected by the caller as options.features; exactly one gene row passes',
+  withoutFeatureLayer: 'not-checked: no resolver supplied, so K4 ran against nothing and claims nothing',
+  unusableFeatureLayer: 'unchecked: the layer was supplied but cannot be trusted (a row without nine fields, compressed content at the direct call), so K4 neither passes nor rejects',
+  stillElsewhere: 'SO-term correctness, coordinates, parent/child structure and every other feature and biology rule belong to gff3-validator; reading two columns of a row does not validate it',
 });
 
 /** The three predecessor verdicts K6 recognises. */
@@ -91,7 +111,7 @@ export const VERDICTS = Object.freeze({
  * @property {string[]} errors
  * @property {string[]} warnings non-empty and R14 warnings for this record
  * @property {{verdict: string, detail: string}|null} predecessor K6 verdict, null with no claim
- * @property {{verdict: string, detail: string}|null} featureTarget K4 verdict: null when supplied ids resolve it, `not-checked` when they were not
+ * @property {{verdict: string, detail: string}|null} featureTarget K4 verdict: `pass`/`reject` against a read feature layer, `unchecked` against an untrustworthy one, null when no layer was supplied
  */
 
 /**
@@ -114,9 +134,15 @@ export const VERDICTS = Object.freeze({
  *   the upstream draft checker does
  * @property {Array<{checksum?: string, header: Record<string, unknown>}>} [predecessors]
  *   prior snapshots K6 may resolve against; each is itself run through K1-K3 and K5
- * @property {string[]} [geneIds] the decoded `ID` of every local gene row in the
- *   enclosing file, for a caller that took the feature layer from elsewhere; with
- *   it K4 runs, without it K4 is reported `not-checked`
+ * @property {string|Uint8Array|Array<{id: string, type: string}>|null} [features]
+ *   the K4 resolver: GFF3 text or decompressed bytes to index with `src/features.js`,
+ *   or row facts `[{id, type}]` taken from elsewhere (decoded or percent-escaped ids
+ *   both work - ids are decoded before comparison). `null` says "no feature layer,
+ *   do not look for one"; absent at the direct call means `not-checked`, and
+ *   `inspectBytes` defaults it to the file's own bytes when the lane names FHGM
+ * @property {string[]} [geneIds] the decoded `ID` of every local gene row, as an
+ *   array in which a repeated id is two rows; superseded by `features` when both
+ *   are given. With neither, K4 reports `not-checked` at the direct call
  */
 
 /**
@@ -241,13 +267,14 @@ function recordLinkSchemeWarnings(record) {
  * rather than a silent gap in the history.
  *
  * @param {Record<string, unknown>} header
- * @param {{overlay: boolean, label: string, geneIds?: string[]}} settings
+ * @param {{overlay: boolean, label: string, layer: ReturnType<typeof resolveFeatureLayer>}} settings
  * @returns {{valid: boolean, errors: string[], warnings: string[], records: FhgmRecordResult[], byModelId: Map<string, Record<string, unknown>>, rules: Record<string, string>}}
  */
 function checkSnapshot(header, settings) {
   const label = settings.label;
+  const layer = settings.layer;
   /** @type {Record<string, string>} */
-  const rules = { K1: 'pass', K2: 'pass', K3: 'pass', K4: settings.geneIds === undefined ? 'not-checked' : 'pass', K5: 'pass' };
+  const rules = { K1: 'pass', K2: 'pass', K3: 'pass', K4: layer.state === 'rows' ? 'pass' : layer.state === 'unusable' ? 'unchecked' : 'not-checked', K5: 'pass' };
   /** @type {string[]} */
   const errors = [];
   /** @type {string[]} */
@@ -293,7 +320,6 @@ function checkSnapshot(header, settings) {
 
   const { validate } = draftValidator('FHGM', 'contract');
   const fileForms = referenceForms(header, 'header');
-  const geneRows = settings.geneIds === undefined ? null : new Set(settings.geneIds);
 
   models.forEach((raw, index) => {
     if (!isObject(raw)) return; // K1 already refused a non-record entry
@@ -321,15 +347,28 @@ function checkSnapshot(header, settings) {
       featureTarget: null,
     };
 
-    // K4, only for a caller that brought the feature layer.
-    if (geneRows !== null && recordErrors.length === 0) {
-      const decoded = decodeFeatureId(/** @type {string} */ (result.featureId));
-      if (!geneRows.has(decoded)) {
-        rules.K4 = 'reject';
-        result.featureTarget = { verdict: 'reject', detail: `no local gene row carries the decoded ID ${JSON.stringify(decoded)}` };
-        errors.push(`${label} K4 record ${index}: its featureId must target one local gene row, and ${JSON.stringify(result.featureId)} matches none`);
-      } else {
-        result.featureTarget = { verdict: 'pass', detail: 'one local gene row' };
+    // K4, only against rows this reading actually got. No layer means nothing to
+    // resolve against, which is `not-checked`, not a pass and not a rejection; an
+    // untrustworthy layer is `unchecked` on every record, for the same reason.
+    if (recordErrors.length === 0) {
+      if (layer.state === 'rows') {
+        const decoded = decodeFeatureId(/** @type {string} */ (result.featureId));
+        const types = layer.rows.get(decoded) ?? [];
+        if (types.length === 1 && isGeneRowType(types[0])) {
+          result.featureTarget = { verdict: 'pass', detail: `one local gene row carries the decoded ID ${JSON.stringify(decoded)}` };
+        } else {
+          rules.K4 = 'reject';
+          const why
+            = types.length === 0
+              ? `no local feature row carries the decoded ID ${JSON.stringify(decoded)}`
+              : types.length > 1
+                ? `${types.length} local feature rows share the decoded ID ${JSON.stringify(decoded)}, so it is not exactly one row`
+                : `the single local row carrying the decoded ID ${JSON.stringify(decoded)} is of type ${JSON.stringify(types[0])}, not a gene row`;
+          result.featureTarget = { verdict: 'reject', detail: why };
+          errors.push(`${label} K4 record ${index}: its featureId must target one local gene row, and ${JSON.stringify(result.featureId)} does not: ${why}`);
+        }
+      } else if (layer.state === 'unusable') {
+        result.featureTarget = { verdict: 'unchecked', detail: `the supplied feature layer cannot be trusted: ${layer.problems.join('; ')}` };
       }
     }
 
@@ -374,6 +413,64 @@ function decodeFeatureId(value) {
   } catch {
     return value;
   }
+}
+
+/**
+ * A decoded-ID index over the feature rows one reading has.
+ *
+ * @typedef {{state: 'rows', rows: Map<string, string[]>, problems: string[]}
+ *   | {state: 'unusable', rows: Map<string, string[]>, problems: string[]}
+ *   | {state: 'none', rows: Map<string, string[]>, problems: string[]}} FeatureLayer
+ */
+
+/**
+ * @param {Array<{id: string, type: string}>} rows feature rows with decoded ids
+ * @returns {FeatureLayer}
+ */
+function indexRows(rows) {
+  /** @type {Map<string, string[]>} */
+  const index = new Map();
+  for (const row of rows) {
+    const types = index.get(row.id);
+    if (types === undefined) index.set(row.id, [row.type]);
+    else types.push(row.type);
+  }
+  return { state: 'rows', rows: index, problems: [] };
+}
+
+/**
+ * Resolve the K4 feature layer for one call, in the order the caller chose.
+ *
+ * `features` first - bytes or text indexed by `src/features.js`, or row facts
+ * taken from elsewhere; its ids are percent-decoded here so the comparison is
+ * decoded against decoded, whichever side carried escapes. `geneIds` second -
+ * the older shorthand of already-decoded gene row ids, where a repeated entry is
+ * a second row because the rule counts rows. Neither, at the direct call, is
+ * `none`: no layer, no verdict.
+ *
+ * @param {FhgmOptions} options
+ * @returns {FeatureLayer}
+ */
+function resolveFeatureLayer(options) {
+  const given = options.features;
+  if (given !== undefined && given !== null) {
+    if (typeof given === 'string' || given instanceof Uint8Array) {
+      const indexed = indexGff3FeatureRows(given);
+      if (indexed.problems.length > 0) return { state: 'unusable', rows: new Map(), problems: indexed.problems };
+      return indexRows(indexed.rows.map((row) => ({ id: decodeFeatureId(row.id), type: row.type })));
+    }
+    if (Array.isArray(given) && given.every((row) => isObject(row) && typeof row.id === 'string' && typeof row.type === 'string')) {
+      return indexRows(given.map((row) => ({ id: decodeFeatureId(row.id), type: row.type })));
+    }
+    throw new HeaderError('options.features must be GFF3 text, decompressed GFF3 bytes, or an array of {id, type} row facts (K4)', { rule: 'K4' });
+  }
+  if (options.geneIds !== undefined) {
+    if (!Array.isArray(options.geneIds) || options.geneIds.some((id) => typeof id !== 'string')) {
+      throw new HeaderError('options.geneIds must be an array of decoded gene row ids (K4)', { rule: 'K4' });
+    }
+    return indexRows(options.geneIds.map((id) => ({ id, type: 'gene' })));
+  }
+  return { state: 'none', rows: new Map(), problems: [] };
 }
 
 /**
@@ -465,7 +562,7 @@ export function checkFhgmModels(header, options = {}) {
       warnings: [],
       records: [],
       contract,
-      rules: { B1: 'reject', K1: 'skipped', K2: 'skipped', K3: 'skipped', K4: FHGM_NOT_SUPPORTED.K4.status, K5: 'skipped', K6: 'skipped' },
+      rules: { B1: 'reject', K1: 'skipped', K2: 'skipped', K3: 'skipped', K4: 'skipped', K5: 'skipped', K6: 'skipped' },
     };
   }
   if (options.base !== undefined && options.base.valid === false) {
@@ -476,14 +573,15 @@ export function checkFhgmModels(header, options = {}) {
       warnings: [],
       records: [],
       contract,
-      rules: { B1: 'reject', K1: 'skipped', K2: 'skipped', K3: 'skipped', K4: FHGM_NOT_SUPPORTED.K4.status, K5: 'skipped', K6: 'skipped' },
+      rules: { B1: 'reject', K1: 'skipped', K2: 'skipped', K3: 'skipped', K4: 'skipped', K5: 'skipped', K6: 'skipped' },
     };
   }
 
-  const own = checkSnapshot(header, { overlay: options.overlay === true, label: 'current', geneIds: options.geneIds });
+  const layer = resolveFeatureLayer(options);
+  const own = checkSnapshot(header, { overlay: options.overlay === true, label: 'current', layer });
   const errors = [...own.errors];
   const warnings = [draftWarning(entry), ...own.warnings];
-  const rules = { ...own.rules, B1: 'pass', K4: own.rules.K4 === 'not-checked' ? FHGM_NOT_SUPPORTED.K4.status : own.rules.K4 };
+  const rules = { ...own.rules, B1: 'pass' };
 
   if (own.rules.K1 === 'absent') {
     return { status: 'absent', valid: true, errors, warnings: [], records: own.records, contract, rules: { ...rules, K2: 'absent', K3: 'absent', K5: 'absent', K6: 'absent' } };
@@ -498,7 +596,7 @@ export function checkFhgmModels(header, options = {}) {
     if (!isObject(supplied) || !isObject(supplied.header)) continue;
     const checksum = typeof supplied.checksum === 'string' ? supplied.checksum : typeof supplied.header.checksum === 'string' ? supplied.header.checksum : null;
     if (checksum === null) continue;
-    const prior = checkSnapshot(supplied.header, { overlay: options.overlay === true, label: `predecessor ${checksum.slice(0, 8)}...`, geneIds: undefined });
+    const prior = checkSnapshot(supplied.header, { overlay: options.overlay === true, label: `predecessor ${checksum.slice(0, 8)}...`, layer: { state: 'none', rows: new Map(), problems: [] } });
     if (!prior.valid && prior.rules.K1 !== 'absent') {
       errors.push(...prior.errors);
       for (const [rule, verdict] of Object.entries(prior.rules)) if (verdict === 'reject') rules[rule] = 'reject';
@@ -545,10 +643,15 @@ function describeValue(value) {
 }
 
 /**
- * The rules this build runs and the rule it does not, for the capability matrix.
+ * The rules this build runs, and the boundary on the one that needs a resolver,
+ * for the capability matrix.
  *
- * @returns {{implemented: string[], notSupported: Record<string, {status: string, reason: string}>}}
+ * @returns {{implemented: string[], notSupported: Record<string, {status: string, reason: string}>, boundaries: Record<string, Record<string, string>>}}
  */
 export function fhgmRuleCoverage() {
-  return { implemented: ['B1', 'K1', 'K2', 'K3', 'K5', 'K6'], notSupported: { ...FHGM_NOT_SUPPORTED } };
+  return {
+    implemented: ['B1', 'K1', 'K2', 'K3', 'K4', 'K5', 'K6'],
+    notSupported: {},
+    boundaries: { K4: { ...FHGM_K4_BOUNDARY } },
+  };
 }

@@ -22,7 +22,7 @@ import { fileURLToPath } from 'node:url';
 
 import { CONTAINERS, OPERATIONS, RELEASED_TYPES, SERIALIZATIONS, SUPPORT, TYPES, TYPE_IDS, capabilityRows, describeType } from '../src/types.js';
 import { draftEntry } from '../src/drafts.js';
-import { FHGM_NOT_SUPPORTED, FHGM_RULES, fhgmRuleCoverage } from '../src/fhgm.js';
+import { FHGM_RULES, fhgmRuleCoverage } from '../src/fhgm.js';
 import { provenance as releasedProvenance } from '../src/registry.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -198,7 +198,8 @@ lines.push('| B1 | FHGM | yes | the released FHGFF3 schema and the exact-byte ch
 lines.push('| K1 | FHGM | yes | transport: R15 admits extension fields from FHGFF3 1.1, and `x-fhgm-models` holds one or more records. `overlay: true` also applies the pinned transport overlay, which is narrower: it names the v0.5.0 citation and 1.1 outright |');
 lines.push('| K2 | FHGM | yes | every record validates against the pinned record contract (`modelId`, `modelVersion`, `featureId`, `reference` required, objects closed) |');
 lines.push('| K3 | FHGM | yes | `modelId` unique within a snapshot; a shared id is ambiguous and rejects that snapshot, current or supplied predecessor |');
-lines.push(`| K4 | FHGM | no | ${FHGM_NOT_SUPPORTED.K4.reason} |`);
+const k4 = fhgmRuleCoverage().boundaries.K4;
+lines.push(`| K4 | FHGM | yes | ${k4.resolves}. ${k4.withoutFeatureLayer}. ${k4.unusableFeatureLayer}. ${k4.stillElsewhere} |`);
 lines.push('| K5 | FHGM | yes | a record reference shares at least one comparable form with the file genome link and never contradicts it |');
 lines.push('| K6 | FHGM | yes | predecessor verdicts `resolvable` / `unresolvable` / `ambiguous`, against explicitly supplied prior snapshots only |');
 lines.push('');

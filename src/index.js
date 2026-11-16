@@ -87,4 +87,8 @@ export {
   loadDraft,
 } from './drafts.js';
 export { VERDICTS as PARENT_LINK_VERDICTS, parentLinkWarning, verifyParentLinks } from './parent-links.js';
-export { FHGM_NOT_SUPPORTED, FHGM_RULES, MODELS_KEY, VERDICTS as FHGM_VERDICTS, admitsExtensionFields, checkFhgmModels, fhgmRuleCoverage } from './fhgm.js';
+export { FHGM_K4_BOUNDARY, FHGM_RULES, MODELS_KEY, VERDICTS as FHGM_VERDICTS, admitsExtensionFields, checkFhgmModels, fhgmRuleCoverage } from './fhgm.js';
+// The two-column feature-row index FHGM K4 resolves against. Exposed so a caller
+// with the feature layer from elsewhere can build its own resolver; this reads
+// no feature and judges nothing.
+export { GENE_ROW_TYPES, indexGff3FeatureRows, isGeneRowType } from './features.js';
