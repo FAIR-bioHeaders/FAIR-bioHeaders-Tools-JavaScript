@@ -16,7 +16,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -190,6 +190,18 @@ describe('verifyAgainst', () => {
     }
   });
 
+  it('does not verify a claimed pin with blank or malformed provenance', () => {
+    const bytes = Buffer.from('{"vectors":[]}\n');
+    const dir = checkoutWith('conformance/manifest.json', bytes);
+    try {
+      for (const overrides of [{ commit: '' }, { commit: 7 }, { commit: 'c'.repeat(40) + '\n' }, { manifest: ' ' }, { sha256: '' }]) {
+        assert.equal(verifyAgainst(pinFor(bytes, overrides), dir).state, 'partial');
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('cross-checks the recorded vector count against the manifest it just digested', () => {
     const bytes = Buffer.from('{"vectors":[{"id":"a"},{"id":"b"}]}\n', 'utf8');
     const pin = pinFor(bytes, { vectors: 9 });
@@ -301,30 +313,83 @@ describe('the draft-lane runner enforces the suite pin', () => {
     }
   });
 
-  it('reports a suite it cannot check as UNPINNED, and never as verified', async () => {
-    // Driven by a fixture registry, not by the shipped one: since the 2026-11-16 re-pin
-    // both drafts state a suite pin, so filtering the live registry for an unpinned draft
-    // yields nothing and the old loop passed by running zero iterations. The label still
-    // has to work for a build that states no pin, and this is the only way to show it.
-    const tree = draftTreeWith((registry) => {
-      for (const field of ['suiteCommit', 'suiteManifest', 'suiteManifestSha256']) delete registry.drafts.FHGM[field];
+  for (const type of ['FHT', 'FHGM']) {
+    it(`refuses an absent ${type} suite pin before any suite is scored`, () => {
+      const tree = draftTreeWith((registry) => {
+        for (const field of ['suiteCommit', 'suiteManifest', 'suiteManifestSha256']) delete registry.drafts[type][field];
+      });
+      const manifest = { vectors: [{ id: 'synthetic-a', file: 'missing.gff3' }] };
+      const dir = checkoutWith('development/conformance/manifest.json', `${JSON.stringify(manifest)}\n`);
+      try {
+        const result = spawnSync(process.execPath, [join(tree.dir, 'scripts/capability/draft-vectors.mjs'), '--fht', dir, '--fhgm', dir], { cwd: tree.dir, encoding: 'utf8' });
+        assert.equal(result.status, 2, `${result.stdout}\n${result.stderr}`);
+        assert.match(result.stderr, /NOTHING SCORED/);
+        assert.match(result.stderr, new RegExp(`${type}: no suite pin`));
+        assert.doesNotMatch(result.stdout, /(?:FHT|FHGM): \d+ pass/);
+        assert.doesNotMatch(result.stdout, /TOTAL draft-lane evidence/);
+        assert.doesNotMatch(result.stdout, /manifest vectors:/);
+        if (type === 'FHT') {
+          const checked = spawnSync(process.execPath, [join(tree.dir, 'scripts/ci/suite-pin.mjs'), '--check', dir], { cwd: tree.dir, encoding: 'utf8' });
+          assert.equal(checked.status, 1, checked.stdout);
+          assert.match(checked.stdout, /missing suite pin; scoring is refused/);
+          // A symlinked CLI entry must execute the same refusal, not exit 0 silently.
+          const linkedBuild = join(dir, 'linked-build');
+          symlinkSync(tree.dir, linkedBuild, 'dir');
+          const linked = spawnSync(process.execPath, [join(linkedBuild, 'scripts/ci/suite-pin.mjs'), '--check', dir], { cwd: tree.dir, encoding: 'utf8' });
+          assert.equal(linked.status, 1, linked.stdout);
+          assert.match(linked.stdout, /missing suite pin; scoring is refused/);
+        }
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+        removeDraftTree(tree);
+      }
     });
-    // A checkout that holds a suite, so the run reaches its per-type line: two vectors
-    // whose files are not present, which each score as not-run with a reason.
-    const manifest = { vectors: [{ id: 'synthetic-a', file: 'valid/a.fhgm.gff3' }, { id: 'synthetic-b', file: 'valid/b.fhgm.gff3' }] };
-    const dir = checkoutWith('development/conformance/manifest.json', `${JSON.stringify(manifest)}\n`);
-    try {
-      const result = spawnSync(process.execPath, [join(tree.dir, 'scripts', 'capability', 'draft-vectors.mjs'), '--fhgm', dir], { cwd: tree.dir, encoding: 'utf8' });
-      assert.equal(result.status, 0, `an unpinned suite is reported, not refused:\n${result.stdout}\n${result.stderr}`);
-      assert.match(result.stdout, /suite: +UNPINNED - FHGM/, result.stdout.slice(0, 600));
-      assert.match(result.stdout, /FHGM: 0 pass, 0 fail, 2 not-run \(suite revision unpinned/, 'the count line says the numbers name no revision');
-      assert.match(result.stdout, /unpinned suite\(s\)/, 'and the total repeats it');
-      assert.doesNotMatch(result.stdout, /suite manifest verified/, 'FHGM must never read as verified while its build states no pin');
-      assert.doesNotMatch(result.stdout, /REFUSED/, 'an absence in the registry is not a refused checkout');
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-      removeDraftTree(tree);
+  }
+
+  it('refuses each incomplete suite-pin field before scoring', () => {
+    for (const missing of ['suiteCommit', 'suiteManifest', 'suiteManifestSha256']) {
+      const tree = draftTreeWith((registry) => { delete registry.drafts.FHGM[missing]; });
+      try {
+        const result = spawnSync(process.execPath, [join(tree.dir, 'scripts/capability/draft-vectors.mjs'), '--fhgm', tree.dir], { cwd: tree.dir, encoding: 'utf8' });
+        assert.equal(result.status, 2, `${missing}: ${result.stdout}\n${result.stderr}`);
+        assert.match(result.stderr, /NOTHING SCORED/);
+        assert.match(result.stderr, /FHGM: incomplete suite pin/);
+        assert.doesNotMatch(result.stdout, /TOTAL draft-lane evidence|manifest vectors:/);
+      } finally {
+        removeDraftTree(tree);
+      }
     }
+  });
+
+  it('refuses empty, non-string and malformed suite members before any scoring', async () => {
+    for (const [field, value] of [
+      ['suiteCommit', ''], ['suiteCommit', ' '], ['suiteCommit', 7],
+      ['suiteCommit', 'c'.repeat(40) + '\n'], ['suiteManifest', ''],
+      ['suiteManifest', {}], ['suiteManifestSha256', ''],
+      ['suiteManifestSha256', 'a'.repeat(64) + '\n'],
+    ]) {
+      const tree = draftTreeWith((registry) => { registry.drafts.FHGM[field] = value; });
+      try {
+        const { draftSuitePin: view } = await tree.load('src/drafts.js');
+        assert.equal(view('FHGM').stated, false);
+        assert.equal(view('FHGM').partial, true);
+        const result = spawnSync(process.execPath, [join(tree.dir, 'scripts/capability/draft-vectors.mjs'), '--fhgm', tree.dir], { cwd: tree.dir, encoding: 'utf8' });
+        assert.equal(result.status, 2, `${field}: ${result.stdout}\n${result.stderr}`);
+        assert.match(result.stderr, /NOTHING SCORED/);
+        assert.doesNotMatch(result.stdout, /TOTAL draft-lane evidence|manifest vectors:/);
+      } finally {
+        removeDraftTree(tree);
+      }
+    }
+  });
+
+  it('does not report success when no supplied suite path exists', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'fhr-absent-suite-'));
+    rmSync(dir, { recursive: true, force: true });
+    const result = run(['--fht', dir]);
+    assert.equal(result.status, 3, result.stdout + result.stderr);
+    assert.match(result.stderr, /NOTHING SCORED/);
+    assert.doesNotMatch(result.stdout, /TOTAL draft-lane evidence/);
   });
 
   it('reads the pin through src/drafts.js, so the registry stays the single source', () => {
@@ -394,21 +459,24 @@ describe('the draft-lane runner enforces the suite pin', () => {
 
 describe('the draft-lane runner refuses to score a layer it cannot judge', () => {
   it('leaves a `layers.gff3: reject` expectation not-run, and does not intercept `accept`', async () => {
-    // Every vector in the pinned FHGM suite expects `layers.gff3: accept`, so the case
-    // this guard exists for has never been exercised by a real run - and the failure mode
-    // it prevents is silent: a build that cannot see the GFF3 feature layer would grant a
-    // rejection it never checked. Synthesised against a fixture registry with the FHGM
-    // suite pin removed, because a suite that does not match a stated pin is refused
-    // before any vector is reached.
-    const tree = draftTreeWith((reg) => {
-      for (const field of ['suiteCommit', 'suiteManifest', 'suiteManifestSha256']) delete reg.drafts.FHGM[field];
-    });
+    // Exercise layer abstention with an explicitly pinned synthetic manifest;
+    // removing its pin would now test provenance refusal before reaching any vector.
     const manifest = {
       vectors: [
         { id: 'accept-expectation', file: 'vectors/missing.fhgff3.gff3', layers: { gff3: 'accept' }, expected: 'valid', rule: 'K2' },
         { id: 'reject-expectation', file: 'vectors/missing.fhgff3.gff3', layers: { gff3: 'reject' }, expected: 'invalid', rule: 'K4' },
       ],
     };
+    const manifestBytes = Buffer.from(`${JSON.stringify(manifest)}\n`);
+    const tree = draftTreeWith((reg) => {
+      Object.assign(reg.drafts.FHGM, {
+        suiteCommit: 'c'.repeat(40),
+        suiteManifest: 'development/conformance/manifest.json',
+        suiteManifestSha256: digest(manifestBytes),
+        suiteManifestBytes: manifestBytes.length,
+        suiteVectors: manifest.vectors.length,
+      });
+    });
     const dir = checkoutWith('development/conformance/manifest.json', `${JSON.stringify(manifest)}\n`);
     try {
       const result = spawnSync(process.execPath, [join(tree.dir, 'scripts', 'capability', 'draft-vectors.mjs'), '--fhgm', dir], { cwd: tree.dir, encoding: 'utf8' });

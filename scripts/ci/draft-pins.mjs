@@ -42,7 +42,7 @@ if (args.includes('--github-output')) {
     lines.push(`${key}-sha256=${entry.sha256}`);
     // The suite is a second, separate claim, so it gets its own keys. An empty value is
     // the honest one: this build states no suite pin for that type, and `suite-pin.mjs`
-    // reports it as unpinned instead of inventing a revision to blame.
+    // reports the absence and refuses scoring instead of inventing a revision.
     lines.push(`${key}-suite-commit=${entry.suiteCommit ?? ''}`);
     lines.push(`${key}-suite-manifest=${entry.suiteManifest ?? ''}`);
     lines.push(`${key}-suite-sha256=${entry.suiteManifestSha256 ?? ''}`);

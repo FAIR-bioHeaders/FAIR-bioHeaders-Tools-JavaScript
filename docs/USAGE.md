@@ -129,8 +129,8 @@ draftSupport();
 // The suite is a separate pin from the contract, and it is the one that names the
 // development suite `scripts/capability/draft-vectors.mjs` scores. Both drafts state one
 // as of the re-pin of 2026-11-16; a draft that stated none would report `stated: false`,
-// and the runner would label its run UNPINNED instead of attributing a revision it never
-// checked. The values below are printed, not transcribed: `node -e` over `draftSuitePin`.
+// and the runner refuses before scoring any requested suite. It never invents a revision.
+// The values below are printed, not transcribed: `node -e` over `draftSuitePin`.
 draftSuitePin('FHT');
 // { type: 'FHT', repository: 'FHT-Specification', stated: true, partial: false,
 //   commit: 'be9bcc82…', manifest: 'conformance/manifest.json', sha256: '9fd8c0b2…',
@@ -173,9 +173,10 @@ What the lane will not do:
   `NOTHING SCORED` if any digest disagrees, then verifies the development suite against
   `suiteCommit` / `suiteManifestSha256` (through `scripts/ci/suite-pin.mjs`) and exits 2 on
   a mismatch, so a draft count never names a revision nobody checked and never counts
-  vectors read through bytes the registry rejects. A draft whose row states no suite pin is
-  scored and labelled `UNPINNED`, never `verified` - no draft in this build's registry is
-  in that state since 2026-11-16, FHGM included.
+  vectors read through bytes the registry rejects. Every requested draft needs a complete
+  suite pin: absence or partial metadata stops the entire run before any vector or total
+  is scored (issue #8, reaffirmed 2026-11-16). The pin-view API still reports absence
+  honestly; it is never permission to score.
 - **grant a verdict it cannot reach.** A vector whose expectation needs FHGM K4 and whose
   reading has no usable feature layer, or one whose `layers.gff3` expectation asks for a
   feature-layer rejection this library does not compute, stays not-run with that reason

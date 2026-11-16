@@ -6,9 +6,9 @@
  * behaviour under test - a pin the module could be told about later is a different
  * design. Handing the tests a second tree keeps the production path free of any
  * injection point while still letting a test say "suppose this registry stated no
- * suite pin for FHGM", which is the one situation the `UNPINNED` label exists for
- * and which this build's own registry no longer exhibits now that both drafts are
- * pinned. Without it, those branches would be code no test can reach.
+ * suite pin for FHGM", exercising refusal in a state the shipped registry no longer
+ * exhibits. It can also pin a synthetic manifest so layer-specific tests still
+ * reach scoring without bypassing the provenance guard.
  *
  * Nothing here writes to the repository: the copy goes to a temporary directory and
  * the caller deletes it. `src/` and `scripts/` are copied as real files, not

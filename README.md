@@ -243,6 +243,12 @@ The same vectors were also run through the released Python toolkit
 validity on 217 uncompressed sequence vectors and byte-equality of `strip` on the
 77 valid ones, with no disagreements.
 
+A requested draft suite without a complete pin is refused before any suite is
+scored (issue #8, reaffirmed 2026-11-16). Missing or partial suite provenance exits
+2 with `NOTHING SCORED`; no supplied existing suite path exits 3. The low-level
+pin-view API can report absence, but neither runner nor suite-check CLI treats it
+as verified evidence. Shipped pins and default released behavior are unchanged.
+
 ## Limits you should know about
 
 - **Integers beyond 2^53-1 are rounded.** JavaScript numbers are IEEE-754 doubles

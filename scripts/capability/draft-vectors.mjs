@@ -20,9 +20,8 @@
  * `suiteCommit` / `suiteManifest` / `suiteManifestSha256`, checked by
  * `scripts/ci/suite-pin.mjs`). A suite whose manifest does not digest to the recorded
  * value is refused, not scored: an evidence table naming a revision nobody checked is
- * how a draft claim goes quietly stale. A draft whose registry row states no suite pin
- * is run and reported as `UNPINNED`, with the revision named as unknown, never as
- * verified.
+ * how a draft claim goes quietly stale. A requested draft without a complete suite
+ * pin is refused before any suite is scored (issue #8, reaffirmed 2026-11-16).
  *
  *     node scripts/capability/draft-vectors.mjs \
  *       --fht  /path/to/FHT-Specification \
@@ -54,7 +53,7 @@ import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 import { computeChecksum, digest } from '../../src/checksum.js';
 import { HeaderError } from '../../src/errors.js';
-import { draftEntry, verifyDraftBytes } from '../../src/drafts.js';
+import { draftEntry, draftSuitePin, verifyDraftBytes } from '../../src/drafts.js';
 import { verifySuitePin } from '../ci/suite-pin.mjs';
 import { decompress, inspectBytes } from '../../src/reader.js';
 import { selectSchema } from '../../src/selection.js';
@@ -389,7 +388,7 @@ function runFhgmVector(vector, layout) {
  *
  * @param {'FHT'|'FHGM'} type
  * @param {string} repoPath a checkout of the owning development repository
- * @returns {{pass: number, fail: number, notRun: number, refused: boolean, unpinned: boolean}}
+ * @returns {{pass: number, fail: number, notRun: number, refused: boolean}}
  */
 let VERBOSE = false;
 
@@ -402,12 +401,10 @@ function runSuite(type, repoPath) {
   const pin = verifySuitePin(type, repoPath);
   console.log(`\n=== ${type} draft suite ===`);
   console.log(`contract pinned: ${entry.repository} ${entry.commit.slice(0, 12)}, sha256 ${entry.sha256.slice(0, 12)}… (the bytes this build compiles)`);
-  if (pin.state === 'unpinned') {
-    console.log(`suite:         UNPINNED - ${pin.message}`);
-  } else if (pin.state !== 'verified') {
+  if (pin.state !== 'verified') {
     console.log(`suite:         REFUSED - ${pin.message}`);
     refusals.push(pin.message);
-    return { pass: 0, fail: 0, notRun: 0, refused: true, unpinned: false };
+    return { pass: 0, fail: 0, notRun: 0, refused: true };
   } else {
     console.log(`suite:         ${pin.message.replace(/^[A-Z]+: /, '')}`);
     // The guard and the reader must be looking at the same file. `layoutFor()` is where
@@ -417,12 +414,12 @@ function runSuite(type, repoPath) {
       const message = `${type}: the manifest this build verifies (${pin.path}) is not the one this runner reads (${layout.manifest}); one of the two is wrong and neither claim can be reported`;
       console.log(`suite:         REFUSED - ${message}`);
       refusals.push(message);
-      return { pass: 0, fail: 0, notRun: 0, refused: true, unpinned: false };
+      return { pass: 0, fail: 0, notRun: 0, refused: true };
     }
   }
   if (!existsSync(layout.manifest)) {
     console.log(`${type}: no manifest.json at ${layout.manifest} - not run, nothing claimed`);
-    return { pass: 0, fail: 0, notRun: 0, refused: false, unpinned: pin.state === 'unpinned' };
+    return { pass: 0, fail: 0, notRun: 0, refused: false };
   }
   const manifest = JSON.parse(readFileSync(layout.manifest, 'utf8'));
   console.log(`manifest vectors: ${manifest.vectors.length} (a draft suite, separate from the shared 291)`);
@@ -445,7 +442,7 @@ function runSuite(type, repoPath) {
       failures.push(`  ${vector.id} [${type}] ${vector.expected} (${result.note})\n    ${result.problems.join('\n    ')}`);
     }
   }
-  const revision = pin.state === 'verified' ? ` (suite ${entry.suiteCommit.slice(0, 12)})` : ' (suite revision unpinned: this build states no pin for it)';
+  const revision = ` (suite ${entry.suiteCommit.slice(0, 12)})`;
   console.log(`${type}: ${pass} pass, ${fail} fail, ${notRun} not-run${revision}`);
   // A draft suite can carry vectors whose *expectation* is not yet reviewed even though
   // the file and its digest are real: FHT-Specification marks its promoted pilot cases
@@ -466,7 +463,7 @@ function runSuite(type, repoPath) {
     console.log('failures:');
     for (const line of failures) console.log(line);
   }
-  return { pass, fail, notRun, refused: false, unpinned: pin.state === 'unpinned' };
+  return { pass, fail, notRun, refused: false };
 }
 
 const args = parseArgs(process.argv.slice(2));
@@ -507,8 +504,23 @@ if (localProblems.length > 0) {
 }
 console.log('local check: every drafts/ copy matches the digest this build states (nothing is scored against other bytes)');
 
+// Check every requested registry row before running even a different pinned suite.
+// A future draft cannot turn missing provenance into labelled but scored evidence.
+const requested = [['FHT', args.fht], ['FHGM', args.fhgm]].filter(([, path]) => path !== null);
+const missingPins = requested.map(([type]) => draftSuitePin(type)).filter((pin) => !pin.stated || pin.partial);
+if (missingPins.length > 0) {
+  console.error('\nNOTHING SCORED: every requested draft suite requires a complete suite pin.');
+  for (const pin of missingPins) console.error(`  ${pin.type}: ${pin.partial ? 'incomplete' : 'no'} suite pin in drafts/provenance.json`);
+  console.error('Record the suite revision, manifest and digest deliberately before scoring; no pin is invented here.');
+  process.exit(2);
+}
+
+if (requested.every(([, path]) => !existsSync(path))) {
+  console.error('NOTHING SCORED: none of the requested suite paths exists.');
+  process.exit(3);
+}
+
 let totals = { pass: 0, fail: 0, notRun: 0 };
-const unpinned = [];
 for (const [type, path] of [['FHT', args.fht], ['FHGM', args.fhgm]]) {
   if (path === null) continue;
   if (!existsSync(path)) {
@@ -517,13 +529,9 @@ for (const [type, path] of [['FHT', args.fht], ['FHGM', args.fhgm]]) {
   }
   const result = runSuite(/** @type {'FHT'|'FHGM'} */ (type), path);
   totals = { pass: totals.pass + result.pass, fail: totals.fail + result.fail, notRun: totals.notRun + result.notRun };
-  if (result.unpinned) unpinned.push(type);
 }
 
 console.log(`\nTOTAL draft-lane evidence: ${totals.pass} pass, ${totals.fail} fail, ${totals.notRun} not-run (labelled draft; never counted with the shared 291)`);
-if (unpinned.length > 0) {
-  console.log(`unpinned suite(s): ${unpinned.join(', ')} - that suite's revision is not stated in drafts/provenance.json, so the count above names no revision for it`);
-}
 if (refusals.length > 0) {
   console.error(`\n${refusals.length} suite(s) refused, nothing scored against them:`);
   for (const line of refusals) console.error(`  ${line}`);
