@@ -359,6 +359,37 @@ describe('the draft-lane runner enforces the suite pin', () => {
     assert.equal(manifest.vectors.length, 291);
     assert.equal(manifest.vectors.filter((vector) => /^fht|^fhgm/.test(String(vector.format))).length, 0);
   });
+
+  it('refuses to score anything when its own vendored draft bytes disagree with the registry', () => {
+    // Without this guard a tampered `drafts/fhgm-model-draft.json` still produced a
+    // number: the per-reading digest refusal is caught inside the vector loop and becomes
+    // "this file is invalid", so the run exited 1 having printed `FHGM: 4 pass, 39 fail` -
+    // four rows right for the wrong reason. Demonstrated on 2026-11-16 by flipping one byte
+    // of the real vendored file. Done here to a temporary copy of the build, so the
+    // repository's own `drafts/` is never touched.
+    const tree = draftTreeWith();
+    const target = join(tree.dir, 'drafts', 'fhgm-model-draft.json');
+    const original = readFileSync(join(ROOT, 'drafts', 'fhgm-model-draft.json'));
+    const tampered = Buffer.from(original);
+    tampered[tampered.length - 3] = tampered[tampered.length - 3] === 0x39 ? 0x38 : 0x39;
+    writeFileSync(target, tampered);
+    const checkout = checkoutWith('development/conformance/manifest.json', Buffer.from('{"vectors":[]}\n', 'utf8'));
+    try {
+      // Non-vacuity first: a mutation that changed no byte would prove nothing.
+      assert.ok(!tampered.equals(original), 'the fixture must actually differ from the pinned bytes');
+      assert.notEqual(digest(tampered), digest(original), 'and it must move the digest');
+      const result = spawnSync(process.execPath, [join(tree.dir, 'scripts', 'capability', 'draft-vectors.mjs'), '--fhgm', checkout], { cwd: tree.dir, encoding: 'utf8' });
+      assert.equal(result.status, 2, `expected exit 2, got ${result.status}\n${result.stdout}\n${result.stderr}`);
+      assert.match(result.stderr, /NOTHING SCORED/);
+      assert.match(result.stderr, /FHGM contract \(drafts\/fhgm-model-draft\.json\): sha256 [0-9a-f]{64}, recorded [0-9a-f]{64}/);
+      assert.doesNotMatch(result.stdout, /FHGM: \d+ pass/, 'no pass count may be printed for bytes the registry rejects');
+      assert.doesNotMatch(result.stdout, /TOTAL draft-lane evidence/, 'and no total either');
+      assert.match(result.stdout, /nothing below is a released-contract result/, 'the banner still prints, so the refusal is legible as a lane run that stopped');
+    } finally {
+      rmSync(checkout, { recursive: true, force: true });
+      removeDraftTree(tree);
+    }
+  });
 });
 
 describe('the draft-lane runner refuses to score a layer it cannot judge', () => {

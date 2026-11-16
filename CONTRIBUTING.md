@@ -93,6 +93,11 @@ so the rules are narrow and each is checked:
   and `draftSuitePin()`; `node scripts/ci/suite-pin.mjs --check <checkout>` verifies a
   checkout against them; and `scripts/capability/draft-vectors.mjs` runs that check before
   it scores anything and exits 2 when the manifest does not digest to the recorded value.
+  It also digests this build's own `drafts/` copies before it opens a single vector and
+  exits 2 with `NOTHING SCORED`: the per-reading refusal is caught inside the vector loop,
+  so without that first check a tampered contract still produced a count - `FHGM: 4 pass,
+  39 fail`, observed on 2026-11-16 - and four rows right for the wrong reason read as
+  evidence.
   A draft that states no suite pin is reported `UNPINNED`, never `verified` - after the
   re-pin of 2026-11-16 no draft in this registry is in that state, so the branch is now a
   guard for a future draft rather than a description of a present one. `UNPINNED` is a

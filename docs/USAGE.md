@@ -168,12 +168,14 @@ What the lane will not do:
 - **read a moved draft.** `src/drafts.js` re-verifies the vendored bytes against
   `drafts/provenance.json` before compiling them, and a digest mismatch is reported
   (`the draft moved and this build was not re-pinned`) instead of being read.
-- **score a suite it cannot check.** `scripts/capability/draft-vectors.mjs` verifies the
-  development suite against `suiteCommit` / `suiteManifestSha256` first (through
-  `scripts/ci/suite-pin.mjs`) and exits 2 on a mismatch, so a draft count never names a
-  revision nobody checked. A draft whose row states no suite pin is scored and labelled
-  `UNPINNED`, never `verified` - no draft in this build's registry is in that state since
-  2026-11-16, FHGM included.
+- **score a suite it cannot check.** `scripts/capability/draft-vectors.mjs` first checks
+  this build's own `drafts/` copies against `drafts/provenance.json` and exits 2 printing
+  `NOTHING SCORED` if any digest disagrees, then verifies the development suite against
+  `suiteCommit` / `suiteManifestSha256` (through `scripts/ci/suite-pin.mjs`) and exits 2 on
+  a mismatch, so a draft count never names a revision nobody checked and never counts
+  vectors read through bytes the registry rejects. A draft whose row states no suite pin is
+  scored and labelled `UNPINNED`, never `verified` - no draft in this build's registry is
+  in that state since 2026-11-16, FHGM included.
 - **grant a verdict it cannot reach.** A vector whose expectation needs FHGM K4 and whose
   reading has no usable feature layer, or one whose `layers.gff3` expectation asks for a
   feature-layer rejection this library does not compute, stays not-run with that reason

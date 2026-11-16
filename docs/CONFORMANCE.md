@@ -223,10 +223,11 @@ K1-K6, with K4 reached on 8 vectors and the predecessor verdicts exercised again
 prior snapshots the suite names. Label counts are read out of the pinned manifest, not
 carried over from the last revision.
 
-Three checkers, three different questions, one owner each:
+Four checks, four different questions, one owner each:
 
 | question | owner | outcome if it fails |
 | --- | --- | --- |
+| are the vendored draft bytes in *this build* the bytes its own registry says they are? | `npm run check:drafts`, and the same `verifyDraftBytes()` call inside `scripts/capability/draft-vectors.mjs` before it opens a single vector | the acceptance job goes red, and the draft-lane run exits 2 printing `NOTHING SCORED` - no vector count is produced from bytes the registry rejects |
 | are the contract bytes in this checkout the bytes the pin names? | `node scripts/ci/draft-pins.mjs --check <checkout>…` | the labelled draft job goes red |
 | is the development suite about to be executed the suite the pin names? | `node scripts/ci/suite-pin.mjs --check <checkout>…`, and the same check inside `scripts/capability/draft-vectors.mjs` before it scores anything | the labelled draft job goes red, and nothing is scored |
 | does the owning repository's live default branch still publish those bytes? | `node scripts/ci/draft-pin-freshness.mjs`, advisory by design and separate from acceptance | nothing goes red: it reports `DRIFT` and leaves the re-pin to a human |

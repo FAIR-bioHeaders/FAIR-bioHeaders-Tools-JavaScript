@@ -31,8 +31,9 @@
  * Exit status:
  *   0  every runnable draft vector agreed with this build's lane;
  *   1  at least one agreed to disagree - the lane is wrong somewhere;
- *   2  a given argument is unusable, or a supplied suite is not the suite this build
- *      pins (its manifest digest differs from `suiteManifestSha256`);
+ *   2  a given argument is unusable, this build's own `drafts/` copies disagree with
+ *      `drafts/provenance.json`, or a supplied suite is not the suite this build pins
+ *      (its manifest digest differs from `suiteManifestSha256`);
  *   3  no suite given, or a given path holds no suite. Nothing is reported as
  *      passed, because nothing ran.
  *
@@ -53,7 +54,7 @@ import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 import { computeChecksum, digest } from '../../src/checksum.js';
 import { HeaderError } from '../../src/errors.js';
-import { draftEntry } from '../../src/drafts.js';
+import { draftEntry, verifyDraftBytes } from '../../src/drafts.js';
 import { verifySuitePin } from '../ci/suite-pin.mjs';
 import { decompress, inspectBytes } from '../../src/reader.js';
 import { selectSchema } from '../../src/selection.js';
@@ -482,6 +483,29 @@ VERBOSE = args.verbose;
 console.log(`node ${process.version}`);
 console.log('draft-lane evidence only. The shared acceptance run is `npm run conformance`;');
 console.log('nothing below is a released-contract result, and no FHT or FHGM support is claimed.');
+
+// The build's own bytes are checked first, once, before any vector is read.
+//
+// This is not redundant with `src/drafts.js` refusing a draft whose bytes disagree with
+// `drafts/provenance.json`: that refusal happens *inside* a reading, so the runner catches
+// it per vector and reports an invalid file. Demonstrated on 2026-11-16 by flipping one
+// byte of `drafts/fhgm-model-draft.json`: the run exited 1, which is red, but it printed
+// `FHGM: 4 pass, 39 fail` - four agreements with a contract this build no longer holds,
+// scored anyway. A count in which some rows are right for the wrong reason is worse than
+// no count, because it looks like evidence, so nothing is scored against bytes the
+// registry does not recognise.
+const localProblems = verifyDraftBytes();
+if (localProblems.length > 0) {
+  console.error('\nNOTHING SCORED: this build\'s own drafts/ copies do not match drafts/provenance.json.');
+  for (const problem of localProblems) {
+    console.error(`  ${problem.type} ${problem.part} (drafts/${problem.file}): ${problem.actual === null ? 'the pinned file is missing' : `sha256 ${problem.actual}, recorded ${problem.expected}`}`);
+  }
+  console.error('the draft bytes this lane would read are not the draft bytes this build names, so every');
+  console.error('verdict below would be about something else. Re-pin deliberately (CONTRIBUTING.md,');
+  console.error('"Changing the draft lane"); `npm run check:drafts` answers the same question on its own.');
+  process.exit(2);
+}
+console.log('local check: every drafts/ copy matches the digest this build states (nothing is scored against other bytes)');
 
 let totals = { pass: 0, fail: 0, notRun: 0 };
 const unpinned = [];
