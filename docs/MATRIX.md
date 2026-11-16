@@ -155,15 +155,22 @@ repositories.
 
 The lane reads two pinned things and they are separate claims: the contract bytes at
 `226f923c28b680edb3c546e99a751482d06aef1a` (sha256 `59ad9641adcb0e55…`), and the development suite this
-build verifies at `24d3b033ab951ef79ee9f6d17419d8ba700f1b0a` - manifest `conformance/manifest.json`, sha256
-`9b07179497bdc724…`, 66 vectors, whose three contract
+build verifies at `be9bcc825f55db92852fd882ffba4c1c214f53db` - manifest `conformance/manifest.json`, sha256
+`9fd8c0b2a4638d5d…`, 72 vectors across 65615 bytes, whose 3 contract
 rules carry the C1/C2/C3 ids listed below. The guard is
 `scripts/ci/suite-pin.mjs`, and it refuses any other suite revision, so no draft
 count in this repository is attributed to a revision that was never checked.
 
-FHGM states no suite pin in `drafts/provenance.json`, so its draft-lane run is
-labelled `UNPINNED`: the numbers it prints describe the checkout it was handed,
-and this build makes no claim about which revision that was.
+FHGM is the same shape, over two revisions: the record contract at
+`ac3d37b3033312844fc3151217731928ae33aa54` (sha256 `bf1553cac04dc88d…`), and then the transport overlay and the
+development suite together at a later one - the overlay beside it at
+`c503ecf38deaba289e8384124ee5e2b8e81b86f1` (sha256 `d1619cced91b4ef5…`), and the suite
+this build verifies at `c503ecf38deaba289e8384124ee5e2b8e81b86f1` - manifest
+`development/conformance/manifest.json`, sha256 `0d2790151c4a2955…`,
+43 vectors across 51114 bytes, labelled B1/K1/K2/K3/K4/K5/K6. Before the
+re-pin of 2026-11-16 this registry stated no suite revision for FHGM at all, so its
+draft-lane run could only print `UNPINNED`; the guard is the same one and it refuses
+any other suite bytes.
 
 Which of the rules run here, and which do not:
 
@@ -173,7 +180,7 @@ Which of the rules run here, and which do not:
 | C2 | FHT | yes | schema-URL closure, inside the pinned bytes: another type's URL or an arbitrary URL fails the contract and never selects FHT |
 | C3 | FHT | yes | parent-link verdicts `checked-pass` / `checked-fail` / `unchecked`, against parent bytes the caller supplies; never assumed, never invented |
 | B1 | FHGM | yes | the released FHGFF3 schema and the exact-byte checksum must hold before any model verdict exists; with them false the verdict is `not-checked` |
-| K1 | FHGM | yes | transport: R15 admits extension fields from FHGFF3 1.1, and `x-fhgm-models` holds one or more records. `overlay: true` also applies the pinned transport overlay, which is narrower: it names the v0.5.0 citation and 1.1 outright |
+| K1 | FHGM | yes | transport: R15 admits extension fields from FHGFF3 1.1, and `x-fhgm-models` holds one or more records. `overlay: true` also applies the pinned transport overlay, which since FHGM-Specification#17 admits either released base as a closed pairing - v0.5.0 with 1.1, or v0.6.0 with 1.2 - and refuses a citation and version that contradict each other |
 | K2 | FHGM | yes | every record validates against the pinned record contract (`modelId`, `modelVersion`, `featureId`, `reference` required, objects closed) |
 | K3 | FHGM | yes | `modelId` unique within a snapshot; a shared id is ambiguous and rejects that snapshot, current or supplied predecessor |
 | K4 | FHGM | yes | a record featureId, percent-decoded, against the ID and type of the enclosing file's GFF3 feature rows - two facts per row, read by src/features.js or injected by the caller as options.features; exactly one gene row passes. not-checked: no resolver supplied, so K4 ran against nothing and claims nothing. unchecked: the layer was supplied but cannot be trusted (a row without nine fields, compressed content at the direct call), so K4 neither passes nor rejects. SO-term correctness, coordinates, parent/child structure and every other feature and biology rule belong to gff3-validator; reading two columns of a row does not validate it |

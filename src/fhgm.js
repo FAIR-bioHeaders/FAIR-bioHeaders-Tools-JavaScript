@@ -25,11 +25,19 @@
  * - K1 transport: the header states a `schemaVersion` that admits extension
  *   fields - 1.1 or later, per R15 - and carries one or more records under the
  *   single top-level `x-fhgm-models` key. `overlay: true` additionally applies
- *   the pinned transport overlay, which is narrower: it names the v0.5.0 FHGFF3
- *   citation and `schemaVersion` "1.1" outright. That pin is the upstream
- *   checker's, so it is opt-in here rather than the default, and a current
- *   v0.6.0 FHGFF3 1.2 header is accepted by the R15 reading and refused by the
- *   overlay. The difference is recorded in `docs/CAPABILITY.md`.
+ *   the pinned transport overlay. Since FHGM-Specification#17 (the maintainer
+ *   dual-base decision of 2026-11-15) that overlay admits either released FHGFF3
+ *   identity a carrier can cite - the v0.5.0 citation set with `schemaVersion`
+ *   1.1, or the v0.6.0 citation set with 1.2 - as a closed pairing, so a
+ *   citation and a stated version that contradict each other are refused by the
+ *   overlay and neither branch falls back to the other. R15 alone reads only the
+ *   stated version, so seeing the contradiction is the overlay's contribution,
+ *   not the default reading's; the narrower single-pin overlay this repository
+ *   vendored before that decision could not tell 1.1 and 1.2 apart either, and
+ *   the divergence recorded here in favour of R15 is closed. The overlay stays
+ *   opt-in: this library's default verdict is the published rule, and a pin in
+ *   another repository's draft is evidence a caller can ask for, not a norm this
+ *   build silently adopts. `docs/CAPABILITY.md` records both readings.
  * - K2 record shape: every record validates against the pinned record contract,
  *   whose required set is `modelId`, `modelVersion`, `featureId` and `reference`.
  * - K3 uniqueness: `modelId` is unique within one snapshot; a shared id makes the

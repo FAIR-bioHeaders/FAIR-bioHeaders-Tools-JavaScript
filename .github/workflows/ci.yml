@@ -181,8 +181,9 @@ jobs:
       - name: Confirm the checked-out draft bytes still match this build's pin
         run: node scripts/ci/draft-pins.mjs --check .upstream/FHT-Specification .upstream/FHGM-Specification
       # The suite is a separate claim from the contract, pinned to a separate revision:
-      # FHT's contract bytes are pinned at one commit and its 66-vector `C1`-`C3` suite
-      # manifest at a later one. So the checkout moves to the suite revision only after the
+      # FHT's contract bytes are pinned at one commit and its 72-vector `C1`-`C3` suite
+      # manifest at a later one, and FHGM's suite has its own revision too now that the
+      # registry states one. So the checkout moves to the suite revision only after the
       # contract bytes above have been confirmed, and the manifest is then verified before a
       # single vector is scored. A type whose registry row states no suite pin stays where
       # it is, and says so as UNPINNED rather than being silently blessed.

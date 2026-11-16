@@ -216,12 +216,22 @@ depends on them.
 The draft-lane run is *labelled draft evidence*, not acceptance: it reads the
 development suites that live in the repositories owning FHT and FHGM, verifies each
 stated suite manifest against its own pin before scoring anything, and its counts are
-never added to the shared 291. The reported FHT count is 66, from the suite pin
-`24d3b033`; FHGM's row states no suite pin, so its run is labelled `UNPINNED` rather
-than attributed to a revision - see `docs/CONFORMANCE.md` for both. FHGM's K4 runs
+never added to the shared 291. The reported counts are FHT 72, from the suite pin
+`be9bcc82`, and FHGM 43, from `c503ecf3` - FHGM's first stated suite pin, so its row no
+longer reads `UNPINNED` - while both **contract** pins stayed where they were
+(`226f923c` and `ac3d37b3`): a suite moving does not move a contract, and a re-pin that
+changed contract bytes would be a different, louder change. See
+`docs/CONFORMANCE.md` for both, and for the FHT vectors whose *expectations* upstream
+still marks unreviewed. FHGM's K4 runs
 against the reading's feature layer (the file's own rows by default); when a layer
 is absent or untrustworthy the vector stays not-run with that state as the reason -
 converting a not-run into a pass by assumption is forbidden, not merely discouraged.
+The same holds for `layers.gff3`, the feature-layer verdict this library does not
+compute at all: an expectation of `reject` there is left not-run, never granted.
+A pin is a digest and a commit first and a count second: measure the bytes from a real
+download (contents API at a `ref`, hash the file on disk), re-read the count out of
+those same bytes, and let `scripts/ci/suite-pin.mjs` refuse any manifest where the two
+disagree.
 
 Record the checks actually run, with counts, and say plainly what was not run:
 `microdata` (26 vectors) and `jsonld` (37) are not implemented here and must stay

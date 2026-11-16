@@ -71,14 +71,31 @@ describe('K1 transport', () => {
     assert.deepEqual(result.errors, []);
   });
 
-  it('applies the pinned overlay only when asked, and says which pin is narrower', () => {
+  it('applies the pinned overlay only when asked, and the re-pinned overlay admits both released bases', () => {
+    // FHGM-Specification#17 (maintainer dual-base decision, 2026-11-15) rewrote the
+    // overlay from a single v0.5.0/1.1 pin into a closed anyOf of two pairings. The
+    // earlier version of this test asserted the opposite - that a 1.2 carrier was
+    // refused by the overlay and accepted only by the R15 reading - and that divergence
+    // is what the re-pinned bytes closed. Both pairings now transport; a citation and a
+    // stated version that contradict each other are still refused, by the overlay and
+    // never by a fallback to the other branch.
     const currentRelease = judge(fhgmHeader({ header: { schema: 'https://w3id.org/fair-bioheaders/fhgff3/v0.6.0', schemaVersion: '1.2' } }));
     assert.equal(currentRelease.valid, true, 'the R15 reading admits extension fields from 1.1, so a 1.2 header transports');
-    const overlay = judge(fhgmHeader({ header: { schema: 'https://w3id.org/fair-bioheaders/fhgff3/v0.6.0', schemaVersion: '1.2' } }), { overlay: true });
-    assert.equal(overlay.rules.K1, 'reject', 'the overlay as drafted pins the v0.5.0 citation and 1.1, and refuses a 1.2 carrier');
-    assert.match(overlay.errors.join(' '), /K1 overlay/);
-    const pinned = judge(fhgmHeader({ header: { schema: 'https://w3id.org/fair-bioheaders/fhgff3/v0.5.0', schemaVersion: '1.1' } }), { overlay: true });
-    assert.equal(pinned.valid, true, 'the overlay admits the identity it names');
+    const onNewer = judge(fhgmHeader({ header: { schema: 'https://w3id.org/fair-bioheaders/fhgff3/v0.6.0', schemaVersion: '1.2' } }), { overlay: true });
+    assert.equal(onNewer.rules.K1, 'pass', 'the re-pinned overlay admits the v0.6.0/1.2 pairing');
+    assert.equal(onNewer.valid, true, onNewer.errors.join(' '));
+    const onOlder = judge(fhgmHeader({ header: { schema: 'https://w3id.org/fair-bioheaders/fhgff3/v0.5.0', schemaVersion: '1.1' } }), { overlay: true });
+    assert.equal(onOlder.valid, true, 'the overlay admits the v0.5.0/1.1 pairing it named before');
+    for (const [schema, schemaVersion] of [['https://w3id.org/fair-bioheaders/fhgff3/v0.6.0', '1.1'], ['https://w3id.org/fair-bioheaders/fhgff3/v0.5.0', '1.2']]) {
+      const crossed = judge(fhgmHeader({ header: { schema, schemaVersion } }), { overlay: true });
+      assert.equal(crossed.rules.K1, 'reject', `${schema} with schemaVersion ${schemaVersion} is a contradiction, not a pairing`);
+      assert.match(crossed.errors.join(' '), /K1 overlay/, 'and the refusal is attributed to the overlay');
+      const plain = judge(fhgmHeader({ header: { schema, schemaVersion } }));
+      assert.equal(plain.rules.K1, 'pass', 'the R15 reading alone cannot see the contradiction: it reads the stated version, not the citation');
+    }
+    const tooOld = judge(fhgmHeader({ header: { schema: 'https://w3id.org/fair-bioheaders/fhgff3/v0.4.0', schemaVersion: '1.0' } }), { overlay: true });
+    assert.equal(tooOld.rules.K1, 'reject', 'FHGFF3 1.0 cannot carry an extension key at all (R15), so no overlay question is reached');
+    assert.match(tooOld.errors.join(' '), /R15 admits extension fields only from FHGFF3 1.1/);
   });
 });
 

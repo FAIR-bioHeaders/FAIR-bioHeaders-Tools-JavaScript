@@ -127,14 +127,19 @@ draftSupport();
 // [{ type: 'FHT', citation: '…/FHT-Specification/main/fht.json', commit: '226f923c…', sha256: '59ad9641…', status: 'draft' }, …]
 
 // The suite is a separate pin from the contract, and it is the one that names the
-// development suite `scripts/capability/draft-vectors.mjs` scores. A draft that states no
-// suite pin reports `stated: false`, and the runner labels its run UNPINNED instead of
-// attributing a revision it never checked.
+// development suite `scripts/capability/draft-vectors.mjs` scores. Both drafts state one
+// as of the re-pin of 2026-11-16; a draft that stated none would report `stated: false`,
+// and the runner would label its run UNPINNED instead of attributing a revision it never
+// checked. The values below are printed, not transcribed: `node -e` over `draftSuitePin`.
 draftSuitePin('FHT');
 // { type: 'FHT', repository: 'FHT-Specification', stated: true, partial: false,
-//   commit: '24d3b033…', manifest: 'conformance/manifest.json', sha256: '9b071794…',
-//   bytes: 56250, vectors: 66, rules: ['C1', 'C2', 'C3'] }
-draftSuitePin('FHGM').stated; // false - no suite pin is stated for FHGM
+//   commit: 'be9bcc82…', manifest: 'conformance/manifest.json', sha256: '9fd8c0b2…',
+//   bytes: 65615, vectors: 72, rules: ['C1', 'C2', 'C3'] }
+draftSuitePin('FHGM');
+// { type: 'FHGM', repository: 'FHGM-Specification', stated: true, partial: false,
+//   commit: 'c503ecf3…', manifest: 'development/conformance/manifest.json',
+//   sha256: '0d279015…', bytes: 51114, vectors: 43,
+//   rules: ['B1', 'K1', 'K2', 'K3', 'K4', 'K5', 'K6'] }
 
 const reading = inspectFile('rna.fht.fasta', { drafts: ['FHT'] });
 reading.schema;  // { type: 'FHT', release: null, schemaVersion: null, rule: 'V7' }
@@ -153,7 +158,7 @@ annotation.fhgm.valid; // the draft verdict on x-fhgm-models
 annotation.fhgm.rules; // { B1, K1, K2, K3, K4: 'pass'|'reject'|'not-checked'|'unchecked', K5, K6 }
 ```
 
-Three things the lane will not do:
+What the lane will not do:
 
 - **open itself.** With no `drafts` option, a draft citation is "any other value"
   under V5 and is read as FHR, exactly as it was before the lane existed.
@@ -163,11 +168,19 @@ Three things the lane will not do:
 - **read a moved draft.** `src/drafts.js` re-verifies the vendored bytes against
   `drafts/provenance.json` before compiling them, and a digest mismatch is reported
   (`the draft moved and this build was not re-pinned`) instead of being read.
-- **score a suite it cannot check.** `scripts/capability/draft-vectors.mjs` verifies the
-  development suite against `suiteCommit` / `suiteManifestSha256` first (through
-  `scripts/ci/suite-pin.mjs`) and exits 2 on a mismatch, so a draft count never names a
-  revision nobody checked. A draft whose row states no suite pin - FHGM today - is scored
-  and labelled `UNPINNED`, never `verified`.
+- **score a suite it cannot check.** `scripts/capability/draft-vectors.mjs` first checks
+  this build's own `drafts/` copies against `drafts/provenance.json` and exits 2 printing
+  `NOTHING SCORED` if any digest disagrees, then verifies the development suite against
+  `suiteCommit` / `suiteManifestSha256` (through `scripts/ci/suite-pin.mjs`) and exits 2 on
+  a mismatch, so a draft count never names a revision nobody checked and never counts
+  vectors read through bytes the registry rejects. A draft whose row states no suite pin is
+  scored and labelled `UNPINNED`, never `verified` - no draft in this build's registry is
+  in that state since 2026-11-16, FHGM included.
+- **grant a verdict it cannot reach.** A vector whose expectation needs FHGM K4 and whose
+  reading has no usable feature layer, or one whose `layers.gff3` expectation asks for a
+  feature-layer rejection this library does not compute, stays not-run with that reason
+  printed. Neither is ever passed by assumption, and neither is quietly dropped from the
+  table.
 - **take a release form.** A w3id URL or a release-tag URL for either type is not
   recognised with the lane open; it falls through to V5. A draft reading reports
   `release: null` and `schemaVersion: null` and names the commit and digest it was
