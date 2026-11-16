@@ -325,3 +325,13 @@ found and fixed (see [`CAPABILITY.md`](CAPABILITY.md)).
   calls it, and the draft-lane counts above are never merged into this one.
 - It is not a release. Nothing here is published, tagged or merged by this work, and
   `version` in `package.json` is `0.0.0` to say so.
+
+## Missing suite provenance (#8)
+
+The maintainer reaffirmed option 1 on 2026-11-16: every requested draft suite must
+state a complete pin before any suite is scored. A missing or partial pin exits 2
+with `NOTHING SCORED`, no per-type counts and no total. The separate suite-check
+CLI also fails on an absent pin, including when invoked through a symlink. A run
+with no existing requested suite path exits 3 instead of reporting success.
+Historical `UNPINNED` measurements above describe earlier behavior, not the current
+posture. The released 291-vector ledger and all recorded pins are unchanged.

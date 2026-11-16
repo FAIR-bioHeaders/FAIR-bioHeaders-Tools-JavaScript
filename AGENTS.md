@@ -233,6 +233,12 @@ download (contents API at a `ref`, hash the file on disk), re-read the count out
 those same bytes, and let `scripts/ci/suite-pin.mjs` refuse any manifest where the two
 disagree.
 
+The issue #8 ruling was reaffirmed on 2026-11-16: a requested draft without a
+complete suite pin is refused before any suite is scored. The API still describes
+absent provenance honestly; no tooling may treat that absence as permission to
+print an unpinned count. Keep synthetic layer tests reachable by pinning their
+own manifest bytes, rather than bypassing this guard.
+
 Record the checks actually run, with counts, and say plainly what was not run:
 `microdata` (26 vectors) and `jsonld` (37) are not implemented here and must stay
 reported as not-run rather than being dropped from the table. A reported hole is a deliverable; a hole
@@ -240,8 +246,9 @@ filled with a claim is a defect. For `AGENTS.md`-only changes,
 inspect the diff, links and repository identity and run `git diff --check`;
 executable suites are unnecessary unless behaviour changed.
 
-Publishing is not part of any change here: no npm publication, no tags, no merges,
-no registry row, no board edits. Those are maintainer actions.
+Publishing is not part of these changes: npm publication, tags, registry release
+rows and deployments retain separate maintainer gates. Project status updates and
+conditionally authorized merges follow the scoped workflow below.
 
 ## Licensing
 
@@ -271,15 +278,30 @@ decision instead of resolving it silently.
   closes. This repository's work belongs to
   [FAIR-bioHeaders-Specification#52](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/52);
   do not re-scope that issue from here.
-- Link every PR to its issue (`Refs #N`). Do not do unreported work.
+- Link every PR to its issue. Use `Closes #N` only for complete acceptance; for
+  partial work use `Refs #N` and `#N remains open`. Never put a closing keyword
+  before an issue reference inside a negated sentence: GitHub can still recognize
+  it. Do not do unreported work.
+- Explicit project boundaries override generic routing: specification #206/#228
+  and Tools #150 belong only to Project 12; specification #248/#249, Tools
+  #169/#170 and Janeway plugin #1–#5 belong only to Project 13; Adam-owned Tools
+  #171 is outside Project 9. Do not re-add these under the rule above.
 - After each work run, post a status comment: what changed, which checks ran with
   their results and counts, commit/PR links, blockers, next action. Do not rely on
   chat history, and date every status claim.
 - On review: read the whole review and every inline comment first; fix each finding
   in a **new commit**; do not amend or force-push over reviewed commits; reply with
   the commit hash; resolve the thread; then summarise dispositions. Treat optional
-  suggestions as required unless genuinely out of scope, and say why.
-- Do not push to `main` or merge a PR without maintainer approval.
+  suggestions as required unless genuinely out of scope, and say why with a
+  scoped follow-up link. Give an overall response even when no findings exist.
+- Never push directly to `main`. Standing maintainer merge authorization applies
+  only to agents operated by David Molik (`molikd`) or Adam Wright
+  (`adamjohnwright`) in FAIR-bioHeaders repositories: current CI must be green,
+  Copilot's **🟢 Approved** must remain valid without unresolved superseding
+  findings, and independent validation must cover all current changes, including
+  changes after review. Recheck these immediately before merging. A changed head
+  needs renewed validation, not automatically a new approval. Adoption, curator
+  acceptance, releases and deployments retain separate maintainer gates.
 
 ## Local scope of this repository
 

@@ -115,6 +115,13 @@ export const DRAFT_TYPES = Object.freeze(Object.keys(draftProvenance.drafts));
 /** The fields that together make a suite pin a claim; a subset of them is not one. */
 const SUITE_PIN_FIELDS = ['suiteCommit', 'suiteManifest', 'suiteManifestSha256'];
 
+/** Syntactic provenance completeness; actual bytes are checked by suite-pin.mjs. */
+export function isCompleteSuitePin(pin) {
+  return typeof pin.commit === 'string' && pin.commit.length === 40 && /^[0-9a-f]{40}$/.test(pin.commit)
+    && typeof pin.manifest === 'string' && pin.manifest.trim().length > 0
+    && typeof pin.sha256 === 'string' && pin.sha256.length === 64 && /^[0-9a-f]{64}$/.test(pin.sha256);
+}
+
 /**
  * The suite pin this build states for a draft, in the shape `scripts/ci/suite-pin.mjs`
  * verifies a checkout against.
@@ -133,11 +140,12 @@ export function draftSuitePin(type) {
     return { type, repository: null, stated: false, partial: false, commit: null, manifest: null, sha256: null, bytes: null, vectors: null, rules: null };
   }
   const present = SUITE_PIN_FIELDS.filter((field) => row[field] !== undefined && row[field] !== null);
+  const complete = isCompleteSuitePin({ commit: row.suiteCommit, manifest: row.suiteManifest, sha256: row.suiteManifestSha256 });
   return {
     type,
     repository: row.repository ?? null,
-    stated: present.length === SUITE_PIN_FIELDS.length,
-    partial: present.length > 0 && present.length < SUITE_PIN_FIELDS.length,
+    stated: complete,
+    partial: present.length > 0 && !complete,
     commit: row.suiteCommit ?? null,
     manifest: row.suiteManifest ?? null,
     sha256: row.suiteManifestSha256 ?? null,

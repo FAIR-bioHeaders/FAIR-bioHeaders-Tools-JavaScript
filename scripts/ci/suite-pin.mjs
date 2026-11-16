@@ -25,15 +25,15 @@
  *
  *     node scripts/ci/suite-pin.mjs --check <FHT checkout> [<FHGM checkout>]
  *
- * Exit status: 0 every stated suite pin verified; 1 a pin is stated and the bytes differ,
- * or a pin is stated only in part; 2 the arguments are unusable.
+ * Exit status: 0 every requested suite pin verified; 1 a pin is absent, partial or
+ * its bytes differ; 2 the arguments are unusable.
  */
 
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-import { DRAFT_TYPES, draftSuitePin } from '../../src/drafts.js';
+import { DRAFT_TYPES, draftSuitePin, isCompleteSuitePin } from '../../src/drafts.js';
 
 /**
  * Digest one file the way the registry digests everything else.
@@ -95,14 +95,14 @@ export function verifySuitePin(type, repoPath) {
  */
 export function verifyAgainst(pin, repoPath) {
   const { type } = pin;
-  if (pin.partial) {
+  if (pin.partial || (pin.stated && !isCompleteSuitePin(pin))) {
     return {
       type,
       state: 'partial',
       path: null,
       expected: pin.sha256,
       actual: null,
-      message: `${type}: drafts/provenance.json states an incomplete suite pin (commit ${pin.commit ?? 'none'}, manifest ${pin.manifest ?? 'none'}, sha256 ${pin.sha256 ?? 'none'}); a pin must state its commit, its manifest and its digest together, because a subset of them checks nothing`,
+      message: `${type}: drafts/provenance.json states an incomplete suite pin (commit ${pin.commit ?? 'none'}, manifest ${pin.manifest ?? 'none'}, sha256 ${pin.sha256 ?? 'none'}); a pin needs a full 40-hex commit, a nonblank manifest and a full 64-hex digest together; empty or malformed values check nothing`,
     };
   }
   if (!pin.stated) {
@@ -166,7 +166,8 @@ export function verifySuitePins(checkouts) {
   return checkouts.map(({ type, path }) => verifySuitePin(type, path));
 }
 
-const isMain = process.argv[1] !== undefined && import.meta.url === `file://${resolve(process.argv[1])}`;
+const isMain = process.argv[1] !== undefined && existsSync(process.argv[1])
+  && realpathSync(process.argv[1]) === realpathSync(new URL(import.meta.url));
 if (isMain) {
   const argv = process.argv.slice(2);
   if (argv[0] !== '--check') {
@@ -181,9 +182,9 @@ if (isMain) {
       // Positional, in registry order, the same convention `draft-pins.mjs --check` uses.
       const results = verifySuitePins(targets.map((path, index) => ({ type: DRAFT_TYPES[index], path: resolve(path) })));
       for (const result of results) console.log(`${result.type} ${result.state.toUpperCase().padEnd(8)} ${result.message}`);
-      const blocking = results.filter((result) => result.state !== 'verified' && result.state !== 'unpinned');
+      const blocking = results.filter((result) => result.state !== 'verified');
       const unpinned = results.filter((result) => result.state === 'unpinned');
-      if (unpinned.length > 0) console.log(`${unpinned.map((result) => result.type).join(', ')}: reported as unpinned, not as verified`);
+      if (unpinned.length > 0) console.log(`${unpinned.map((result) => result.type).join(', ')}: missing suite pin; scoring is refused`);
       process.exitCode = blocking.length > 0 ? 1 : 0;
     }
   }
