@@ -21,6 +21,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
 
 import { MODELS_KEY, VERDICTS, admitsExtensionFields, checkFhgmModels, fhgmRuleCoverage } from '../src/fhgm.js';
+import { indexGff3FeatureRows } from '../src/features.js';
 import { inspectBytes, inspectStream } from '../src/reader.js';
 import { draftEntry } from '../src/drafts.js';
 import { buildFhgff3File, buildRawFasta, fhgmHeader, fhgmRecord } from '../testutil/fixtures.mjs';
@@ -402,5 +403,98 @@ describe('the FHGM lane on an FHGFF3 header in a container with no feature rows 
     assert.deepEqual(lane.fhgm.rules, { K1: 'pass', K2: 'pass', K3: 'pass', K4: 'not-checked', K5: 'pass', B1: 'pass', K6: 'none' });
     assert.deepEqual(lane.fhgm, directly(fhgmHeader()), 'records, errors and warnings match the same header judged at the direct call with no feature layer');
     assert.equal(lane.fhgm.records[0].featureTarget, null, 'no feature target is claimed against rows nobody read');
+  });
+});
+
+// #11 (scope per the 17:31 correction): three points where the draft lane's
+// feature layer disagreed with the reference index in gff3-validator. The
+// contract is that repository's tests/fixtures/features/outcomes.json - verdict
+// map found->pass, not-found/duplicate-row/non-gene-target->reject,
+// malformed-layer->unchecked, absent-layer->not-checked, the last two never
+// scored - and the reproduction is scripts/feature_index_agreement.py there.
+// Item 2 as originally filed ("index only gene rows") is a withdrawn
+// misdiagnosis: the guard lives in the predicate, not the index, and is pinned
+// by the two -transcript-row vectors, which still reject.
+describe('K4 feature-layer parity with gff3-validator (#11, items 1, 2-prime and 3)', () => {
+  it('does not let a second, distinct ID tag on one row address a featureId (#11, item 2-prime)', () => {
+    // parity: repeated_id_tag.gff3 'gene:B' -> not-found -> reject, and
+    // 'gene:A' -> found -> pass. On the divergent source this was an
+    // end-to-end false acceptance: K4 passed a record whose target existed
+    // only as a tag the owning checker never indexes.
+    const row = 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=gene:A;ID=gene:B';
+    const second = judge(fhgmHeader({ models: [fhgmRecord({ featureId: 'gene:B' })] }), { features: `${row}\n` });
+    assert.equal(second.rules.K4, 'reject', 'the second ID tag of a row is not an addressable identifier');
+    assert.equal(second.records[0].featureTarget.verdict, 'reject');
+    assert.match(second.errors.join(' '), /no local feature row carries the decoded ID "gene:B"/);
+
+    const first = judge(fhgmHeader({ models: [fhgmRecord({ featureId: 'gene:A' })] }), { features: `${row}\n` });
+    assert.equal(first.rules.K4, 'pass', 'the first tag still addresses its row: the fix narrows the index, it does not empty it');
+  });
+
+  it('gives an ID tag with no value no matching surface (#11, item 3)', () => {
+    // parity: empty_id.gff3 '' -> not-found. The record side of the match
+    // cannot be phrased end to end - the contract requires a non-empty
+    // featureId (minLength 1), which is why this divergence was the one the
+    // suite could not falsify - so the failable assertion is the index K4
+    // consumes: an empty ID= must contribute no entry any pointer could land
+    // on. Probed on the divergent source, a record with featureId '' against
+    // a bare ID= row exited with rules.K4 stating 'pass' behind a K2 rejection
+    // - an acceptance resting on an identifier the oracle does not index.
+    const indexed = indexGff3FeatureRows('toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=');
+    assert.equal(indexed.rows.some((row) => row.id === ''), false, 'an ID= with no value is not an identifier');
+
+    const empty = judge(fhgmHeader({ models: [fhgmRecord({ featureId: '' })] }), { features: 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=\n' });
+    assert.equal(empty.records[0].valid, false, 'K2 still refuses the empty featureId itself');
+    assert.equal(empty.records[0].featureTarget, null, 'and nothing on the row side stands in for the check K4 could not run');
+  });
+
+  it('abstains from K4 when a readable layer carries zero feature rows (#11, item 1)', () => {
+    // The abstention vocabulary is the one #20 shipped for a missing layer:
+    // state 'none', rules.K4 'not-checked', a null featureTarget, and a
+    // warning naming the missing rows. Zero feature rows is the same
+    // observation one level down - the contract puts absent-layer in
+    // never_scored - and must not invent a second state.
+    const directives = '##gff-version 3\n#~schema: "https://w3id.org/fair-bioheaders/fhgff3/v0.6.0"\n# a comment\n';
+    const text = judge(fhgmHeader(), { features: directives });
+    assert.equal(text.rules.K4, 'not-checked', 'a readable file with no feature rows supports no conclusion about the pointer, in either direction');
+    assert.equal(text.records[0].featureTarget, null, 'never scored means scored in neither direction: no pass, no reject, no per-record claim');
+    assert.equal(text.valid, true, 'K1, K2, K3 and K5 still run and still hold');
+    assert.equal(text.rules.K1, 'pass');
+    assert.equal(text.errors.length, 0, `an abstention adds no rejection: ${JSON.stringify(text.errors)}`);
+    assert.ok(text.warnings.some((line) => /K4 not-checked/.test(line) && /no feature rows/.test(line)), `the empty layer is named in the warnings, got ${JSON.stringify(text.warnings)}`);
+
+    // the same answer from the two caller-built shapes that report a finished
+    // layer - the prebuilt index #17 routed into this path, and a bare row
+    // fact array the caller says is complete.
+    assert.equal(judge(fhgmHeader(), { features: { rows: [], problems: [] } }).rules.K4, 'not-checked');
+    assert.equal(judge(fhgmHeader(), { features: [] }).rules.K4, 'not-checked');
+
+    // The contrasts, pinned by the parity contract: rows that carry no
+    // identifiers are a layer with no match, "distinctly not absent-layer"
+    // (rows_without_id.gff3 -> not-found); and the geneIds shorthand asserts
+    // "no gene rows" about a layer, which stays scoreable (unchanged behaviour).
+    assert.equal(judge(fhgmHeader(), { features: 'toy\tpilot\texon\t10\t20\t.\t+\t.\tParent=g1\n' }).rules.K4, 'reject', 'feature rows without IDs still reject a target: zero rows examined and no matching row are different observations');
+    assert.equal(judge(fhgmHeader(), { features: { rows: [], problems: [], featureRows: 1 } }).rules.K4, 'reject', 'a prebuilt index that reports feature rows is a layer, even holding no ID entries');
+    assert.equal(judge(fhgmHeader(), { geneIds: [] }).rules.K4, 'reject', 'the geneIds shorthand keeps its existing reading of an empty list');
+  });
+
+  it('reads a zero-feature-row GFF3 file through the lane as K4 not-checked (#11, item 1, end to end)', () => {
+    const file = buildFhgff3File(fhgmHeader(), { rows: [] });
+    const lane = inspectBytes(file.bytes, { container: 'gff3', drafts: ['FHGM'] });
+    // The anchors first: this must be a sound FHGFF3 file whose lane ran, or
+    // the case could go green by never reaching the K4 consumer.
+    assert.equal(lane.schema.type, 'FHGFF3');
+    assert.equal(lane.checksum.matches, true, 'the file is sound; only its feature layer is empty');
+    assert.equal(lane.valid, true, 'the released FHGFF3 reading is untouched by anything on the lane side');
+    assert.equal(lane.fhgm.status, 'checked', 'every other rule runs on this file');
+    assert.equal(lane.fhgm.rules.K4, 'not-checked', 'the lane defaults to the file\'s own bytes, and those bytes hold no feature rows');
+    assert.equal(lane.fhgm.records[0].featureTarget, null);
+    assert.equal(lane.fhgm.valid, true, 'abstaining is not a rejection: the draft block claims nothing it did not see');
+    assert.ok(lane.fhgm.warnings.some((line) => /K4 not-checked/.test(line) && /no feature rows/.test(line)), `the empty layer is named, got ${JSON.stringify(lane.fhgm.warnings)}`);
+
+    // and a file with rows still scores normally, so the gate is emptiness
+    // rather than a refusal to read GFF3 at all
+    const withRow = inspectBytes(buildFhgff3File(fhgmHeader(), { rows: ['toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=toy-a'] }).bytes, { container: 'gff3', drafts: ['FHGM'] });
+    assert.equal(withRow.fhgm.rules.K4, 'pass', 'one gene row carrying toy-a still passes: the default resolver was not narrowed away');
   });
 });

@@ -227,6 +227,12 @@ container that holds no feature rows: with `{container: 'gfa'}` or
 `{container: 'fasta'}` the reader indexes nothing, so the reading comes back with
 its `does not belong in a … file` finding, `fhgm.rules.K4` unevaluated and a
 warning naming the missing layer, and no feature target is claimed either way (#19).
+A readable GFF3 file whose feature section holds no rows at all gets the same
+answer from the lane: zero feature rows is the absence of a layer, not a missed
+match, so `K4` reports `not-checked` with a naming warning and no per-record
+verdict — while rows that carry no `ID` are a layer whose pointer simply does
+not match, and still reject (#11, aligning with `gff3-validator`'s
+`absent-layer`).
 
 To run the owning repositories' development suites through the lane - separate,
 labelled draft evidence, never counted with the shared 291:

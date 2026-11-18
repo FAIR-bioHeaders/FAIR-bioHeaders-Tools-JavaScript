@@ -76,9 +76,53 @@ describe('indexGff3FeatureRows', () => {
     assert.deepEqual(indexGff3FeatureRows(new TextEncoder().encode(`${GENE}\n`)).rows, [{ id: 'toy-a', type: 'gene', line: 1 }], 'decompressed bytes are the other honest input');
   });
 
-  it('counts repeated ID attributes on one row the way the owning checker does', () => {
-    const index = indexGff3FeatureRows('toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=toy-a;ID=toy-a');
-    assert.equal(index.rows.length, 2, 'GFF3 forbids it, but the index reports what the row says; feature-syntax judgment belongs to gff3-validator');
+  it('indexes only the first ID tag of a row, the way the owning checker does (#11, item 2-prime)', () => {
+    // gff3-validator/checks/attributes.py keeps the first value of a repeated
+    // tag (and reports the repeat itself as GFF-ATT-004, a syntax judgement
+    // this index does not make), so features.py sees one identifier per row.
+    // The parity fixture is repeated_id_tag.gff3: 'gene:A' -> found,
+    // 'gene:B' -> not-found. The old version of this test pinned the divergent
+    // behaviour and only ever used the same value twice (issue #11, 17:31
+    // correction): a same-value repeat is exactly as unaddressable a second
+    // identifier as a distinct one.
+    const same = indexGff3FeatureRows('toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=toy-a;ID=toy-a');
+    assert.deepEqual(same.rows, [{ id: 'toy-a', type: 'gene', line: 1 }], 'a repeated tag with the same value is one entry, not a duplicate row');
+    assert.deepEqual(same.problems, [], 'a repeated ID tag is a syntax question for gff3-validator, not a defect of this layer');
+
+    const distinct = indexGff3FeatureRows('toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=gene:A;ID=gene:B');
+    assert.deepEqual(distinct.rows, [{ id: 'gene:A', type: 'gene', line: 1 }], 'the second, distinct ID tag is not an addressable identifier');
+
+    const bytes = indexGff3FeatureRows(new TextEncoder().encode(`${'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=gene:A;ID=gene:B'}\n`));
+    assert.deepEqual(bytes.rows, [{ id: 'gene:A', type: 'gene', line: 1 }], 'the bytes path shares the scanner and answers the same');
+  });
+
+  it('does not index an ID tag that carries no value (#11, item 3)', () => {
+    // attributes.py sets `attributes.id` only `if "ID" in tags and tags["ID"]`:
+    // an empty value is not an identifier. The parity fixture is
+    // empty_id.gff3: '' -> not-found. Indexing it here gave a matching surface
+    // no valid record can even name, and one the suite could not falsify.
+    const bare = indexGff3FeatureRows('toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=');
+    assert.deepEqual(bare.rows, [], 'ID= contributes no entry');
+    assert.deepEqual(bare.problems, [], 'an empty ID does not make the layer untrustworthy; it is simply no identifier');
+
+    const mixed = indexGff3FeatureRows([GENE, 'toy\tpilot\tgene\t1\t9\t.\t+\t.\tID='].join('\n'));
+    assert.deepEqual(mixed.rows, [{ id: 'toy-a', type: 'gene', line: 1 }], 'the empty ID on the second row contributes nothing beside the real one');
+
+    const firstEmpty = indexGff3FeatureRows('toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=;ID=x');
+    assert.deepEqual(firstEmpty.rows, [], 'the first ID tag holds the slot even when empty: the oracle resolves x to not-found, so this must not fall through to the second tag');
+  });
+
+  it('counts feature rows separately from the ID entries they yield (#11, item 1)', () => {
+    // K4 must be able to tell "the layer has no rows" (absent: abstain) from
+    // "the rows carry no identifiers" (not-found: reject). The oracle's index
+    // distinguishes them because its row list holds every feature row, with or
+    // without an ID; this index records only ID-carrying entries, so the scan
+    // itself has to carry the count.
+    assert.equal(indexGff3FeatureRows('##gff-version 3\n#~schema: "x"\n').featureRows, 0, 'a header-only carrier has no feature layer');
+    assert.equal(indexGff3FeatureRows(EXON).featureRows, 1, 'a row with no ID is still a feature row');
+    assert.equal(indexGff3FeatureRows(`${GENE}\n${RNA}\n${EXON}`).featureRows, 3, 'three feature rows yield two ID entries and one count of three');
+    assert.equal(indexGff3FeatureRows(`${GENE}\n##FASTA\n${GENE}`).featureRows, 1, 'nothing below ##FASTA is a feature row');
+    assert.equal(indexGff3FeatureRows(new TextEncoder().encode(`${GENE}\n${EXON}\n`)).featureRows, 2, 'the bytes path counts the same way');
   });
 });
 
