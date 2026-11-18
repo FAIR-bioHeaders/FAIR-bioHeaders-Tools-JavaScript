@@ -11,7 +11,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { GENE_ROW_TYPES, indexGff3FeatureRows, isGeneRowType } from '../src/features.js';
+import { GENE_ROW_TYPES, MAX_LISTED_PROBLEMS, indexGff3FeatureRows, isGeneRowType } from '../src/features.js';
 
 const GENE = 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=toy-a';
 const RNA = 'toy\tpilot\tlncRNA\t10\t30\t.\t+\t.\tID=toy-a-rna;Parent=toy-a';
@@ -55,6 +55,17 @@ describe('indexGff3FeatureRows', () => {
     assert.equal(index.problems.length, 2, 'the row with six fields and the row with ten are each reported');
     assert.match(index.problems[0], /line 2.*holds 6/);
     assert.match(index.problems[1], /line 3.*holds 10/);
+  });
+
+  it('lists the first malformed rows and only counts the rest, from text and from bytes alike', () => {
+    const text = 'A\n'.repeat(1000);
+    for (const source of [text, new TextEncoder().encode(text)]) {
+      const index = indexGff3FeatureRows(source);
+      assert.equal(index.problems.length, MAX_LISTED_PROBLEMS + 1, 'a malformed layer does not grow by one message per line');
+      assert.match(index.problems[0], /line 1.*holds 1/);
+      assert.match(index.problems[MAX_LISTED_PROBLEMS - 1], new RegExp(`line ${MAX_LISTED_PROBLEMS}\\b`));
+      assert.equal(index.problems[MAX_LISTED_PROBLEMS], `${1000 - MAX_LISTED_PROBLEMS} further malformed lines are not listed`);
+    }
   });
 
   it('refuses compressed bytes and non-content instead of mis-scanning them', () => {

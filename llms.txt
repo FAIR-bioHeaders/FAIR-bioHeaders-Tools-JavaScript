@@ -20,12 +20,13 @@ Key facts (this library implements the contracts released in FAIR-bioHeaders-Spe
 ## Use
 
 ```js
-import { inspectFile, inspectBytes, stripFile, computeChecksum, selectSchema } from 'fair-bioheaders';
+import { inspectFile, inspectFileAsync, inspectBytes, stripFile, computeChecksum, selectSchema } from 'fair-bioheaders';
 
 const reading = inspectFile('genome.fhr.fasta');       // {valid, container, metadata, checksum, schema, warnings, errors}
 if (!reading.valid) console.error(reading.errors);     // nothing throws for a non-conforming file
 
 const plain = stripFile('genome.fhr.fasta');           // Uint8Array, header block removed, every other byte kept
+const big = await inspectFileAsync('genome.fhr.fa.gz'); // a stream: any size, gzip included, memory the size of the header
 ```
 
 Install from the repository until a maintainer publishes it:
@@ -57,7 +58,7 @@ Requires Node.js 20 or later. ESM only.
 
 `combine`/writing any form, for every type; JSON-LD and HTML microdata readers
 (the 63 vectors stay reported as not run, with reasons); JSON-LD expansion or
-compaction; a command-line interface; streaming or gzip-writing output; browser or
+compaction; a command-line interface; gzip-writing output; browser or
 Deno/Bun support; TypeScript declaration files; GFF3 feature validation beyond the
 two columns (row `type` and `ID`) FHGM K4 resolves a `featureId` against; default
 parent-link

@@ -347,10 +347,11 @@ Only this tree. Concretely:
 - `drafts/` holds the rule-V7 draft contracts: pinned bytes with their own
   `provenance.json`, digested like everything else, never a released copy and
   never listed in `schemas/provenance.json`;
-- implementation scope today is read + validate + checksum-verify + strip. A
-  writer (`combine`), a CLI, JSON-LD/microdata readers, streaming input, Node
-  `Readable`/`Writable` helpers, published type declarations and browser support are
-  all explicitly *not* implemented — see `docs/CONFORMANCE.md` for the consequences
+- implementation scope today is read + validate + checksum-verify + strip, in one
+  bounded pass over the input (`src/scan.js`), with streaming input
+  (`inspectStream`, `inspectFileAsync`) and streaming strip output (`stripFileTo`).
+  A writer (`combine`), a CLI, JSON-LD/microdata readers, gzip output, published
+  type declarations and browser support are all explicitly *not* implemented — see `docs/CONFORMANCE.md` for the consequences
   rather than an empty promise;
 - shared cross-repository policy can be discussed anywhere, but contract changes
   start in FAIR-bioHeaders-Specification, type-specific design in the owning

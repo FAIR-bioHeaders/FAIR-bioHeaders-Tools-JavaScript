@@ -161,9 +161,12 @@ All functions are named exports of the package root. The library is ESM only.
 | Function | What it does |
 | --- | --- |
 | `inspectBytes(bytes, {container})` | check a file's bytes; returns a `Reading` |
-| `inspectFile(path, {container})` | the same for a file on disk |
+| `inspectFile(path, {container})` | the same for a file on disk, read in chunks (sync) |
+| `inspectFileAsync(path, opts)`, `inspectStream(asyncIterable, opts)` | the same as a stream: any size, gzip included, memory the size of the header; returns a `Promise<Reading>` |
 | `stripBytes(bytes, {container})`, `stripFile(path, {container})` | remove the header block, byte-exact |
+| `stripFileTo(input, output, opts)` | the same as a stream, written to `output` only once the input is accepted |
 | `computeChecksum(bytes, container)` | R2-R5: the stated value, the recomputed value and the covered bytes |
+| `HeaderScanner` | the single pass behind all of these: `push` chunks, then `finish` |
 | `digest(bytes)` | base64 SHA-512/256 of exactly those bytes |
 | `headerLines(bytes, container)`, `splitLines(bytes)`, `headerText(bytes, container)` | the byte-level header scan |
 | `loadHeaderYaml(text)` | R8/R12/R13-safe YAML reading → `{metadata, warnings}` |
@@ -260,9 +263,19 @@ as verified evidence. Shipped pins and default released behavior are unchanged.
   `subtle.digest` supports SHA-1/256/384/512 but not SHA-512/256, so a browser or
   Deno/Bun build needs a pure-JavaScript SHA-512/256 implementation. None is
   included, and browser support is not claimed.
-- **Whole-file bytes in memory.** There is no streaming reader; the 64 MiB and
-  1 MiB header limits of `docs/FORMAT.md` are enforced for the header block, and
-  gzip/BGZF input is decompressed in one step.
+- **One pass, bounded memory.** Every reader scans the bytes once: the header
+  lines are kept (at most 1 MiB and 10,000 lines, the limits of `docs/FORMAT.md`)
+  and every other byte goes straight into the SHA-512/256 hash. `inspectFile`
+  reads a plain file in 1 MiB chunks, so its size is not limited (files over
+  2 GiB are tested). In-memory gzip/BGZF decompression (`inspectBytes`,
+  `inspectFile`, `stripBytes`, `stripFile`, `decompress`) stops at
+  `maxDecompressedBytes`, 1 GiB by default, with an error in the reading instead
+  of exhausting memory. `inspectFileAsync`, `inspectStream` and `stripFileTo`
+  decompress as a stream and have no such limit. The 64 MiB metadata-file limit
+  does not arise: this library reads no metadata files. The one exception is the
+  FHGM draft lane on a GFF3 file, which also keeps the file's own feature index
+  for K4 (each row's `type` and `ID`, and at most 20 listed malformed rows); a
+  FASTA or GFA file is never indexed, whichever draft lanes are open.
 - **No `format`-by-annotation shortcuts.** `date` is asserted through
   `ajv-formats` and `uri` through this library's own RFC 3986 check
   (`src/uri.js`), because 2020-12 leaves `format` as an annotation and a silent
@@ -295,7 +308,7 @@ in [`docs/MATRIX.md`](docs/MATRIX.md):
   metadata this library reports without recomputing. C3 recomputation runs only
   inside the FHT lane, only against parent bytes the caller hands over, and an
   unsupplied parent leaves the link `unchecked` - never `verified`.
-- **no streaming, no gzip writing, no browser, Deno or Bun build** (SHA-512/256 comes
+- **no gzip writing, no browser, Deno or Bun build** (SHA-512/256 comes
   from `node:crypto`; WebCrypto does not offer it), and no TypeScript declaration
   files.
 - **no support for FHT or FHGM.** Both are drafts; the V7 lane recognises pinned bytes

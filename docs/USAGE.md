@@ -30,6 +30,31 @@ import { inspectBytes } from 'fair-bioheaders';
 const reading = inspectBytes(new Uint8Array(readFileSync('stdin-copy')), { container: 'gfa' });
 ```
 
+## Large files and streams
+
+Every reader makes one pass and keeps only the header lines, so memory does not
+grow with the file. (The FHGM draft lane on a GFF3 file also keeps the feature
+index its K4 check resolves against; FASTA and GFA bodies are never indexed,
+even with `{ drafts: true }`.) `inspectFile` reads a plain file in 1 MiB chunks and has no
+size limit; files over 2 GiB are read like any other. Gzip/BGZF input is
+decompressed in memory by the sync readers, up to `maxDecompressedBytes`
+(1 GiB by default); beyond that the reading carries a `limits` error. To read
+compressed input of any size, use the streaming readers:
+
+```js
+import { createReadStream } from 'node:fs';
+import { inspectFileAsync, inspectStream, stripFileTo } from 'fair-bioheaders';
+
+const reading = await inspectFileAsync('genome.fhr.fa.gz');                  // name gives the container
+const fromStdin = await inspectStream(process.stdin, { container: 'fasta' }); // any async iterable of bytes
+await stripFileTo('genome.fhr.fa.gz', 'genome.fa');                          // written uncompressed, atomically
+```
+
+A streaming reading is the reading `inspectBytes` gives for the same bytes,
+including which finding comes first. `stripFileTo` writes to a temporary file
+beside the output and renames it into place only after the whole input is
+accepted, so a refused input leaves no file behind.
+
 `gfa` means "a GFA file with an FHR header". FHR and FHP share the FASTA
 container, so `container: 'fasta'` covers both and the record's own `schema` URL
 decides which contract it is checked against — that is rule P2, and it is why a

@@ -121,8 +121,10 @@ Also unexercised by the suite, so untested by anything here rather than merely
 "not failed":
 
 - the reader's byte/node/depth limits beyond what the vectors' headers reach;
-- 64 MiB metadata-file handling and streaming or partial reads (there is no
-  streaming reader);
+- 64 MiB metadata-file handling (no metadata file is read). Streaming is tested
+  here rather than by the suite: `test/streaming.test.mjs` reads every runnable
+  vector in 1-, 2-, 3-, 7- and 4096-byte chunks and requires the in-memory
+  reading, and reads a sparse file over 2 GiB;
 - writers of every kind: no combine, no YAML/JSON/JSON-LD/microdata output, so J7,
   J8 and M5-class writer obligations are not exercised here at all;
 - integers beyond `Number.MAX_SAFE_INTEGER`, which the suite never uses;

@@ -43,6 +43,7 @@
 export const GENE_ROW_TYPES = Object.freeze(['gene', 'SO:0000704']);
 
 const UTF8 = new TextDecoder('utf-8', { fatal: false });
+const UTF8_KEEP_BOM = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true });
 const GZIP_MAGIC_0 = 0x1f;
 const GZIP_MAGIC_1 = 0x8b;
 
@@ -80,47 +81,152 @@ export function isGeneRowType(type) {
  * @returns {FeatureIndex}
  */
 export function indexGff3FeatureRows(source) {
-  /** @type {FeatureRow[]} */
-  const rows = [];
-  /** @type {string[]} */
-  const problems = [];
   if (typeof source === 'string') {
-    return scan(source);
+    return scanText(source);
   }
   if (source instanceof Uint8Array) {
     if (source.length >= 2 && source[0] === GZIP_MAGIC_0 && source[1] === GZIP_MAGIC_1) {
       return {
-        rows,
+        rows: [],
         problems: ['the feature layer was handed to the index still compressed; decompress it (or pass the bytes to inspectBytes, which indexes the decompressed content)'],
       };
     }
-    return scan(UTF8.decode(source));
+    const indexer = new FeatureRowIndexer();
+    indexer.push(source);
+    return indexer.finish();
   }
   return { rows: [], problems: [`indexGff3FeatureRows takes decompressed GFF3 text or bytes, found ${source === null ? 'null' : typeof source}`] };
+}
+
+/**
+ * The same index as an incremental reader, for a file that is never held whole:
+ * `push` decompressed chunks in order, then `finish`. Lines are split at LF and
+ * decoded one at a time; only the line in progress is buffered, and nothing
+ * after `##FASTA` is kept at all.
+ */
+export class FeatureRowIndexer {
+  constructor() {
+    /** @type {FeatureRow[]} */
+    this.rows = [];
+    /** @type {string[]} */
+    this.problems = [];
+    /** @type {Uint8Array[]} */
+    this.pending = [];
+    this.index = 0;
+    this.stopped = false;
+    this.omitted = 0;
+  }
 
   /**
-   * @param {string} text
+   * @param {Uint8Array} chunk
+   */
+  push(chunk) {
+    let at = 0;
+    while (!this.stopped && at < chunk.length) {
+      const lf = chunk.indexOf(0x0a, at);
+      if (lf === -1) {
+        this.pending.push(chunk.slice(at));
+        return;
+      }
+      this.pending.push(chunk.subarray(at, lf));
+      at = lf + 1;
+      this.flush();
+    }
+  }
+
+  /**
    * @returns {FeatureIndex}
    */
-  function scan(text) {
-    const lines = text.split('\n');
-    for (let index = 0; index < lines.length; index += 1) {
-      const line = lines[index].replace(/\r$/, '');
-      const where = `line ${index + 1}`;
-      if (line === '##FASTA') break;
-      if (line.trim() === '' || line.startsWith('#')) continue;
-      const columns = line.split('\t');
-      if (columns.length !== 9) {
-        problems.push(`${where}: a GFF3 feature row holds nine tab-separated fields, this line holds ${columns.length}; the feature index cannot trust this layer`);
-        continue;
-      }
-      for (const attribute of columns[8].split(';')) {
-        const eq = attribute.indexOf('=');
-        if (eq < 0) continue;
-        if (attribute.slice(0, eq) !== 'ID') continue;
-        rows.push({ id: attribute.slice(eq + 1), type: columns[2], line: index + 1 });
+  finish() {
+    if (!this.stopped) this.flush();
+    return { rows: this.rows, problems: withOmitted(this.problems, this.omitted) };
+  }
+
+  flush() {
+    const parts = this.pending;
+    this.pending = [];
+    let bytes;
+    if (parts.length === 1) bytes = parts[0];
+    else {
+      bytes = new Uint8Array(parts.reduce((sum, part) => sum + part.length, 0));
+      let offset = 0;
+      for (const part of parts) {
+        bytes.set(part, offset);
+        offset += part.length;
       }
     }
-    return { rows, problems };
+    // A byte order mark is dropped only at the start of the text, as decoding the
+    // whole text at once would drop it.
+    const text = (this.index === 0 ? UTF8 : UTF8_KEEP_BOM).decode(bytes);
+    const outcome = scanLine(text, this.index, this.rows, this.problems);
+    if (outcome === STOP) this.stopped = true;
+    else if (outcome === OMITTED) this.omitted += 1;
+    this.index += 1;
   }
+}
+
+const STOP = Symbol('stop');
+const OMITTED = Symbol('omitted');
+
+/**
+ * How many malformed lines are described one by one. A single one already makes
+ * the layer untrustworthy, so the rest are only counted: a large malformed file
+ * must not grow the index by one message per line.
+ */
+export const MAX_LISTED_PROBLEMS = 20;
+
+/**
+ * @param {string[]} problems
+ * @param {number} omitted
+ * @returns {string[]}
+ */
+function withOmitted(problems, omitted) {
+  if (omitted === 0) return problems;
+  return [...problems, `${omitted} further malformed line${omitted === 1 ? ' is' : 's are'} not listed`];
+}
+
+/**
+ * @param {string} raw one line, LF removed
+ * @param {number} index 0-based line index
+ * @param {FeatureRow[]} rows
+ * @param {string[]} problems
+ * @returns {typeof STOP|typeof OMITTED|undefined}
+ */
+function scanLine(raw, index, rows, problems) {
+  const line = raw.replace(/\r$/, '');
+  const where = `line ${index + 1}`;
+  if (line === '##FASTA') return STOP;
+  if (line.trim() === '' || line.startsWith('#')) return undefined;
+  const columns = line.split('\t');
+  if (columns.length !== 9) {
+    if (problems.length >= MAX_LISTED_PROBLEMS) return OMITTED;
+    problems.push(`${where}: a GFF3 feature row holds nine tab-separated fields, this line holds ${columns.length}; the feature index cannot trust this layer`);
+    return undefined;
+  }
+  for (const attribute of columns[8].split(';')) {
+    const eq = attribute.indexOf('=');
+    if (eq < 0) continue;
+    if (attribute.slice(0, eq) !== 'ID') continue;
+    rows.push({ id: attribute.slice(eq + 1), type: columns[2], line: index + 1 });
+  }
+  return undefined;
+}
+
+/**
+ * @param {string} text
+ * @returns {FeatureIndex}
+ */
+function scanText(text) {
+  /** @type {FeatureRow[]} */
+  const rows = [];
+  /** @type {string[]} */
+  const problems = [];
+  let omitted = 0;
+  const lines = text.split('\n');
+  for (let index = 0; index < lines.length; index += 1) {
+    const outcome = scanLine(lines[index], index, rows, problems);
+    if (outcome === STOP) break;
+    if (outcome === OMITTED) omitted += 1;
+  }
+  return { rows, problems: withOmitted(problems, omitted) };
 }
