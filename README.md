@@ -263,9 +263,13 @@ as verified evidence. Shipped pins and default released behavior are unchanged.
 - **Whole-file bytes in memory.** There is no streaming reader; the 64 MiB and
   1 MiB header limits of `docs/FORMAT.md` are enforced for the header block, and
   gzip/BGZF input is decompressed in one step.
-- **No `format`-by-annotation shortcuts.** `date` and `uri` are asserted through
-  `ajv-formats`, because 2020-12 leaves `format` as an annotation and a silent
-  validator would accept `dateCreated: "2022-13-45"`. This holds inside the draft
+- **No `format`-by-annotation shortcuts.** `date` is asserted through
+  `ajv-formats` and `uri` through this library's own RFC 3986 check
+  (`src/uri.js`), because 2020-12 leaves `format` as an annotation and a silent
+  validator would accept `dateCreated: "2022-13-45"`. The `ajv-formats` `uri`
+  check refuses a URI with an empty hier-part (`urn:`, `doi:`, `mailto:`), which
+  RFC 3986 and the Python toolkit accept; such a value passes `format: uri` here
+  too, and R14 still warns about it. This holds inside the draft
   lane too: the lane's tests assert that a bad `dateCreated` is refused by the
   pinned FHT contract.
 - **A draft reading is not a released-contract reading.** It is labelled in three

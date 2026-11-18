@@ -10,6 +10,7 @@ import { HeaderError } from '../src/errors.js';
 import { isFhr1VersionNumber, selectSchema } from '../src/selection.js';
 import { emptyValueWarnings, hasAcceptedLinkScheme, linkSchemeWarnings, validateRecord, validator } from '../src/validate.js';
 import { CURRENT_RELEASE } from '../src/registry.js';
+import { isUri } from '../src/uri.js';
 
 const base = {
   schema: 'https://w3id.org/fair-bioheaders/fhr/v0.6.0',
@@ -103,6 +104,65 @@ describe('V1 to V6 selection', () => {
         schemaVersion: value,
       });
       assert.equal(selection.rule, 'V1', JSON.stringify(value));
+    }
+  });
+});
+
+describe('V4 for a multi-segment raw ref', () => {
+  const raw = 'https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/';
+  it('keeps the whole ref, so only main and a held release tag select a contract', () => {
+    // The ref is everything between the repository name and /<type>.json, as in the
+    // toolkit's selection.RAW. A ref with a slash in it is not main and not a tag.
+    for (const ref of ['refs/heads/main', 'main/../v0.6.0', 'refs/tags/v0.6.0', 'main/main', 'v0.6.0/x']) {
+      for (const file of ['fhr.json', 'fhp.json', 'fhgff3.json']) {
+        assert.throws(
+          () => selectSchema({ ...base, schema: `${raw}${ref}/${file}` }),
+          (error) => error instanceof HeaderError && error.result === 'unsupported-version' && error.rule === 'V4',
+          `${ref}/${file} must be V4`,
+        );
+      }
+    }
+  });
+
+  it('leaves values that are not the raw form at all to V5, as before', () => {
+    for (const schema of [`${raw}main/fhr.json/`, `${raw}main/fhr.json?x=1`, `${raw}main/FHR.json`, `${raw}fhr.json`, `${raw}/fhr.json`, `${raw}main\n/fhr.json`]) {
+      const selection = selectSchema({ ...base, schema });
+      assert.equal(selection.rule, 'V5', schema);
+    }
+  });
+
+  it('still selects main and release tags', () => {
+    assert.equal(selectSchema({ ...base, schema: `${raw}main/fhp.json` }).rule, 'V1');
+    assert.equal(selectSchema({ ...base, schema: `${raw}v0.5.0/fhgff3.json` }).release, 'v0.5.0');
+  });
+});
+
+describe('format: uri is RFC 3986', () => {
+  it('accepts a URI with an empty hier-part, as RFC 3986 and the toolkit do', () => {
+    for (const value of ['urn:', 'doi:', 'x:', 'mailto:', 'mailto:someone@example.org', 'a+b-c.d:e', 'https://exa_mple.org', 'HTTP://[v1.x]/', 'http://[::1]/', 'https://example.org:99999/']) {
+      assert.equal(isUri(value), true, value);
+      const result = validateRecord({ ...base, relatedLink: [value] }, selectSchema(base));
+      assert.equal(result.valid, true, `${value}: ${JSON.stringify(result.errors)}`);
+    }
+  });
+
+  it('refuses what is not a URI', () => {
+    for (const value of ['not a URI', '', '1http://x', 'https://example.org/<x>', 'https://exé.org/', 'http://a/b?c#d#e', 'https://example.org/a\\b', 'https://example.org/{x}', 'https://example.org/|', 'https://example.org/%', 'https://example.org/"q"', 'https://user:pa ss@example.org/', 'https://example.org/\n']) {
+      assert.equal(isUri(value), false, JSON.stringify(value));
+      const result = validateRecord({ ...base, relatedLink: [value] }, selectSchema(base));
+      assert.equal(result.valid, false, JSON.stringify(value));
+    }
+  });
+
+  it('warns under R14 for a scheme-only value, which has no accepted link', () => {
+    for (const value of ['urn:', 'doi:', 'x:', 'mailto:a@b.org']) {
+      assert.equal(hasAcceptedLinkScheme(value), false, value);
+    }
+    for (const value of ['http://?x', 'http://:80/', 'http://user@/']) {
+      assert.equal(hasAcceptedLinkScheme(value), true, value);
+    }
+    for (const value of ['http:///x', 'http://', 'https://example.org/\u2066x']) {
+      assert.equal(hasAcceptedLinkScheme(value), false, value);
     }
   });
 });

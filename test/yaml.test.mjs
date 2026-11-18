@@ -52,6 +52,26 @@ describe('R12 plain-scalar resolution', () => {
     }
   });
 
+  it('reads .nan, .inf and their signed forms only as whole scalars', () => {
+    // The YAML 1.1 NaN pattern was once unanchored at the start, so any plain
+    // scalar ending in ".nan" (release.nan, see build.NaN) was read as a float by
+    // the YAML 1.1 side and refused as non-portable. The toolkit's resolver
+    // anchors it, and so do these tables now.
+    for (const text of ['release.nan', 'see build.NaN', 'x.NAN', 'a.nan', 'release.inf', 'x-.inf', 'build+.Inf']) {
+      assert.equal(resolveYaml11(text).tag, 'str', `${text} is a string to YAML 1.1`);
+      assert.equal(resolveCore(text).tag, 'str', `${text} is a string to YAML 1.2`);
+      assert.equal(plainScalarIsPortable(text), true, `${text} must be accepted`);
+    }
+    for (const text of ['.nan', '.NaN', '.NAN', '.inf', '-.inf', '+.Inf', '.INF']) {
+      assert.equal(resolveYaml11(text).tag, 'float', text);
+      assert.equal(resolveCore(text).tag, 'float', text);
+    }
+    for (const text of ['.Nan', '.nAn', '-.nan', '+.nan', '.Inf.', '.infinity']) {
+      assert.equal(resolveYaml11(text).tag, 'str', text);
+      assert.equal(resolveCore(text).tag, 'str', text);
+    }
+  });
+
   it('flags a value that overflows to infinity (R13)', () => {
     assert.equal(plainScalarOverflows('1.7976931348623157e309'), true);
     assert.equal(plainScalarOverflows('1.5'), false);

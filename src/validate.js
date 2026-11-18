@@ -32,6 +32,7 @@ import { createRequire } from 'node:module';
 import { HeaderError } from './errors.js';
 import { loadSchema } from './registry.js';
 import { loadDraft } from './drafts.js';
+import { isUri } from './uri.js';
 
 /**
  * The `ajv` entry point this library validates on: the draft/2020-12 build.
@@ -86,12 +87,18 @@ export const AJV_CONFIG = Object.freeze({
 });
 
 /**
- * The `format` keywords asserted, registered from `ajv-formats`.
+ * The `format` keywords asserted.
  *
  * `docs/SCHEMA-VERSIONS.md` ("`format` is asserted") requires every declared format to
- * be checked; these are the two the released contracts declare.
+ * be checked; these are the two the released contracts declare. `date` comes from
+ * `ajv-formats`. `uri` is this library's own RFC 3986 check (`src/uri.js`): the
+ * `ajv-formats` one refuses a URI with an empty hier-part (`urn:`, `doi:`, `mailto:`),
+ * which RFC 3986 and the reference toolkit both accept.
  */
 export const AJV_FORMATS = Object.freeze(['date', 'uri']);
+
+/** The asserted formats taken from `ajv-formats`. */
+const AJV_FORMATS_PACKAGE = Object.freeze(['date']);
 
 const require = createRequire(import.meta.url);
 const Ajv2020 = require(AJV_ENTRY).default;
@@ -99,32 +106,31 @@ const addFormats = require('ajv-formats').default;
 
 /**
  * Accepted link schemes (FORMAT.md R14). `http`, `https` and `ftp` additionally
- * need `//` and a host.
+ * need `//` and something after it that is not another `/`.
  */
 const LINK_SCHEMES_REQUIRING_AUTHORITY = new Set(['http', 'https', 'ftp']);
 const LINK_SCHEMES = new Set(['urn', 'doi', 'info']);
 
-/** RFC 3987 section 4.1 bidirectional formatting characters. */
-const BIDI_CHARS = /[\u200e\u200f\u202a-\u202e]/;
+/**
+ * A URI-shaped value: a scheme, a colon and at least one character, none of them
+ * whitespace, a control character or a bidirectional formatting character
+ * (RFC 3987 section 4.1). The same form the reference toolkit tests for R14.
+ */
+const URI_FORM = /^([A-Za-z][A-Za-z0-9+.-]*):([^\p{White_Space}\u0000-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]+)$/u;
 
 /**
  * @param {string} value a `format: uri` value, as written
  * @returns {boolean} whether R14 accepts its link scheme without a warning
  */
 export function hasAcceptedLinkScheme(value) {
-  if (typeof value !== 'string' || value.length === 0) return false;
-  // A value with whitespace, a control character or a bidirectional formatting
-  // character anywhere has no accepted scheme.
-  if (/[\p{White_Space}\u0000-\u0020\u007f-\u009f]/u.test(value) || BIDI_CHARS.test(value)) return false;
-  const match = /^([A-Za-z][A-Za-z0-9+.-]*):(.*)$/s.exec(value);
+  if (typeof value !== 'string') return false;
+  const match = URI_FORM.exec(value);
   if (match === null) return false;
   const scheme = match[1].toLowerCase();
   if (LINK_SCHEMES.has(scheme)) return true;
   if (LINK_SCHEMES_REQUIRING_AUTHORITY.has(scheme)) {
-    const authority = /^\/\/([^/?#]*)/.exec(match[2]);
-    if (authority === null) return false;
-    const host = authority[1].split('@').pop().split(':')[0];
-    return host.length > 0;
+    const rest = match[2];
+    return rest.startsWith('//') && rest.length > 2 && rest[2] !== '/';
   }
   return false;
 }
@@ -150,7 +156,8 @@ const compiled = new Map();
  */
 export function createCompiler(overrides = {}) {
   const instance = new Ajv2020({ ...AJV_CONFIG, ...overrides });
-  addFormats(instance, { formats: [...AJV_FORMATS] });
+  addFormats(instance, { formats: [...AJV_FORMATS_PACKAGE] });
+  instance.addFormat('uri', { type: 'string', validate: isUri });
   return instance;
 }
 

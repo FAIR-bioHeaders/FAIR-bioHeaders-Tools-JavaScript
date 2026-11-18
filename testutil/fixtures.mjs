@@ -201,3 +201,39 @@ function flow(value) {
   if (value === null || typeof value === 'object') return JSON.stringify(value);
   return scalar(value);
 }
+
+/**
+ * Assemble a FASTA file from header lines written exactly as given, for tests
+ * that need a YAML spelling `buildSequenceFile` would quote away. Each line is
+ * prefixed with `;~`; a line equal to `checksum: COMPUTE` becomes the checksum
+ * line, holding the SHA-512/256 of every other byte (R3, R4).
+ *
+ * @param {string[]} lines header lines, prefix omitted
+ * @param {string} [sequence]
+ * @returns {Uint8Array}
+ */
+export function buildRawFasta(lines, sequence = '>seq1 synthetic fixture\nACGTACGTAC\n') {
+  const rendered = lines.map((line) => `;~${line}\n`);
+  const at = lines.indexOf('checksum: COMPUTE');
+  const covered = rendered.filter((_, index) => index !== at).join('') + sequence;
+  const checksum = createHash('sha512-256').update(utf8(covered)).digest('base64');
+  if (at >= 0) rendered[at] = `;~checksum: ${checksum}\n`;
+  return utf8(rendered.join('') + sequence);
+}
+
+/** The header lines of a minimal valid FHR v0.6.0 record, checksum last. */
+export const MINIMAL_FHR_LINES = Object.freeze([
+  'schema: https://w3id.org/fair-bioheaders/fhr/v0.6.0',
+  "schemaVersion: '2.1'",
+  'genome: Example genome',
+  'taxon:',
+  '  name: Homo sapiens',
+  'version: 1.0.0',
+  'metadataAuthor:',
+  '- name: Example author',
+  'assemblyAuthor:',
+  '- name: Example author',
+  "dateCreated: '2026-11-14'",
+  'masking: not-masked',
+  'checksum: COMPUTE',
+]);
