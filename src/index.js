@@ -57,7 +57,8 @@ export {
   validateRecord,
   validator,
 } from './validate.js';
-export { containerOf, decompress, inspectBytes, inspectFile, stripBytes, stripFile } from './reader.js';
+export { containerOf, decompress, inspectBytes, inspectFile, inspectFileAsync, inspectStream, stripBytes, stripFile, stripFileTo } from './reader.js';
+export { HeaderScanner } from './scan.js';
 
 // The five-type registry: what this build knows, and what it can do with it.
 export {
@@ -91,4 +92,4 @@ export { FHGM_K4_BOUNDARY, FHGM_RULES, MODELS_KEY, VERDICTS as FHGM_VERDICTS, ad
 // The two-column feature-row index FHGM K4 resolves against. Exposed so a caller
 // with the feature layer from elsewhere can build its own resolver; this reads
 // no feature and judges nothing.
-export { GENE_ROW_TYPES, indexGff3FeatureRows, isGeneRowType } from './features.js';
+export { FeatureRowIndexer, GENE_ROW_TYPES, indexGff3FeatureRows, isGeneRowType } from './features.js';

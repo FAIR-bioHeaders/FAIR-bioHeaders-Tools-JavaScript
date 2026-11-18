@@ -142,9 +142,9 @@ export const VERDICTS = Object.freeze({
  *   the upstream draft checker does
  * @property {Array<{checksum?: string, header: Record<string, unknown>}>} [predecessors]
  *   prior snapshots K6 may resolve against; each is itself run through K1-K3 and K5
- * @property {string|Uint8Array|Array<{id: string, type: string}>|null} [features]
+ * @property {string|Uint8Array|import('./features.js').FeatureIndex|Array<{id: string, type: string}>|null} [features]
  *   the K4 resolver: GFF3 text or decompressed bytes to index with `src/features.js`,
- *   or row facts `[{id, type}]` taken from elsewhere (decoded or percent-escaped ids
+ *   an index that module already built (`{rows, problems}`), or row facts `[{id, type}]` taken from elsewhere (decoded or percent-escaped ids
  *   both work - ids are decoded before comparison). `null` says "no feature layer,
  *   do not look for one"; absent at the direct call means `not-checked`, and
  *   `inspectBytes` defaults it to the file's own bytes when the lane names FHGM
@@ -467,10 +467,16 @@ function resolveFeatureLayer(options) {
       if (indexed.problems.length > 0) return { state: 'unusable', rows: new Map(), problems: indexed.problems };
       return indexRows(indexed.rows.map((row) => ({ id: decodeFeatureId(row.id), type: row.type })));
     }
+    // A FeatureIndex already built (by the streaming reader, or by a caller with
+    // indexGff3FeatureRows): its problems count exactly as if the bytes were given.
+    if (isObject(given) && Array.isArray(given.rows) && Array.isArray(given.problems)) {
+      if (given.problems.length > 0) return { state: 'unusable', rows: new Map(), problems: [...given.problems] };
+      return indexRows(given.rows.map((row) => ({ id: decodeFeatureId(row.id), type: row.type })));
+    }
     if (Array.isArray(given) && given.every((row) => isObject(row) && typeof row.id === 'string' && typeof row.type === 'string')) {
       return indexRows(given.map((row) => ({ id: decodeFeatureId(row.id), type: row.type })));
     }
-    throw new HeaderError('options.features must be GFF3 text, decompressed GFF3 bytes, or an array of {id, type} row facts (K4)', { rule: 'K4' });
+    throw new HeaderError('options.features must be GFF3 text, decompressed GFF3 bytes, a {rows, problems} feature index, or an array of {id, type} row facts (K4)', { rule: 'K4' });
   }
   if (options.geneIds !== undefined) {
     if (!Array.isArray(options.geneIds) || options.geneIds.some((id) => typeof id !== 'string')) {

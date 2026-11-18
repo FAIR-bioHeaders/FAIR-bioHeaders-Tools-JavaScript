@@ -25,6 +25,10 @@ export const LIMITS = Object.freeze({
   headerLines: 10_000,
   yamlNodes: 20_000,
   yamlDepth: 64,
+  // This library's own limit, not one of docs/FORMAT.md's: how far the in-memory
+  // readers decompress gzip/BGZF input (`maxDecompressedBytes` overrides it). The
+  // streaming readers hold no decompressed output and need none.
+  decompressedBytes: 2 ** 30,
 });
 
 const UTF8_BOM = [0xef, 0xbb, 0xbf];

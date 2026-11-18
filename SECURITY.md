@@ -53,10 +53,15 @@ Not provided, and not claimed:
 - **No authentication of any kind.** A checksum covers bytes; it does not identify
   an author and is not a signature. `docs/FORMAT.md` says so, and nothing here adds
   a trust signal. A file that verifies is a well-formed file, not a trustworthy one.
-- **Whole-file buffering.** There is no streaming reader, so a very large sequence
-  file is held in memory, decompressed. The limits above bound the *header*, not the
-  payload. Do not feed this library unbounded streams; that is a known property, not
-  a bug to be discovered.
+- **Memory is bounded by the header, decompression in memory by a limit.** Every
+  reader scans the input once and keeps only the header lines, which the limits
+  above bound; the rest is hashed as it passes. The in-memory readers decompress
+  gzip/BGZF input up to `maxDecompressedBytes` (1 GiB by default) and report a
+  `limits` error beyond it, so a small gzip file that inflates to gigabytes is a
+  finding, not a crash. The streaming readers (`inspectFileAsync`,
+  `inspectStream`, `stripFileTo`) hold no decompressed output and take as long as
+  the input takes: bound their input yourself if time matters. `stripBytes` and
+  `stripFile` still return the whole stripped file as one buffer.
 - **No sandbox claim.** Parsing untrusted YAML is confined to `js-yaml`'s core
   schema with aliases refused and depth and node counts bounded; that is a design
   choice against the billion-laughs class of input, not a proof. `__proto__` keys are

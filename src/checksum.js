@@ -6,8 +6,10 @@
  * bytes), R4 (SHA-512/256 as canonical padded base64, compared as a string)
  * and R5 (the grammar of the checksum line itself).
  *
- * The algorithm is written from the rule text and cross-checked against the
- * shared vectors in `conformance/` (see `docs/CONFORMANCE.md`).
+ * The rules are applied in one pass by `src/scan.js`; these functions are the
+ * in-memory entry points to it. The algorithm is written from the rule text and
+ * cross-checked against the shared vectors in `conformance/` (see
+ * `docs/CONFORMANCE.md`).
  *
  * @module checksum
  */
@@ -15,41 +17,9 @@
 import { createHash } from 'node:crypto';
 
 import { HeaderError } from './errors.js';
-import { PREFIXES, headerLines, splitLines } from './lines.js';
+import { scanBytes, sha512_256Available } from './scan.js';
 
-/**
- * R4/R5: the checksum value is 44 characters of canonical padded base64 of a
- * 32-byte digest. 32 bytes leave two unused bits that must be zero, so the
- * character before the `=` is one of `AEIMQUYcgkosw048`; any other value is
- * invalid even when it decodes to the same bytes.
- */
-const CANONICAL_B64 = "[A-Za-z0-9+/]{42}[AEIMQUYcgkosw048]=";
-
-/** R5 grammar of the text after the prefix, anchored to the whole line. */
-const CHECKSUM_LINE = new RegExp(
-  `^( *)(checksum)( *)(:)( +)(?:${CANONICAL_B64}|'${CANONICAL_B64}'|"${CANONICAL_B64}")( *)$`,
-);
-
-/** R2: which line is a candidate root-level checksum line, before R5 applies. */
-const CHECKSUM_CANDIDATE = /^([ \t]*)checksum[ \t]*:(.*)$/s;
-
-/** YAML comment, document start/end or directive line: not header metadata. */
-const NOT_METADATA = /^[ \t]*(?:#|%|---(?:[ \t]|$)|\.\.\.(?:[ \t]|$))/;
-
-/**
- * Whether this Node build can compute SHA-512/256 at all. OpenSSL provides it;
- * a build without it must say so rather than verify nothing.
- *
- * @returns {boolean}
- */
-export function sha512_256Available() {
-  try {
-    createHash('sha512-256');
-    return true;
-  } catch {
-    return false;
-  }
-}
+export { sha512_256Available };
 
 /**
  * @param {Uint8Array} data
@@ -63,15 +33,6 @@ export function digest(data) {
 }
 
 /**
- * @param {string} text a header line's text after its prefix
- * @returns {number} count of leading space and tab characters
- */
-function indentOf(text) {
-  const match = /^[ \t]*/.exec(text);
-  return match ? match[0].length : 0;
-}
-
-/**
  * Locate the single root-level checksum line of a sequence file.
  *
  * R2: the key `checksum` must be unquoted and sit at the root indentation of
@@ -80,60 +41,33 @@ function indentOf(text) {
  *
  * @param {Uint8Array} data exact, decompressed file bytes
  * @param {'fasta'|'gfa'|'gff3'} container
- * @returns {{lines: ReturnType<typeof headerLines>, root: number, candidate: {start: number, end: number, text: string, line: number}, value: string}}
+ * @returns {{lines: import('./scan.js').HeaderLine[], root: number, candidate: import('./scan.js').HeaderLine, value: string}}
  */
 export function findChecksumLine(data, container) {
-  const lines = headerLines(data, container);
-  const content = lines.filter(({ text }) => text.trim() !== '' && !NOT_METADATA.test(text));
-  if (content.length === 0) {
-    throw new HeaderError(`no ${PREFIXES[container]} header metadata in the file (FORMAT.md R2)`, { rule: 'R2' });
-  }
-  const root = Math.min(...content.map(({ text }) => indentOf(text)));
-  const candidates = [];
-  for (const line of lines) {
-    const found = CHECKSUM_CANDIDATE.exec(line.text);
-    if (found && found[1].length === root) candidates.push(line);
-  }
-  if (candidates.length !== 1) {
-    throw new HeaderError(
-      `expected exactly one root-level ${PREFIXES[container]}checksum: line, found ${candidates.length} (FORMAT.md R2)`,
-      { rule: 'R2' },
-    );
-  }
-  const candidate = candidates[0];
-  if (!CHECKSUM_LINE.test(candidate.text)) {
-    throw new HeaderError(
-      `the checksum line at line ${candidate.line} must hold only the checksum value: 44 canonical base64 characters, optionally quoted, with no comment, tag, tab or other text (FORMAT.md R4 and R5)`,
-      { rule: 'R5', field: `line ${candidate.line}` },
-    );
-  }
-  const afterColon = CHECKSUM_CANDIDATE.exec(candidate.text)[2].trim();
-  const value =
-    afterColon.length > 1 && ((afterColon.startsWith("'") && afterColon.endsWith("'")) || (afterColon.startsWith('"') && afterColon.endsWith('"')))
-      ? afterColon.slice(1, -1)
-      : afterColon;
-  return { lines, root, candidate, value };
+  const { lines, root, candidate, stated } = scanBytes(data, container, { hash: false });
+  return { lines, root, candidate, value: stated };
 }
 
 /**
- * The bytes the checksum covers and the checksum itself.
+ * The checksum a file states and the one its bytes have.
  *
  * R3: every byte except the root checksum line and its terminator. R1: for a
  * gzip or BGZF file these are the decompressed bytes; compression is transport.
+ * The digest is computed without copying the covered bytes; `covered` builds
+ * that copy only when it is read.
  *
  * @param {Uint8Array} data exact, decompressed file bytes
  * @param {'fasta'|'gfa'|'gff3'} container
- * @returns {{stated: string, computed: string, covered: Uint8Array, candidate: {start: number, end: number, text: string, line: number}, lines: ReturnType<typeof headerLines>}}
+ * @returns {{stated: string, computed: string, coveredLength: number, covered: Uint8Array, candidate: import('./scan.js').HeaderLine, lines: import('./scan.js').HeaderLine[]}}
  */
 export function computeChecksum(data, container) {
-  const { lines, candidate, value } = findChecksumLine(data, container);
-  const kept = [];
-  for (const { start, end } of splitLines(data)) {
-    if (start === candidate.start && end === candidate.end) continue;
-    kept.push(data.subarray(start, end));
-  }
-  const covered = concatBytes(kept);
-  return { stated: value, computed: digest(covered), covered, candidate, lines };
+  const { stated, computed, coveredLength, candidate, lines } = scanBytes(data, container);
+  const result = { stated, computed: /** @type {string} */ (computed), coveredLength, candidate, lines };
+  Object.defineProperty(result, 'covered', {
+    enumerable: true,
+    get: () => concatBytes([data.subarray(0, candidate.start), data.subarray(candidate.end)]),
+  });
+  return /** @type {any} */ (result);
 }
 
 /**
