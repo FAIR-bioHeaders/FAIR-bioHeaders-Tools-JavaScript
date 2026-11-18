@@ -222,7 +222,11 @@ layer: by default the lane indexes the file's own rows for their `ID` and `type`
 `{ fhgm: { features } }` (row facts `[{id, type}]` or GFF3 content) or the older
 `{ fhgm: { geneIds } }` shorthand, and `{ fhgm: { features: null } }` closes it.
 Without a usable layer K4 reports `not-checked` or `unchecked` — never a pass,
-never a rejection.
+never a rejection. That is also what happens to an FHGFF3 header read in a
+container that holds no feature rows: with `{container: 'gfa'}` or
+`{container: 'fasta'}` the reader indexes nothing, so the reading comes back with
+its `does not belong in a … file` finding, `fhgm.rules.K4` unevaluated and a
+warning naming the missing layer, and no feature target is claimed either way (#19).
 
 To run the owning repositories' development suites through the lane - separate,
 labelled draft evidence, never counted with the shared 291:

@@ -54,6 +54,18 @@ export const CONTAINER_TYPES = Object.freeze(headerTypesByContainer());
  */
 
 /**
+ * The file's own feature layer, handed to the FHGM lane for K4.
+ *
+ * `null` is a real answer, not a placeholder: it means this reading built no
+ * index, because a FASTA or GFA body is never a GFF3 feature layer. The reader
+ * that fills it in and the lane that consumes it agree on that one value, so the
+ * gate that decides whether rows are indexed cannot drift away from the decision
+ * about whether to read rows back out (issue #19).
+ *
+ * @typedef {() => (Uint8Array|import('./features.js').FeatureIndex|null)} FeatureLayer
+ */
+
+/**
  * @typedef {object} Reading
  * @property {boolean} valid true when the header, its checksum and the cited contract all hold
  * @property {Container} container
@@ -309,8 +321,9 @@ function recordMarkerWarnings(lines, container) {
  * @param {Record<string, string[]>} context.allowed
  * @param {object} context.options the caller's options
  * @param {string[]} context.warnings collected into, so a later throw keeps them
- * @param {() => (Uint8Array|import('./features.js').FeatureIndex)} context.features
- *   the file's own feature layer, for the FHGM lane's K4
+ * @param {FeatureLayer} context.features
+ *   the file's own feature layer, for the FHGM lane's K4; `null` when this reading
+ *   built none, which the lane reports as K4 `not-checked`
  * @returns {Reading}
  */
 function readingFromScan(scan, { container, drafts, allowed, options, warnings, features }) {
@@ -363,7 +376,20 @@ function readingFromScan(scan, { container, drafts, allowed, options, warnings, 
   // brought only ids (`geneIds`); `options.fhgm.features: null` closes it.
   if (drafts.has('FHGM') && selection.type === 'FHGFF3') {
     const fhgmOptions = { base: { valid: errors.length === 0 }, ...(options.fhgm ?? {}) };
-    if (fhgmOptions.features === undefined && fhgmOptions.geneIds === undefined) fhgmOptions.features = features();
+    if (fhgmOptions.features === undefined && fhgmOptions.geneIds === undefined) {
+      // Whether a layer exists is the reader's question, not this function's: the
+      // closure says `null` when the container never fed rows to an index, and
+      // `features: null` is the lane's own documented "no feature layer" signal -
+      // K4 reports `not-checked`, and every other FHGM rule still runs. A lane
+      // that cannot evaluate says so; it neither throws nor passes.
+      const layer = features();
+      if (layer === null) {
+        fhgmOptions.features = null;
+        warnings.push(`FHGM K4 not-checked: a ${container} file carries no GFF3 feature rows for this reading to resolve a featureId against, so no feature target was checked`);
+      } else {
+        fhgmOptions.features = layer;
+      }
+    }
     reading.fhgm = checkFhgmModels(metadata, fhgmOptions);
   }
   return reading;
@@ -420,7 +446,10 @@ function readingContext(caller, options) {
   // The file's own feature rows are only ever read for an FHGFF3 header, and an
   // FHGFF3 header only belongs in a GFF3 file: a FASTA or GFA body is never fed
   // to the index, whatever lanes are open, so `{ drafts: true }` keeps the
-  // memory of a streamed sequence file the size of its header block.
+  // memory of a streamed sequence file the size of its header block. This is the
+  // one place that predicate lives: a reader that builds no index hands the lane
+  // a `null` layer, and `readingFromScan` reports K4 `not-checked` on it, so the
+  // producer and the consumer cannot disagree (issue #19).
   const wantsFeatures = container === 'gff3' && drafts.has('FHGM') && fhgm.features === undefined && fhgm.geneIds === undefined;
   return { container, drafts, allowed, wantsFeatures };
 }
@@ -445,7 +474,9 @@ function readChunks(chunks, context, options) {
       scanner.push(chunk);
     }
     const scan = scanner.finish();
-    return readingFromScan(scan, { ...context, options, warnings, features: () => /** @type {any} */ (indexer).finish() });
+    // No cast, and no assumed index: `null` is the answer this reading gives when
+    // `wantsFeatures` was false, and the lane turns it into `not-checked`.
+    return readingFromScan(scan, { ...context, options, warnings, features: () => (indexer === null ? null : indexer.finish()) });
   } catch (error) {
     return readingFromError(error, container, warnings);
   }
@@ -564,7 +595,9 @@ export async function inspectStream(source, options = {}) {
     }
     if (failure !== null) throw failure;
     const scan = scanner.finish();
-    return readingFromScan(scan, { ...context, options, warnings, features: () => /** @type {any} */ (indexer).finish() });
+    // No cast, and no assumed index: `null` is the answer this reading gives when
+    // `wantsFeatures` was false, and the lane turns it into `not-checked`.
+    return readingFromScan(scan, { ...context, options, warnings, features: () => (indexer === null ? null : indexer.finish()) });
   } catch (error) {
     return readingFromError(error, container, warnings);
   }
