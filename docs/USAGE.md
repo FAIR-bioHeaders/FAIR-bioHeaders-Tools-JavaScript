@@ -33,7 +33,9 @@ const reading = inspectBytes(new Uint8Array(readFileSync('stdin-copy')), { conta
 ## Large files and streams
 
 Every reader makes one pass and keeps only the header lines, so memory does not
-grow with the file. `inspectFile` reads a plain file in 1 MiB chunks and has no
+grow with the file. (The FHGM draft lane on a GFF3 file also keeps the feature
+index its K4 check resolves against; FASTA and GFA bodies are never indexed,
+even with `{ drafts: true }`.) `inspectFile` reads a plain file in 1 MiB chunks and has no
 size limit; files over 2 GiB are read like any other. Gzip/BGZF input is
 decompressed in memory by the sync readers, up to `maxDecompressedBytes`
 (1 GiB by default); beyond that the reading carries a `limits` error. To read

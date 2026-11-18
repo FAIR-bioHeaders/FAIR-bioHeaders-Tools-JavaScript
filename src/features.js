@@ -114,6 +114,7 @@ export class FeatureRowIndexer {
     this.pending = [];
     this.index = 0;
     this.stopped = false;
+    this.omitted = 0;
   }
 
   /**
@@ -138,7 +139,7 @@ export class FeatureRowIndexer {
    */
   finish() {
     if (!this.stopped) this.flush();
-    return { rows: this.rows, problems: this.problems };
+    return { rows: this.rows, problems: withOmitted(this.problems, this.omitted) };
   }
 
   flush() {
@@ -157,19 +158,39 @@ export class FeatureRowIndexer {
     // A byte order mark is dropped only at the start of the text, as decoding the
     // whole text at once would drop it.
     const text = (this.index === 0 ? UTF8 : UTF8_KEEP_BOM).decode(bytes);
-    if (scanLine(text, this.index, this.rows, this.problems) === STOP) this.stopped = true;
+    const outcome = scanLine(text, this.index, this.rows, this.problems);
+    if (outcome === STOP) this.stopped = true;
+    else if (outcome === OMITTED) this.omitted += 1;
     this.index += 1;
   }
 }
 
 const STOP = Symbol('stop');
+const OMITTED = Symbol('omitted');
+
+/**
+ * How many malformed lines are described one by one. A single one already makes
+ * the layer untrustworthy, so the rest are only counted: a large malformed file
+ * must not grow the index by one message per line.
+ */
+export const MAX_LISTED_PROBLEMS = 20;
+
+/**
+ * @param {string[]} problems
+ * @param {number} omitted
+ * @returns {string[]}
+ */
+function withOmitted(problems, omitted) {
+  if (omitted === 0) return problems;
+  return [...problems, `${omitted} further malformed line${omitted === 1 ? ' is' : 's are'} not listed`];
+}
 
 /**
  * @param {string} raw one line, LF removed
  * @param {number} index 0-based line index
  * @param {FeatureRow[]} rows
  * @param {string[]} problems
- * @returns {typeof STOP|undefined}
+ * @returns {typeof STOP|typeof OMITTED|undefined}
  */
 function scanLine(raw, index, rows, problems) {
   const line = raw.replace(/\r$/, '');
@@ -178,6 +199,7 @@ function scanLine(raw, index, rows, problems) {
   if (line.trim() === '' || line.startsWith('#')) return undefined;
   const columns = line.split('\t');
   if (columns.length !== 9) {
+    if (problems.length >= MAX_LISTED_PROBLEMS) return OMITTED;
     problems.push(`${where}: a GFF3 feature row holds nine tab-separated fields, this line holds ${columns.length}; the feature index cannot trust this layer`);
     return undefined;
   }
@@ -199,9 +221,12 @@ function scanText(text) {
   const rows = [];
   /** @type {string[]} */
   const problems = [];
+  let omitted = 0;
   const lines = text.split('\n');
   for (let index = 0; index < lines.length; index += 1) {
-    if (scanLine(lines[index], index, rows, problems) === STOP) break;
+    const outcome = scanLine(lines[index], index, rows, problems);
+    if (outcome === STOP) break;
+    if (outcome === OMITTED) omitted += 1;
   }
-  return { rows, problems };
+  return { rows, problems: withOmitted(problems, omitted) };
 }

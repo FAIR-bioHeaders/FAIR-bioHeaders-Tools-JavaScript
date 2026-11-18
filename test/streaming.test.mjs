@@ -13,7 +13,10 @@ import { closeSync, existsSync, ftruncateSync, mkdtempSync, openSync, readFileSy
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, it } from 'node:test';
+import { spawnSync } from 'node:child_process';
+import fsPromises from 'node:fs/promises';
+import { syncBuiltinESMExports } from 'node:module';
+import { afterEach, describe, it, mock } from 'node:test';
 import { gzipSync } from 'node:zlib';
 
 import { HeaderScanner } from '../src/scan.js';
@@ -173,6 +176,60 @@ describe('the FHGM lane reads the feature rows from the stream', () => {
 });
 
 describe('stripFileTo', () => {
+  afterEach(() => {
+    mock.restoreAll();
+    syncBuiltinESMExports();
+  });
+
+  /**
+   * Make every FileHandle that `stripFileTo` opens write at most one byte per
+   * call - a legitimate short write - and count the writes that came up short.
+   */
+  function oneBytePerWrite() {
+    const realOpen = fsPromises.open;
+    const counts = { short: 0 };
+    mock.method(fsPromises, 'open', async (...args) => {
+      const handle = await realOpen(...args);
+      const write = handle.write.bind(handle);
+      return new Proxy(handle, {
+        get(target, key) {
+          if (key !== 'write') {
+            const value = Reflect.get(target, key, target);
+            return typeof value === 'function' ? value.bind(target) : value;
+          }
+          return (buffer, offset = 0, length = buffer.length - offset, position = null) => {
+            if (length > 1) counts.short += 1;
+            return write(buffer, offset, Math.min(length, 1), position);
+          };
+        },
+      });
+    });
+    syncBuiltinESMExports();
+    return counts;
+  }
+
+  it('finishes every buffer when the file handle writes short, in the streaming loop and at the end', async () => {
+    await inTempDir(async (dir) => {
+      // The small file ends on a short line with no newline, which the scanner
+      // holds back and hands over only when it finishes, so the final write loop
+      // runs; the large one, several chunks of sequence, is written inside the
+      // read loop.
+      const small = buildRawFasta([...MINIMAL_FHR_LINES], '>seq1 synthetic fixture\nACGTACGTAC\nAC');
+      const large = buildRawFasta([...MINIMAL_FHR_LINES], `>seq1 synthetic fixture\n${'ACGTACGTAC\n'.repeat(300_000)}`);
+      for (const [name, plain] of [['small.fasta', small], ['large.fasta', large]]) {
+        const want = stripBytes(plain, { container: 'fasta' });
+        writeFileSync(join(dir, name), plain);
+        const counts = oneBytePerWrite();
+        const { bytesWritten } = await stripFileTo(join(dir, name), join(dir, `out-${name}`));
+        mock.restoreAll();
+        syncBuiltinESMExports();
+        assert.ok(counts.short > 0, `${name}: the wrapper must have shortened at least one write`);
+        assert.equal(bytesWritten, want.length, `${name}: bytesWritten counts the bytes actually written`);
+        assert.deepEqual(new Uint8Array(readFileSync(join(dir, `out-${name}`))), new Uint8Array(want), `${name}: the output holds every stripped byte`);
+      }
+    });
+  });
+
   it('leaves no output and no partial file when the header block is refused', async () => {
     await inTempDir(async (dir) => {
       const input = join(dir, 'bad.fasta');
@@ -225,4 +282,27 @@ describe('a file over 2 GiB', () => {
       assert.deepEqual(await inspectFileAsync(path), reading);
     });
   });
+});
+
+describe('opening every draft lane does not index a sequence file', () => {
+  // A FASTA or GFA body is never a GFF3 feature layer. With `{ drafts: true }`
+  // the FHGM lane is open, but the file's own feature rows are only wanted for an
+  // FHGFF3 header in a GFF3 file: a million sequence lines must not each become
+  // a retained malformed-row diagnostic. Run in a child with a 64 MB heap.
+  const script = `
+    import { inspectStream } from './src/index.js';
+    import { buildRawFasta, MINIMAL_FHR_LINES } from './testutil/fixtures.mjs';
+    const drafts = JSON.parse(process.argv[1]);
+    const bytes = buildRawFasta([...MINIMAL_FHR_LINES], '>seq1 synthetic fixture\\n' + 'A\\n'.repeat(1_000_000));
+    async function* chunks() { for (let at = 0; at < bytes.length; at += 65536) yield bytes.subarray(at, at + 65536); }
+    const reading = await inspectStream(chunks(), { container: 'fasta', drafts });
+    process.stdout.write(JSON.stringify({ valid: reading.valid, errors: reading.errors, fhgm: 'fhgm' in reading }));
+  `;
+  for (const drafts of [['FHT'], true]) {
+    it(`streams a 2 MB FASTA of one-base lines in a 64 MB heap with drafts: ${JSON.stringify(drafts)}`, () => {
+      const run = spawnSync(process.execPath, ['--max-old-space-size=64', '--input-type=module', '-e', script, JSON.stringify(drafts)], { cwd: ROOT, encoding: 'utf8' });
+      assert.equal(run.status, 0, run.stderr.slice(-2000));
+      assert.deepEqual(JSON.parse(run.stdout), { valid: true, errors: [], fhgm: false });
+    });
+  }
 });

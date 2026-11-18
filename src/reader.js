@@ -417,7 +417,11 @@ function readingContext(caller, options) {
   const drafts = enabledDrafts(options);
   const allowed = drafts.size === 0 ? CONTAINER_TYPES : headerTypesByContainer([...drafts]);
   const fhgm = options.fhgm ?? {};
-  const wantsFeatures = drafts.has('FHGM') && fhgm.features === undefined && fhgm.geneIds === undefined;
+  // The file's own feature rows are only ever read for an FHGFF3 header, and an
+  // FHGFF3 header only belongs in a GFF3 file: a FASTA or GFA body is never fed
+  // to the index, whatever lanes are open, so `{ drafts: true }` keeps the
+  // memory of a streamed sequence file the size of its header block.
+  const wantsFeatures = container === 'gff3' && drafts.has('FHGM') && fhgm.features === undefined && fhgm.geneIds === undefined;
   return { container, drafts, allowed, wantsFeatures };
 }
 
@@ -696,17 +700,11 @@ export async function stripFileTo(input, output, options = {}) {
     const scanner = new HeaderScanner(container, { hash: false, byteOrderMark: true, onData: (bytes) => pending.push(bytes) });
     for await (const chunk of decompressedChunks(stream, { gzip: false })) {
       scanner.push(chunk);
-      for (const bytes of pending) {
-        await handle.write(bytes);
-        bytesWritten += bytes.length;
-      }
+      for (const bytes of pending) bytesWritten += await writeAll(handle, bytes);
       pending = [];
     }
     scanner.finish();
-    for (const bytes of pending) {
-      await handle.write(bytes);
-      bytesWritten += bytes.length;
-    }
+    for (const bytes of pending) bytesWritten += await writeAll(handle, bytes);
     await handle.close();
     await rename(temporary, output);
     return { bytesWritten };
@@ -717,4 +715,22 @@ export async function stripFileTo(input, output, options = {}) {
   } finally {
     stream.destroy();
   }
+}
+
+/**
+ * Write every byte of `bytes`. `FileHandle.write` may write fewer bytes than it
+ * was given; the unwritten suffix is written again until none is left.
+ *
+ * @param {import('node:fs/promises').FileHandle} handle
+ * @param {Uint8Array} bytes
+ * @returns {Promise<number>} the number of bytes written, always `bytes.length`
+ */
+async function writeAll(handle, bytes) {
+  let offset = 0;
+  while (offset < bytes.length) {
+    const { bytesWritten } = await handle.write(bytes, offset, bytes.length - offset, null);
+    if (!(bytesWritten > 0)) throw new Error(`writing the stripped output made no progress after ${offset} of ${bytes.length} bytes`);
+    offset += bytesWritten;
+  }
+  return offset;
 }

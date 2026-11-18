@@ -272,7 +272,10 @@ as verified evidence. Shipped pins and default released behavior are unchanged.
   `maxDecompressedBytes`, 1 GiB by default, with an error in the reading instead
   of exhausting memory. `inspectFileAsync`, `inspectStream` and `stripFileTo`
   decompress as a stream and have no such limit. The 64 MiB metadata-file limit
-  does not arise: this library reads no metadata files.
+  does not arise: this library reads no metadata files. The one exception is the
+  FHGM draft lane on a GFF3 file, which also keeps the file's own feature index
+  for K4 (each row's `type` and `ID`, and at most 20 listed malformed rows); a
+  FASTA or GFA file is never indexed, whichever draft lanes are open.
 - **No `format`-by-annotation shortcuts.** `date` is asserted through
   `ajv-formats` and `uri` through this library's own RFC 3986 check
   (`src/uri.js`), because 2020-12 leaves `format` as an annotation and a silent
