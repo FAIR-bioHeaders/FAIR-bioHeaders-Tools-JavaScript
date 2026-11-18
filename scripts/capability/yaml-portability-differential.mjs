@@ -17,7 +17,7 @@
  * Without a Python that can import `bioheaders` the script exits 3 and says so;
  * it never reports a pass it did not compute.
  *
- *     FHR_PYTHON=/path/to/.venvs/converter-0.11.0/bin/python \
+ *     FHR_PYTHON=/path/to/.venvs/converter-0.12.0/bin/python \
  *       node scripts/capability/yaml-portability-differential.mjs [--sweep]
  *
  * Recorded output: `docs/CAPABILITY.md`.

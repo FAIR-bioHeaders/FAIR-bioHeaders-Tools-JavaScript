@@ -17,17 +17,19 @@ npm run check:vendoring    # the vendored copies AND the pinned drafts match the
 | Field | Value |
 | --- | --- |
 | repository | [FAIR-bioHeaders-Specification](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification) |
-| ref | `main` |
-| commit | `a60bc02ad94c364e4bff30d43561c60663d72beb` |
+| ref | tag `v0.6.0` |
+| commit | `0ae18b00ee4bd71ab2dc28bae706b0f9d195076b` |
 | path | `conformance/` |
-| retrieved | 2026-11-14 |
-| manifest SHA-256 | `bc3edf9e9d2e248b70c7c90eb6011a83054b201547c1f4ddb5576baaa5ee0989` |
-| combined digest | `8708420cb7ad2aed…`, recomputed by `npm run check:vendoring` |
+| retrieved | 2026-11-18 |
+| manifest SHA-256 | `cdbb79b1fbfda52b27a9f54b73d3bae1efb662efcbb4c41ba02b9e3be40a51e1` |
+| combined digest | `346615a0541fcad6…`, recomputed by `npm run check:vendoring` |
 
-The vector *files* are byte-identical to those at tag `v0.6.0`
-(`0ae18b00ee4bd71ab2dc28bae706b0f9d195076b`); `main` differs only in
-`conformance/manifest.json`, where the retired `converterResults` field was
-removed, and in `conformance/README.md`. Every file carries its SHA-256 in
+Every file is byte-identical to `conformance/` at tag `v0.6.0`. The first copy
+(2026-11-14) came from `main` at `a60bc02` and matched no tag: its
+`manifest.json` lacked the `converterResults` field of two vectors and its
+`README.md` had been reworded. It was re-vendored from the tag on 2026-11-18;
+no vector file changed. The tests read the vector count from
+`conformance/provenance.json` instead of restating it. Every file carries its SHA-256 in
 `conformance/provenance.json`; `.gitattributes` keeps line endings untouched, and
 `conformance/**` is never edited here — vectors are generated and reviewed
 upstream by `scripts/make_conformance.py`.
@@ -286,7 +288,8 @@ primary job fails the test suite locally before CI ever runs it.
 ## Cross-checks beyond the vectors
 
 The suite is a pass/fail contract, not a differential, so three extra comparisons
-run against the released Python toolkit (`fair-bioheaders` 0.11.0 from PyPI):
+run against the released Python toolkit (`fair-bioheaders` 0.12.0 from PyPI, the
+version CI's `reference` job installs; last run 2026-11-18):
 
 ```text
 npm run capability:toolkit
@@ -298,7 +301,7 @@ npm run capability:digest
   R1/R3/R4 tamper vectors recomputed: 21; stated==computed: 0
 
 npm run capability:yaml -- --sweep
-  80709 scalars compared against fair-bioheaders 0.11.0, 0 disagreements
+  80709 scalars compared against fair-bioheaders 0.12.0, 0 disagreements
 ```
 
 The first compares this library's verdict with the toolkit's on every uncompressed

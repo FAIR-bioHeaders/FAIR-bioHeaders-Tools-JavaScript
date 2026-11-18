@@ -60,6 +60,9 @@ import { selectSchema } from '../../src/selection.js';
 import { validateRecord } from '../../src/validate.js';
 import { VERDICTS } from '../../src/parent-links.js';
 
+/** The shared suite's vector count, read from the vendored copy's provenance rather than restated. */
+const SHARED_VECTORS = JSON.parse(readFileSync(new URL('../../conformance/provenance.json', import.meta.url), 'utf8')).vectors;
+
 /** Rules whose verdicts this build can still be unable to reach, per type. */
 const NOT_RUN_RULES = {
   FHGM: {
@@ -422,7 +425,7 @@ function runSuite(type, repoPath) {
     return { pass: 0, fail: 0, notRun: 0, refused: false };
   }
   const manifest = JSON.parse(readFileSync(layout.manifest, 'utf8'));
-  console.log(`manifest vectors: ${manifest.vectors.length} (a draft suite, separate from the shared 291)`);
+  console.log(`manifest vectors: ${manifest.vectors.length} (a draft suite, separate from the shared ${SHARED_VECTORS})`);
   let pass = 0;
   let fail = 0;
   let notRun = 0;
@@ -531,7 +534,7 @@ for (const [type, path] of [['FHT', args.fht], ['FHGM', args.fhgm]]) {
   totals = { pass: totals.pass + result.pass, fail: totals.fail + result.fail, notRun: totals.notRun + result.notRun };
 }
 
-console.log(`\nTOTAL draft-lane evidence: ${totals.pass} pass, ${totals.fail} fail, ${totals.notRun} not-run (labelled draft; never counted with the shared 291)`);
+console.log(`\nTOTAL draft-lane evidence: ${totals.pass} pass, ${totals.fail} fail, ${totals.notRun} not-run (labelled draft; never counted with the shared ${SHARED_VECTORS})`);
 if (refusals.length > 0) {
   console.error(`\n${refusals.length} suite(s) refused, nothing scored against them:`);
   for (const line of refusals) console.error(`  ${line}`);
