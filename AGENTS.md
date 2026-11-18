@@ -245,11 +245,15 @@ depends on them.
 The draft-lane run is *labelled draft evidence*, not acceptance: it reads the
 development suites that live in the repositories owning FHT and FHGM, verifies each
 stated suite manifest against its own pin before scoring anything, and its counts are
-never added to the shared 291. The reported counts are FHT 72, from the suite pin
-`be9bcc82`, and FHGM 43, from `c503ecf3` - FHGM's first stated suite pin, so its row no
-longer reads `UNPINNED` - while both **contract** pins stayed where they were
-(`226f923c` and `ac3d37b3`): a suite moving does not move a contract, and a re-pin that
-changed contract bytes would be a different, louder change. See
+never added to the shared 291. The measured counts are FHT **82 pass / 0 fail / 0
+not-run**, from the suite pin `86438f21`, and FHGM **58 pass / 4 fail / 0 not-run**,
+from `06176262` - the four failures being expectations FHGM-Specification#29 added to
+`layers.model` that this build has not implemented yet, each named in
+`docs/CONFORMANCE.md` rather than smoothed over. The re-pin of 2026-11-18 **moved both
+contract byte sets** (`59ad9641`→`4156353a` for FHT, `bf1553ca`→`b7075e58` for FHGM) -
+a suite moving does not usually move a contract, but this one could not be scored
+without it, and a re-pin that changes contract bytes is exactly the louder change the
+previous wording anticipated. See
 `docs/CONFORMANCE.md` for both, and for the FHT vectors whose *expectations* upstream
 still marks unreviewed. FHGM's K4 runs
 against the reading's feature layer (the file's own rows by default); when a layer

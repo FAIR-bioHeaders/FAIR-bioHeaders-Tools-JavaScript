@@ -81,7 +81,7 @@ Contracts bundled (from `schemas/provenance.json`): v0.4.0 = '1.0', v0.4.1 = '1.
 ### FHT - draft
 
 ```text
-FHT: draft, no released contract, no schemaVersion claim, no w3id URL and no registry row; readable only through the V7 lane against FHT-Specification 226f923c28b6 (sha256 59ad9641adcb...)
+FHT: draft, no released contract, no schemaVersion claim, no w3id URL and no registry row; readable only through the V7 lane against FHT-Specification 86438f21c3a1 (sha256 4156353aa6d0...)
 ```
 
 | operation \ serialization | fasta | gfa | gff3 | model-records | jsonld | microdata |
@@ -95,12 +95,12 @@ FHT: draft, no released contract, no schemaVersion claim, no w3id URL and no reg
 | write a header | no [^10] | no [^10] | no [^10] | no [^10] | no [^10] | no [^10] |
 
 No contract, no registry row, no `schemaVersion` claim and no w3id URL. Read only through the
-V7 lane against FHT-Specification at 226f923c28b680edb3c546e99a751482d06aef1a (sha256 `59ad9641adcb0e5591045c2d894c066d1adc9984cca84c5ff6502f8dad88487e`).
+V7 lane against FHT-Specification at 86438f21c3a17a58334c97aed4955be1a2393522 (sha256 `4156353aa6d077fee2d2c69be4e17859b8e4f81bb10824f3c87f6701de196e7a`).
 
 ### FHGM - draft, nested records inside an FHGFF3 header
 
 ```text
-FHGM: draft, no released contract, no schemaVersion claim, no w3id URL and no registry row; readable only through the V7 lane against FHGM-Specification ac3d37b30333 (sha256 bf1553cac04d...)
+FHGM: draft, no released contract, no schemaVersion claim, no w3id URL and no registry row; readable only through the V7 lane against FHGM-Specification 06176262f982 (sha256 b7075e5872e0...)
 ```
 
 | operation \ serialization | fasta | gfa | gff3 | model-records | jsonld | microdata |
@@ -114,7 +114,7 @@ FHGM: draft, no released contract, no schemaVersion claim, no w3id URL and no re
 | write a header | no [^10] | no [^10] | no [^10] | no [^10] | no [^10] | no [^10] |
 
 No contract, no registry row, no `schemaVersion` claim and no w3id URL. Read only through the
-V7 lane against FHGM-Specification at ac3d37b3033312844fc3151217731928ae33aa54 (sha256 `bf1553cac04dc88d8afaff1d39bc50360342e1ebedac4b73dfe3dff570ff410f`).
+V7 lane against FHGM-Specification at 06176262f9824f26d974a15d8feeebde1fbeb0a8 (sha256 `b7075e5872e0a5ffce5ae61c590ce182f1f219fa269413cad3b1a966753cfeae`).
 
 ## Contract versions this build can select
 
@@ -154,23 +154,45 @@ FHT's rules are C1 to C3 and FHGM's are B1 and K1 to K6, drafted in their own
 repositories.
 
 The lane reads two pinned things and they are separate claims: the contract bytes at
-`226f923c28b680edb3c546e99a751482d06aef1a` (sha256 `59ad9641adcb0e55…`), and the development suite this
-build verifies at `be9bcc825f55db92852fd882ffba4c1c214f53db` - manifest `conformance/manifest.json`, sha256
-`9fd8c0b2a4638d5d…`, 72 vectors across 65615 bytes, whose 3 contract
+`86438f21c3a17a58334c97aed4955be1a2393522` (sha256 `4156353aa6d077fe…`), and the development suite this
+build verifies at `86438f21c3a17a58334c97aed4955be1a2393522` - manifest `conformance/manifest.json`, sha256
+`e5a4a5d027259e29…`, 82 vectors across 76939 bytes, whose 3 contract
 rules carry the C1/C2/C3 ids listed below. The guard is
 `scripts/ci/suite-pin.mjs`, and it refuses any other suite revision, so no draft
 count in this repository is attributed to a revision that was never checked.
+(The two values above are the same commit by design: the 2026-11-18 re-pin found one
+commit that last touched both files, and the registry repeats it so the check is
+uniform - two fields, two claims, one revision.)
+The re-pin of 2026-11-18 moved the contract bytes themselves for the first time: the
+pinned contract grew `mixed` to a fifth `MoleculeType` value, made `properties.schema` a
+const admitting only the raw-main citation while the type is a draft, and made the
+remaining patterns dialect-portable (FHT-Specification#54); contract and suite were
+re-pinned together because the new suite cannot be scored against the old bytes.
 
-FHGM is the same shape, over two revisions: the record contract at
-`ac3d37b3033312844fc3151217731928ae33aa54` (sha256 `bf1553cac04dc88d…`), and then the transport overlay and the
-development suite together at a later one - the overlay beside it at
-`c503ecf38deaba289e8384124ee5e2b8e81b86f1` (sha256 `d1619cced91b4ef5…`), and the suite
-this build verifies at `c503ecf38deaba289e8384124ee5e2b8e81b86f1` - manifest
-`development/conformance/manifest.json`, sha256 `0d2790151c4a2955…`,
-43 vectors across 51114 bytes, labelled B1/K1/K2/K3/K4/K5/K6. Before the
+FHGM is the same shape, over three artifacts: the record contract at
+`06176262f9824f26d974a15d8feeebde1fbeb0a8` (sha256 `b7075e5872e0a5ff…`), the transport overlay beside it at
+`06176262f9824f26d974a15d8feeebde1fbeb0a8` (sha256 `533b3120f4a86590…`), and the suite
+this build verifies at `06176262f9824f26d974a15d8feeebde1fbeb0a8` - manifest
+`development/conformance/manifest.json`, sha256 `e41f05fd8bb8b8ec…`,
+62 vectors across 69526 bytes, labelled B1/K1/K2/K3/K4/K5/K6. Before the
 re-pin of 2026-11-16 this registry stated no suite revision for FHGM at all, so its
 draft-lane run could only print `UNPINNED`; the guard is the same one and it refuses
-any other suite bytes.
+any other suite bytes. That re-pin left the record contract where it was; the
+re-pin of 2026-11-18 moved all three FHGM byte sets together, and each of the three
+commit fields above was checked to name a revision at which its artifact is
+byte-identical to the owning repository's live main (git blob, not timestamp).
+
+Two semantics travel with these bytes that no digest diff and no vector count shows.
+FHGM-Specification#29 widened what a `layers.model` **pass** means: on top of the previous
+checks, a pass now additionally implies trimmed invisible-character-free text, an RFC 3986
+scheme with a real host for every link, non-blank deposits, NFC-unique identifiers, and a
+root-level gene target. A matrix that only prints pins would hide that behind identical
+rule ids, so it is stated here as a note; this build's current standing against it is
+measured and reported in `docs/CONFORMANCE.md`, not asserted in this generated file. And
+K4 still cannot abstain: FAIR-bioHeaders-Tools-JavaScript#11 records that a feature layer
+with no usable rows yields `reject` where the disagreement with gff3-validator is about an
+abstention, so pinning this suite means running a lane whose K4 abstention semantics are
+disputed upstream - a stated condition of the pin, not a settled fact about the draft.
 
 Which of the rules run here, and which do not:
 
@@ -198,7 +220,7 @@ machine-checkable (`test/draft-lane.test.mjs`):
 {
   "schema": { "type": "FHT", "release": null, "schemaVersion": null, "rule": "V7" },
   "warnings": [
-    "FHT: warning: schema https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/main/fht.json is an unreleased draft (commit 226f923c28b680edb3c546e99a751482d06aef1a, sha256 59ad9641adcb0e5591045c2d894c066d1adc9984cca84c5ff6502f8dad88487e of those bytes); read against that pinned draft, not a released schema"
+    "FHT: warning: schema https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/main/fht.json is an unreleased draft (commit 86438f21c3a17a58334c97aed4955be1a2393522, sha256 4156353aa6d077fee2d2c69be4e17859b8e4f81bb10824f3c87f6701de196e7a of those bytes); read against that pinned draft, not a released schema"
   ]
 }
 ```

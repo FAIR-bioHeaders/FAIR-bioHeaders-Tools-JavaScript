@@ -27,10 +27,15 @@
  *   single top-level `x-fhgm-models` key. `overlay: true` additionally applies
  *   the pinned transport overlay. Since FHGM-Specification#17 (the maintainer
  *   dual-base decision of 2026-11-15) that overlay admits either released FHGFF3
- *   identity a carrier can cite - the v0.5.0 citation set with `schemaVersion`
- *   1.1, or the v0.6.0 citation set with 1.2 - as a closed pairing, so a
- *   citation and a stated version that contradict each other are refused by the
- *   overlay and neither branch falls back to the other. R15 alone reads only the
+ *   identity a carrier can cite, and since FHGM-Specification#26 - vendored by
+ *   this build's 2026-11-18 re-pin - as a widened v0.6.0 branch: the v0.5.0
+ *   citation set pairs only with `schemaVersion` 1.1, while the v0.6.0 citation
+ *   set (w3id, raw tag under either repository name, trailing slash either way)
+ *   pairs with 1.2 or 1.1, because the v0.6.0 release accepts 1.1 records per
+ *   the shared docs/SCHEMA-VERSIONS.md. Each branch is a closed pairing, so a
+ *   citation and a stated version that contradict each other - a v0.5.0
+ *   citation stating 1.2 - are refused by the overlay and neither branch falls
+ *   back to the other. R15 alone reads only the
  *   stated version, so seeing the contradiction is the overlay's contribution,
  *   not the default reading's; the narrower single-pin overlay this repository
  *   vendored before that decision could not tell 1.1 and 1.2 apart either, and
