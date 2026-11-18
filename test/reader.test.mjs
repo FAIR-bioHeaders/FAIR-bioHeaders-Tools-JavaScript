@@ -4,12 +4,15 @@
  */
 
 import assert from 'node:assert/strict';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import { describe, it } from 'node:test';
 
 import { computeChecksum } from '../src/checksum.js';
-import { containerOf, inspectBytes, stripBytes } from '../src/reader.js';
-import { MINIMAL_FHR_LINES, buildRawFasta } from '../testutil/fixtures.mjs';
+import { containerOf, inspectBytes, inspectFile, stripBytes } from '../src/reader.js';
+import { MINIMAL_FHR_LINES, buildFhgff3File, buildRawFasta, buildSequenceFile, fhgmHeader, fhtRecord } from '../testutil/fixtures.mjs';
 
 const bytes = (text) => new TextEncoder().encode(text);
 
@@ -57,6 +60,11 @@ describe('containerOf', () => {
     assert.equal(containerOf('annotations.fhgff3.gff3'), 'gff3');
     assert.equal(containerOf('annotations.fhgff3.gff3.gz'), 'gff3');
     assert.equal(containerOf('x.bgz'.replace('x.bgz', 'genome.fna.bgz')), 'fasta');
+    assert.equal(containerOf('proteins.fhp.faa'), 'fasta');
+    assert.equal(containerOf('proteins.FAA.gz'), 'fasta');
+    assert.equal(containerOf('annotations.fhgff3.gff'), 'gff3');
+    assert.equal(containerOf('annotations.gff.bgz'), 'gff3');
+    assert.throws(() => containerOf('annotations.gf'));
     assert.throws(() => containerOf('README.md'));
   });
 });
@@ -202,6 +210,71 @@ describe('plain scalars ending in .nan or .inf', () => {
     const reading = inspectBytes(buildRawFasta([...lines, 'x-build: .nan', 'checksum: COMPUTE']), { container: 'fasta' });
     assert.equal(reading.valid, false);
     assert.match(reading.errors.join(' '), /R13/);
+  });
+});
+
+describe('R11 on comment lines', () => {
+  const lines = MINIMAL_FHR_LINES.filter((line) => line !== 'checksum: COMPUTE');
+  it('warns about a raw > or @ in a ;~# comment, and the file stays valid', () => {
+    const reading = inspectBytes(buildRawFasta([...lines, '# mail a@example.org', '  # see > here', 'checksum: COMPUTE']), { container: 'fasta' });
+    assert.equal(reading.valid, true, JSON.stringify(reading.errors));
+    const r11 = reading.warnings.filter((line) => line.startsWith('R11'));
+    assert.equal(r11.length, 2, JSON.stringify(reading.warnings));
+    assert.match(r11[0], /comment on header line 13/);
+    assert.match(r11[1], /comment on header line 14/);
+  });
+
+  it('says nothing about a comment without them, or about a GFA comment', () => {
+    const reading = inspectBytes(buildRawFasta([...lines, '# plain comment', 'checksum: COMPUTE']), { container: 'fasta' });
+    assert.deepEqual(reading.warnings.filter((line) => line.startsWith('R11')), []);
+  });
+});
+
+describe('inspectFile options', () => {
+  it('passes drafts through, so the V7 lane opens for a file on disk', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'fhb-'));
+    try {
+      const path = join(dir, 'rna.fht.fasta');
+      writeFileSync(path, buildSequenceFile(fhtRecord()).bytes);
+      assert.equal(inspectFile(path).schema.rule, 'V5', 'lane shut by default');
+      const reading = inspectFile(path, { drafts: ['FHT'] });
+      assert.equal(reading.schema.rule, 'V7');
+      assert.equal(reading.schema.type, 'FHT');
+      assert.deepEqual(reading, inspectBytes(readFileSync(path), { container: 'fasta', drafts: ['FHT'] }));
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('passes fhgm through, so the FHGM verdict appears for a file on disk', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'fhb-'));
+    try {
+      const path = join(dir, 'models.fhgff3.gff3');
+      writeFileSync(path, buildFhgff3File(fhgmHeader()).bytes);
+      assert.equal(inspectFile(path).fhgm, undefined);
+      const reading = inspectFile(path, { drafts: ['FHGM'], fhgm: { features: null } });
+      assert.equal(typeof reading.fhgm, 'object');
+      assert.deepEqual(reading, inspectBytes(readFileSync(path), { container: 'gff3', drafts: ['FHGM'], fhgm: { features: null } }));
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('passes parents through to the C3 check', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'fhb-'));
+    try {
+      const parent = buildSequenceFile({ ...fhtRecord({ transcriptome: 'Synthetic parent transcript set' }), schemaVersion: '1.0' });
+      const child = buildSequenceFile(fhtRecord({ derivedFrom: [{ headerType: 'FHT', checksum: parent.checksum, relationship: 'filteredFrom' }] }));
+      const path = join(dir, 'child.fht.fasta');
+      writeFileSync(path, child.bytes);
+      assert.equal(inspectFile(path, { drafts: ['FHT'] }).parentLinks.links[0].verdict, 'unchecked');
+      let asked = 0;
+      const reading = inspectFile(path, { drafts: ['FHT'], parents: () => { asked += 1; return { bytes: parent.bytes }; } });
+      assert.ok(asked > 0, 'the resolver handed to inspectFile must be called');
+      assert.equal(reading.parentLinks.links[0].verdict, 'checked-pass');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

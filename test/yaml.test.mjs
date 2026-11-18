@@ -103,6 +103,22 @@ describe('loadHeaderYaml', () => {
     assert.throws(() => loadHeaderYaml('genome: !x y'), /tag/);
   });
 
+  it('refuses a mapping key that is not a string, at any depth', () => {
+    for (const source of ['1: a', '1.5: a', '~: a', 'null: a', 'true: a', 'FALSE: a', '0x1f: a', 'x-k:\n  1: a', 'x-k: {~: a}', 'x-k: [{true: a}]', 'x-k: {: a}']) {
+      assert.throws(() => loadHeaderYaml(source), (error) => error instanceof HeaderError && /keys must be strings/.test(error.message), source);
+    }
+  });
+
+  it('accepts the same keys quoted', () => {
+    assert.deepEqual(loadHeaderYaml("'1': a\n'~': b\n\"true\": c").metadata, { 1: 'a', '~': 'b', true: 'c' });
+  });
+
+  it('treats only a plain << as a merge key', () => {
+    assert.throws(() => loadHeaderYaml('x-m: {<<: 1}'), /merge key/);
+    assert.deepEqual(loadHeaderYaml("x-m: {'<<': 1}").metadata, { 'x-m': { '<<': 1 } });
+    assert.deepEqual(loadHeaderYaml('x-m:\n  "<<": 1').metadata, { 'x-m': { '<<': 1 } });
+  });
+
   it('refuses a bare n: key, the historic defect (R12)', () => {
     assert.throws(() => loadHeaderYaml('n: value\ngenome: x'), /read differently/);
   });
@@ -166,7 +182,22 @@ describe('untrusted-input handling', () => {
     assert.throws(() => loadHeaderYaml(wide), /node limit/);
   });
 
-  it('refuses a directive line in the header', () => {
-    assert.throws(() => loadHeaderYaml('%YAML 1.2\n---\na: 1'), /directive|not readable YAML/);
+  it('accepts a %YAML or %TAG directive, as the toolkit does', () => {
+    for (const source of ['%YAML 1.2\n---\na: 1', '%YAML 1.1\n---\na: 1', '%TAG !e! tag:example.com,2000:\n---\na: 1']) {
+      assert.deepEqual(loadHeaderYaml(source).metadata, { a: 1 }, source);
+    }
+  });
+
+  it('still refuses a %YAML 2 directive and a tag a %TAG handle names', () => {
+    assert.throws(() => loadHeaderYaml('%YAML 2.0\n---\na: 1'), /not readable YAML/);
+    assert.throws(() => loadHeaderYaml('%TAG !e! tag:example.com,2000:\n---\na: !e!x 1'), /explicit tag/);
+  });
+
+  it('holds __proto__ inside an x- value as plain data, without touching any prototype', () => {
+    const { metadata } = loadHeaderYaml("x-p: {__proto__: {polluted: 1}, constructor: {prototype: {polluted: 1}}}");
+    assert.equal({}.polluted, undefined);
+    assert.deepEqual(Object.getOwnPropertyNames(metadata['x-p']), ['__proto__', 'constructor']);
+    assert.equal(Object.getPrototypeOf(metadata['x-p']), Object.prototype, 'an own __proto__ property is not the prototype');
+    assert.equal(Object.getPrototypeOf(metadata), Object.prototype);
   });
 });

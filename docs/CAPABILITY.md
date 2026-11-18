@@ -254,7 +254,7 @@ tables now do instead:
 | `._0` | 1.1 float (its fraction pattern admits a leading `_`) | read as a string | YAML 1.1's float patterns are transcribed from PyYAML's resolver, which requires a digit after the point |
 | `+.5`, `-.5` | 1.1 float | refused | 1.1's float pattern needs digits before the point in that form, so it reads a string and disagrees with 1.2 |
 | `=` | 1.1 str | refused | 1.1's `value` resolver tag is kept distinct, so the dialects disagree |
-| `<<` in value position | 1.1 str | refused | 1.1's `merge` resolver tag is kept distinct; in key position it is refused as an R8 merge key first |
+| `<<` in value position | 1.1 str | refused | 1.1's `merge` resolver tag is kept distinct; a plain `<<` in key position is refused as an R8 merge key first, and a quoted `'<<'` key is an ordinary string, as in the toolkit |
 | `1.7976931348623157e309` (a value that overflows to infinity) | `js-yaml`'s core float tag refuses the overflow, so the borrowed pair disagreed in the mirror image of the toolkit's direction | refused | the outcome happened to agree by accident of one library's tables; `plainScalarOverflows` now refuses it explicitly under R13, which says a value that overflows to infinity is invalid, so the refusal no longer depends on which way a resolver happens to fall |
 
 So both tables are written out there from the dialects themselves — YAML 1.2 core

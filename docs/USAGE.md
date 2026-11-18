@@ -18,9 +18,10 @@ reading.schema;           // { type: 'FHR', release: 'v0.6.0', schemaVersion: '2
 reading.container;        // 'fasta'
 ```
 
-The container is taken from the extension (`.fasta`, `.fa`, `.fna`, `.fas` →
-`fasta`; `.gfa` → `gfa`; `.gff3` → `gff3`, with `.gz`/`.bgz` transport removed
-first). Pass it explicitly when the name says nothing:
+The container is taken from the extension (`.fasta`, `.fa`, `.fna`, `.faa`,
+`.fas` → `fasta`; `.gfa` → `gfa`; `.gff3`, `.gff` → `gff3`, with `.gz`/`.bgz`
+transport removed first). `inspectFile` takes the same options as `inspectBytes`
+(`drafts`, `fhgm`, `parents`). Pass it explicitly when the name says nothing:
 
 ```js
 import { readFileSync } from 'node:fs';
