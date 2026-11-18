@@ -93,10 +93,17 @@ of passing it:
   the dialect is not a formality.
 - `format` is an annotation in 2020-12: with `validateFormats: false`,
   `dateCreated: "2022-13-45"` and `relatedLink: ["not a URI"]` both pass. This
-  library therefore asserts `date` and `uri` through `ajv-formats`, as
-  `docs/SCHEMA-VERSIONS.md` requires, and confirms that R14's accepted schemes
-  (`urn:`, `doi:`, `ftp://`) survive `format: uri` while `javascript:` stays
-  schema-valid and only warns.
+  library therefore asserts `date` through `ajv-formats` and `uri` through its
+  own RFC 3986 grammar (`src/uri.js`), as `docs/SCHEMA-VERSIONS.md` requires, and
+  confirms that R14's accepted schemes (`urn:`, `doi:`, `ftp://`) survive
+  `format: uri` while `javascript:` stays schema-valid and only warns. The
+  `ajv-formats` 3.0.1 `uri` check was replaced on 2026-11-18 because it refuses a
+  URI whose hier-part is empty (`urn:`, `doi:`, `mailto:`, `x:`), which RFC 3986
+  allows and the toolkit accepts (jsonschema's checker, through `rfc3987`'s `URI`
+  rule). Measured against `rfc3987` 1.3.8 on 45,673 generated strings: no
+  disagreement. The one difference kept on purpose: `rfc3987` anchors with
+  Python's `$`, which also matches before a final line feed, so the toolkit
+  accepts `"https://example.org/\n"`; this library does not.
 - NaN and ±Infinity reaching the validator are refused, in ranged and un-ranged
   fields alike; the reader also refuses them before validation (R13), because
   `docs/FORMAT.md` says a range check is not the mechanism to rely on.

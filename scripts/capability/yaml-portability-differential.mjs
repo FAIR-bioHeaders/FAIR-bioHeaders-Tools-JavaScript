@@ -41,6 +41,7 @@ const SCALARS = [
   '9007199254740993', '-9223372036854775808', '1.7976931348623157e309', 'diptera_odb12.2', 'orcid:0000-0002-1825-0097',
   '!!str x', '&anc  x', '*anc', '<<', '"yes"', "'010'", '"\\x3E"', '"\\x40"', '|-\n  block', '>-\n  folded',
   '2026-10-11 10:30:00', '0.0.0.0', '+.5', '0b', '0o', '0x', ':', '?:', '? a', '.inf.',
+  'release.nan', 'build.NaN', 'x.NAN', 'a.inf', 'b-.inf', '-.nan', '+.nan', '.Nan', '1.nan',
 ];
 
 const python = process.env.FHR_PYTHON ?? 'python3';

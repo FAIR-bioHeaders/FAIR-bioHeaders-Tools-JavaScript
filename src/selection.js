@@ -103,17 +103,32 @@ export function isFhr1VersionNumber(stated) {
   return typeof stated === 'number' && Number.isFinite(stated) && stated === 1;
 }
 
+/** @param {string} text @returns {string} the text as a literal regular-expression fragment */
+const literal = (text) => text.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+
+/**
+ * The raw-URL form of V1, V2 and V4: either name of the specification repository,
+ * then a ref, then a released type's `<file>.json`, and nothing else.
+ *
+ * The ref is everything between the repository name and the final `/<file>.json`,
+ * slashes included, so a multi-segment ref (`refs/heads/main`, `main/../v0.6.0`) is
+ * kept whole. Only `main` (V1) and a release tag this build holds (V2) select a
+ * contract; any other ref is V4, never the current contract. This is the toolkit's
+ * own pattern (`bioheaders.selection.RAW`), which matches the ref with `.+?`: any
+ * character except a line feed.
+ */
+const RAW_URL = new RegExp(
+  `^${literal(RAW_PREFIX)}(?:${[...SPEC_REPOS].map(literal).join('|')})/([^\\n]+?)/(${[...FILE_TYPES.keys()].map(literal).join('|')})$`,
+);
+
 /**
  * @param {string} value
  * @returns {{type: 'FHR'|'FHP'|'FHGFF3', ref: string}|null}
  */
 function parseRawUrl(value) {
-  if (!value.startsWith(RAW_PREFIX)) return null;
-  const parts = value.slice(RAW_PREFIX.length).split('/');
-  if (parts.length !== 3) return null;
-  const [repo, ref, file] = parts;
-  if (!SPEC_REPOS.has(repo) || ref === '' || !FILE_TYPES.has(file)) return null;
-  return { type: FILE_TYPES.get(file), ref };
+  const match = RAW_URL.exec(value);
+  if (match === null) return null;
+  return { type: FILE_TYPES.get(match[2]), ref: match[1] };
 }
 
 /**

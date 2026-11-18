@@ -9,6 +9,7 @@ import { describe, it } from 'node:test';
 
 import { computeChecksum } from '../src/checksum.js';
 import { containerOf, inspectBytes, stripBytes } from '../src/reader.js';
+import { MINIMAL_FHR_LINES, buildRawFasta } from '../testutil/fixtures.mjs';
 
 const bytes = (text) => new TextEncoder().encode(text);
 
@@ -182,6 +183,25 @@ describe('inspectBytes', () => {
     const reading = inspectBytes(file, { container: 'fasta' });
     assert.equal(reading.valid, false);
     assert.match(reading.errors.join(' '), /genome|required/);
+  });
+});
+
+describe('plain scalars ending in .nan or .inf', () => {
+  it('reads release.nan and see build.NaN as strings, and the file stays valid', () => {
+    const lines = MINIMAL_FHR_LINES.filter((line) => line !== 'checksum: COMPUTE');
+    const data = buildRawFasta([...lines, 'documentation: see build.NaN', 'x-build: release.nan', 'x-other: run.inf', 'checksum: COMPUTE']);
+    const reading = inspectBytes(data, { container: 'fasta' });
+    assert.deepEqual(reading.errors, []);
+    assert.equal(reading.valid, true);
+    assert.equal(reading.metadata['x-build'], 'release.nan');
+    assert.equal(reading.metadata.documentation, 'see build.NaN');
+  });
+
+  it('still refuses a bare .nan (R13)', () => {
+    const lines = MINIMAL_FHR_LINES.filter((line) => line !== 'checksum: COMPUTE');
+    const reading = inspectBytes(buildRawFasta([...lines, 'x-build: .nan', 'checksum: COMPUTE']), { container: 'fasta' });
+    assert.equal(reading.valid, false);
+    assert.match(reading.errors.join(' '), /R13/);
   });
 });
 
