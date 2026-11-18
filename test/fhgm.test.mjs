@@ -21,9 +21,9 @@ import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
 
 import { MODELS_KEY, VERDICTS, admitsExtensionFields, checkFhgmModels, fhgmRuleCoverage } from '../src/fhgm.js';
-import { inspectBytes } from '../src/reader.js';
+import { inspectBytes, inspectStream } from '../src/reader.js';
 import { draftEntry } from '../src/drafts.js';
-import { buildFhgff3File, fhgmHeader, fhgmRecord } from '../testutil/fixtures.mjs';
+import { buildFhgff3File, buildRawFasta, fhgmHeader, fhgmRecord } from '../testutil/fixtures.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -300,5 +300,107 @@ describe('B1 and the separation of a draft verdict from the file result', () => 
     assert.match(coverage.boundaries.K4.withoutFeatureLayer, /not-checked/);
     assert.match(coverage.boundaries.K4.unusableFeatureLayer, /unchecked/);
     assert.match(coverage.boundaries.K4.stillElsewhere, /gff3-validator/);
+  });
+});
+
+// #19: the feature index that K4 resolves the file's own rows against is built
+// only for a container that can hold GFF3 rows, while the FHGM lane used to ask
+// for it whenever a header selected FHGFF3. A caller asserting a non-GFF3
+// container - container sniffing, or an explicit `{container}` for a misfiled
+// file - therefore reached a `null.finish()` and threw a TypeError where this
+// module documents that findings come back in `errors`.
+//
+// Every case below is a call that threw before the fix, so a test that cannot
+// fail is not what this is: the anchor assertions state why each case reaches
+// the consumer at all (`schema.type` is FHGFF3 with a non-GFF3 container), and
+// the lane assertions state what it must return instead of throwing.
+describe('the FHGM lane on an FHGFF3 header in a container with no feature rows (#19)', () => {
+  /**
+   * One header field per line, in the flow form the FHGM vectors use. Every value
+   * goes through `JSON.stringify`, which is also a YAML scalar, an array or an
+   * object: `'1.1'` stays the string 1.1 and does not become a number.
+   *
+   * @param {Record<string, unknown>} record
+   * @returns {string[]}
+   */
+  function headerLines(record) {
+    return Object.entries(record)
+      .filter(([key]) => key !== 'checksum')
+      .map(([key, value]) => `${key}: ${JSON.stringify(value)}`);
+  }
+
+  /**
+   * The FHGM fixture header in a file whose prefix and body are FASTA, not GFF3.
+   * `buildRawFasta` computes the root checksum over these exact bytes (R3, R4), so
+   * the only finding against this file is its container, which `checksum.matches`
+   * is asserted below: a fixture that failed for some other reason would say
+   * nothing about the gate under test.
+   *
+   * @param {Record<string, unknown>} record
+   * @returns {Uint8Array}
+   */
+  function asFastaContainer(record) {
+    return buildRawFasta([...headerLines(record), 'checksum: COMPUTE']);
+  }
+
+  /** @type {AsyncGenerator<Uint8Array>} */
+  async function* inChunks(bytes, size = 4096) {
+    for (let at = 0; at < bytes.length; at += size) yield bytes.subarray(at, at + size);
+  }
+
+  /**
+   * The same header judged at the direct call, for the comparison below.
+   *
+   * @param {Record<string, unknown>} header
+   * @returns {import('../src/fhgm.js').FhgmResult}
+   */
+  function directly(header) {
+    return checkFhgmModels(header, { base: { valid: true } });
+  }
+
+  // A real released vector, read as GFA: its `#~` block is also the GFA prefix, so
+  // the header is found, selects FHGFF3, and digests to what it states.
+  const gfaCarrier = { container: 'gfa', bytes: new Uint8Array(readFileSync(join(ROOT, 'conformance', 'valid', 'fhgff3-both-links.fhgff3.gff3'))) };
+  // A synthetic FHGFF3 header carrying model records, written with the `;~` prefix
+  // a FASTA file uses. `#~` is not the FASTA prefix, so reusing the GFF3 vector
+  // here would fail at R2 before the lane ever ran: that is a coincidence of
+  // prefix rules, not a guard, and it is why this fixture exists.
+  const fastaCarrier = { container: 'fasta', bytes: asFastaContainer(fhgmHeader()) };
+
+  for (const carrier of [gfaCarrier, fastaCarrier]) {
+    for (const reader of [
+      { name: 'inspectBytes', read: (bytes, options) => inspectBytes(bytes, options) },
+      { name: 'inspectStream', read: (bytes, options) => inspectStream(inChunks(bytes), options) },
+    ]) {
+      it(`returns a Reading from ${reader.name} rather than throwing for an FHGFF3 header read in a ${carrier.container} container`, async () => {
+        const reading = await reader.read(carrier.bytes, { container: carrier.container, drafts: true });
+        // The anchor: this is the call that used to dereference the missing index.
+        // Without these three the case could go green by never reaching the
+        // consumer at all, which is how the guard written for #17 missed this.
+        assert.equal(reading.schema.type, 'FHGFF3', 'the header must still select FHGFF3, or the FHGM consumer is unreachable');
+        assert.equal(reading.container, carrier.container, 'and it is being read in a container that holds no GFF3 feature rows');
+        assert.equal(reading.checksum.matches, true, 'the digest still holds: the container is this file\'s only finding');
+        // The contract: a Reading comes back, the file is rejected for its container,
+        // and the draft lane says it could not evaluate instead of vanishing.
+        assert.equal(reading.valid, false);
+        assert.deepEqual(reading.errors, [`a FHGFF3 header does not belong in a ${carrier.container} file, whatever its checksum says (docs/FORMAT.md)`]);
+        assert.notEqual(reading.fhgm, undefined, 'the lane still reports on an FHGFF3 header');
+        assert.equal(reading.fhgm.status, 'not-checked', 'B1: no sound FHGFF3 file in this container, so no model verdict exists');
+        assert.equal(reading.fhgm.valid, false, 'a lane that cannot evaluate never reports a pass');
+        assert.equal(reading.fhgm.rules.K4, 'skipped', 'K4 ran against no feature layer, so it states that instead of passing');
+        assert.ok(reading.warnings.some((line) => /K4 not-checked/.test(line)), `the missing feature layer is named in the warnings, got ${JSON.stringify(reading.warnings)}`);
+      });
+    }
+  }
+
+  it('runs every other FHGM rule on such a file, and leaves K4 not-checked', async () => {
+    // The fix must not become a way to skip the lane: with a caller that states the
+    // base holds, K1, K2, K3 and K5 judge the records exactly as they do in a GFF3
+    // file, and only K4 - the rule that needs feature rows - reports `not-checked`.
+    const lane = await inspectStream(inChunks(fastaCarrier.bytes), { container: 'fasta', drafts: ['FHGM'], fhgm: { base: { valid: true } } });
+    assert.equal(lane.fhgm.status, 'checked', 'the lane ran: FHGM checks are not dropped by the container gate');
+    assert.deepEqual(lane.fhgm.rules, { K1: 'pass', K2: 'pass', K3: 'pass', K4: 'not-checked', K5: 'pass', B1: 'pass', K6: 'none' });
+    assert.deepEqual(lane.fhgm, directly(fhgmHeader()), 'records, errors and warnings match the same header judged at the direct call with no feature layer');
+    assert.equal(lane.fhgm.records[0].featureTarget, null, 'no feature target is claimed against rows nobody read');
   });
 });

@@ -174,7 +174,7 @@ All functions are named exports of the package root. The library is ESM only.
 | `validateRecord(record, selection)` | contract validation, format assertion and warnings |
 | `TYPES`, `TYPE_IDS`, `RELEASED_TYPES`, `DRAFT_TYPE_IDS`, `capability(...)`, `capabilityRows()`, `headerTypesByContainer(...)`, `describeType(...)` | the five-type registry the capability matrix is rendered from |
 | `draftSupport()`, `draftEntry(type)`, `draftSuitePin(type)`, `loadDraft(type)`, `verifyDraftBytes(dir)` | the rule-V7 pin: what it is, where the bytes are, whether they still match, and which development-suite revision this build's draft evidence names |
-| `checkFhgmModels(header, {base, overlay, predecessors, features, geneIds})` | the FHGM draft verdict: B1, K1, K2, K3, K5, K6, and K4 against `features` (row facts or GFF3 content) or `geneIds`; `inspectBytes` defaults `features` to the file's own bytes when the lane names FHGM |
+| `checkFhgmModels(header, {base, overlay, predecessors, features, geneIds})` | the FHGM draft verdict: B1, K1, K2, K3, K5, K6, and K4 against `features` (row facts or GFF3 content) or `geneIds`; `inspectBytes` defaults `features` to the file's own bytes when the lane names FHGM and the file is read as GFF3, and to no layer at all in another container, where K4 reports `not-checked` |
 | `verifyParentLinks(record, {resolveParent})` | FHT draft rule C3: checked-pass / checked-fail / unchecked, against parent bytes the caller hands over |
 | `validateRecord(record, selection)` | contract validation, format assertion and warnings |
 | `containerOf(path)`, `decompress(bytes)`, `sha512_256Available()` | helpers |
