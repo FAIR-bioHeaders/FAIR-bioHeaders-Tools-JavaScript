@@ -486,10 +486,11 @@ describe('K4 feature-layer parity with gff3-validator (#11, items 1, 2-prime and
     assert.ok(text.warnings.some((line) => /K4 not-checked/.test(line) && /no feature rows/.test(line)), `the empty layer is named in the warnings, got ${JSON.stringify(text.warnings)}`);
 
     // the same answer from the two caller-built shapes that report a finished
-    // layer - the prebuilt index #17 routed into this path, and a bare row
-    // fact array the caller says is complete.
-    assert.equal(judge(fhgmHeader(), { features: { rows: [], problems: [] } }).rules.K4, 'not-checked');
-    assert.equal(judge(fhgmHeader(), { features: [] }).rules.K4, 'not-checked');
+    // layer, ONLY when they can actually characterize it - see the #21 review
+    // finding below: an uncounted empty prebuilt index or row-fact array is
+    // NOT evidence of absence, it is evidence this reading was handed.
+    // (featureRows: 0 counted is; that abstention stays here.)
+    assert.equal(judge(fhgmHeader(), { features: { rows: [], problems: [], featureRows: 0 } }).rules.K4, 'not-checked', 'a counted index that states zero feature rows is a characterized absence');
 
     // The contrasts, pinned by the parity contract: rows that carry no
     // identifiers are a layer with no match, "distinctly not absent-layer"
@@ -498,6 +499,33 @@ describe('K4 feature-layer parity with gff3-validator (#11, items 1, 2-prime and
     assert.equal(judge(fhgmHeader(), { features: 'toy\tpilot\texon\t10\t20\t.\t+\t.\tParent=g1\n' }).rules.K4, 'reject', 'feature rows without IDs still reject a target: zero rows examined and no matching row are different observations');
     assert.equal(judge(fhgmHeader(), { features: { rows: [], problems: [], featureRows: 1 } }).rules.K4, 'reject', 'a prebuilt index that reports feature rows is a layer, even holding no ID entries');
     assert.equal(judge(fhgmHeader(), { geneIds: [] }).rules.K4, 'reject', 'the geneIds shorthand keeps its existing reading of an empty list');
+  });
+
+  it('treats an empty layer with no count as untrustworthy, never as absence (#21 review, finding 2)', () => {
+    // The pre-#11 FeatureIndex shape carried only ID entries, so
+    // `{rows: [], problems: []}` is byte-for-byte the same object for a file
+    // with no rows at all and for a file whose every row lacks an ID. `rows.length`
+    // cannot tell those apart, and this lane must not pretend otherwise:
+    // not-checked would assert absence it never saw, reject would assert a
+    // miss it never counted. The answer an untrustworthy layer already has -
+    // `unchecked`, the lane's never-scored-but-loud verdict, mapped from the
+    // shared outcomes.json's malformed-layer - is the honest one, with the
+    // ambiguity itself stated in the problems so a later reader sees an
+    // uncertain case, not an empty file.
+    for (const [shape, uncounted] of [['legacy prebuilt index', { rows: [], problems: [] }], ['empty row-fact array', []]]) {
+      const result = judge(fhgmHeader(), { features: uncounted });
+      assert.equal(result.rules.K4, 'unchecked', `${shape}: uncounted-and-empty is not evidence of absence`);
+      assert.equal(result.records[0].featureTarget.verdict, 'unchecked', `${shape}: the per-record answer names the state`);
+      assert.match(result.records[0].featureTarget.detail, /cannot tell a file with no feature rows from rows that carry no identifiers/, `${shape}: the ambiguity itself is recorded, not swallowed`);
+      assert.equal(result.valid, true, `${shape}: an unchecked clause rejects nothing and passes nothing`);
+    }
+    // the count, when the shape carries one, resolves the ambiguity in both
+    // directions and neither verdict wobbles
+    assert.equal(judge(fhgmHeader(), { features: { rows: [], problems: [], featureRows: 0 } }).rules.K4, 'not-checked', 'counted zero: a real absence, abstained');
+    assert.equal(judge(fhgmHeader(), { features: { rows: [], problems: [], featureRows: 2 } }).rules.K4, 'reject', 'counted two with no ID entries: a real layer, rejected on its contents');
+    // non-empty uncounted shapes need no count to be trusted: they state rows
+    const facts = judge(fhgmHeader(), { features: [{ id: 'toy-a', type: 'gene' }] });
+    assert.equal(facts.rules.K4, 'pass', 'a row-fact array with entries is a layer whatever its provenance');
   });
 
   it('reads a zero-feature-row GFF3 file through the lane as K4 not-checked (#11, item 1, end to end)', () => {
