@@ -40,8 +40,9 @@ product line and there is no SLA to quote.
 ## What this build already refuses, and what it does not
 
 Refused by design, each with a rule id from the shared specification: duplicate
-mapping keys, anchors, aliases and merge keys (R8); explicit YAML tags and
-directives, and any plain scalar the two YAML dialects read differently (R12);
+mapping keys, anchors, aliases and merge keys (R8); a mapping key that is not a
+string (`1:`, `~:`, `true:`), because metadata is a JSON object; explicit YAML
+tags, and any plain scalar the two YAML dialects read differently (R12);
 non-finite numbers (R13); more than one YAML document; header blocks beyond
 1 MiB or 10,000 lines, and YAML beyond 20,000 nodes or 64 levels of nesting (the
 reader limits of `docs/FORMAT.md`); invalid UTF-8 in a header line (R6); a byte
@@ -59,9 +60,16 @@ Not provided, and not claimed:
 - **No sandbox claim.** Parsing untrusted YAML is confined to `js-yaml`'s core
   schema with aliases refused and depth and node counts bounded; that is a design
   choice against the billion-laughs class of input, not a proof. `__proto__` keys are
-  held as own properties by `js-yaml` 5.5.0 and are then refused as unknown keys by
-  the contract; this is asserted in `test/yaml.test.mjs`, and if a future dependency
-  version changes it, that test is where the claim dies.
+  held as own data properties by `js-yaml` 5.5.0, so no object's prototype changes.
+  At the top level, and inside any object the contract closes, such a key is then
+  refused as an unknown key. Inside an `x-` extension value, which the contracts
+  leave open, it is **accepted** as ordinary data, as the toolkit accepts it:
+  `x-p: {__proto__: {polluted: 1}}` reads as an object with an own property named
+  `__proto__`, and `Object.prototype` is untouched. Both halves are asserted in
+  `test/yaml.test.mjs`, and if a future dependency version changes them, that test
+  is where the claim dies. A consumer that copies metadata with `Object.assign` or
+  a property-by-property assignment turns that own property into a prototype
+  setter; copy with spread or `structuredClone`, which define properties instead.
 - **No vulnerability reporting history to point at**, because the repository was
   created on 2026-11-14 and has no release, no advisory list and no deployed users.
   Anyone adopting it is adopting unreviewed pre-release code.

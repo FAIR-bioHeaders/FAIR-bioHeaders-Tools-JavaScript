@@ -2,7 +2,7 @@
  * Reading the header YAML of a FAIR-bioHeaders file.
  *
  * Rules implemented here: R8 (no duplicate keys, anchors, aliases or merge
- * keys), R12 (YAML 1.2 core-schema types, and every plain scalar must read the
+ * keys), string mapping keys only (metadata is a JSON object), R12 (YAML 1.2 core-schema types, and every plain scalar must read the
  * same under YAML 1.1; explicit tags are invalid), R13 (finite numbers only) and
  * the reader limits of `docs/FORMAT.md`.
  *
@@ -97,9 +97,10 @@ function auditEvents(events, source) {
   for (const event of events) {
     if (event.type === EVENT_ID.DOCUMENT) {
       documents += 1;
-      if (event.directives && event.directives.length > 0) {
-        throw new HeaderError('the header YAML carries a directive such as %YAML; FHR metadata may not (FORMAT.md R12)', { rule: 'R12' });
-      }
+      // A %YAML or %TAG directive is accepted, as the toolkit's YAML reader accepts
+      // it: it changes no plain-scalar resolution here (R12 is checked against both
+      // dialects regardless), and a tag a %TAG handle would expand is still refused
+      // below. A %YAML major version other than 1 is refused by the parser.
       continue;
     }
     if (event.type === EVENT_ID.POP) {
@@ -127,8 +128,18 @@ function auditEvents(events, source) {
     }
     const text = yaml.getScalarValue(source, event);
     if (keyPosition) {
-      if (text === '<<') {
+      // Only a plain `<<` is a merge key; a quoted '<<' is an ordinary string key.
+      if (text === '<<' && event.style === SCALAR_STYLE.PLAIN) {
         throw new HeaderError(`a merge key in ${field()} is not allowed in FHR metadata (FORMAT.md R8)`, { rule: 'R8', field: field() });
+      }
+      // Metadata is a JSON object, so every key is a string. A plain key that the
+      // YAML 1.2 core schema reads as a number, a boolean or null (`1:`, `true:`,
+      // `~:`, an empty key) is not one, and the toolkit refuses it too.
+      if (event.style === SCALAR_STYLE.PLAIN && resolveCore(text).tag !== TAGS.str && plainScalarIsPortable(text)) {
+        throw new HeaderError(
+          `the mapping key ${text === '' ? '(empty)' : JSON.stringify(text)} in ${field()} is read as ${resolveCore(text).tag}, not a string; metadata object keys must be strings, so quote it`,
+          { rule: 'yaml', field: field() },
+        );
       }
       frames[frames.length - 1].key = text;
     }

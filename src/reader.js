@@ -74,9 +74,9 @@ export const CONTAINER_TYPES = Object.freeze(headerTypesByContainer());
  */
 export function containerOf(path) {
   const name = path.toLowerCase().replace(/(\.bgz|\.gz)$/, '');
-  if (name.endsWith('.gff3')) return 'gff3';
+  if (/\.gff3?$/.test(name)) return 'gff3';
   if (name.endsWith('.gfa')) return 'gfa';
-  if (/\.(fasta|fa|fna|fas)$/.test(name)) return 'fasta';
+  if (/\.(fasta|fa|fna|faa|fas)$/.test(name)) return 'fasta';
   throw new HeaderError(`cannot tell the container of ${path}: pass {container: 'fasta'|'gfa'|'gff3'}`);
 }
 
@@ -129,22 +129,26 @@ function decode(bytes) {
 /**
  * R11: in FASTA, a header line should not hold a raw `>` or `@`, because kseq
  * readers start a record at either character. Such a file stays valid and the
- * validator warns. GFA and GFF3 headers are not affected.
+ * validator warns. That includes a `;~#` YAML comment line: it is a header line
+ * to a FASTA reader like any other, and the toolkit warns about it too. GFA and
+ * GFF3 headers are not affected.
  *
- * @param {string} text the header block's text, prefixes removed
+ * @param {Array<{text: string, line: number}>} lines the header lines, prefixes removed
  * @param {Container} container
  * @returns {string[]}
  */
-function recordMarkerWarnings(text, container) {
+function recordMarkerWarnings(lines, container) {
   if (container !== 'fasta') return [];
   const warnings = [];
-  for (const line of text.split('\n')) {
-    const body = line.replace(/^[ \t]*/, '');
-    if (body === '' || body.startsWith('#')) continue;
-    if (body.includes('>') || body.includes('@')) {
-      const key = /^[^:]*/.exec(body)[0].trim();
-      warnings.push(`R11 warning: ${key || 'a header line'} holds a raw '>' or '@'; writers escape it as \\x3E or \\x40 in a double-quoted scalar (docs/FORMAT.md R11)`);
+  for (const { text, line } of lines) {
+    const body = text.replace(/^[ \t]*/, '');
+    if (body === '' || !(body.includes('>') || body.includes('@'))) continue;
+    if (body.startsWith('#')) {
+      warnings.push(`R11 warning: the comment on header line ${line} holds a raw '>' or '@'; FASTA readers that start a record at either character read it as one (docs/FORMAT.md R11)`);
+      continue;
     }
+    const key = /^[^:]*/.exec(body)[0].trim();
+    warnings.push(`R11 warning: ${key || 'a header line'} holds a raw '>' or '@'; writers escape it as \\x3E or \\x40 in a double-quoted scalar (docs/FORMAT.md R11)`);
   }
   return warnings;
 }
@@ -198,7 +202,7 @@ export function inspectBytes(data, options = {}) {
     if (stated !== computed) {
       errors.push(`checksum mismatch: the line states ${stated}, SHA-512/256 of the ${covered.length} covered bytes is ${computed} (R3, R4)`);
     }
-    warnings.push(...recordMarkerWarnings(text, container));
+    warnings.push(...recordMarkerWarnings(lines, container));
     const selection = selectSchema(metadata, { drafts: [...drafts] });
     if (!(allowed[container] ?? []).includes(selection.type)) {
       errors.push(`a ${selection.type} header does not belong in a ${container} file, whatever its checksum says (docs/FORMAT.md)`);
@@ -267,14 +271,18 @@ export function inspectBytes(data, options = {}) {
 /**
  * Read and check a file by path.
  *
+ * Takes every option `inspectBytes` takes - `drafts`, `fhgm` and `parents`
+ * included - and passes them on unchanged; the file name only stands in for
+ * `container` when that is not given.
+ *
  * @param {string} path
- * @param {object} [options]
- * @param {Container} [options.container] overrides the name-based guess
+ * @param {Parameters<typeof inspectBytes>[1]} [options] as for `inspectBytes`;
+ *   `container` overrides the name-based guess
  * @returns {Reading}
  */
 export function inspectFile(path, options = {}) {
   const data = new Uint8Array(readFileSync(path));
-  return inspectBytes(data, { container: options.container, name: path });
+  return inspectBytes(data, { ...options, name: path });
 }
 
 /**
