@@ -448,6 +448,28 @@ describe('K4 feature-layer parity with gff3-validator (#11, items 1, 2-prime and
     assert.equal(empty.records[0].featureTarget, null, 'and nothing on the row side stands in for the check K4 could not run');
   });
 
+  it('scores a lone-CR carrier by its rows, not by the scanner missing them (#21 review, finding 1)', () => {
+    // The end-to-end form of the terminator bug: on the divergent source the
+    // LF twin of these strings rejects (rows exist, none carries the ID) and
+    // the CR twin abstains (the scanner read one directive-prefixed blob and
+    // called it an empty layer) - so the same file got two different K4
+    // answers depending on how its editor wrote line endings. A rejection
+    // turned into an abstention is the silent direction the review blocks;
+    // the gene-row case is the loud one it also forbids papering over: the
+    // base had *that* backwards, rejecting a row the file really carried.
+    const noId = 'toy\tpilot\texon\t10\t20\t.\t+\t.\tParent=g1';
+    const abstain = judge(fhgmHeader(), { features: `##gff-version 3\r${noId}\r` });
+    assert.equal(abstain.rules.K4, 'reject', 'a nine-field row under CR is a row: no matching ID still rejects');
+    assert.match(abstain.errors.join(' '), /no local feature row carries/);
+    const accepted = judge(fhgmHeader({ models: [fhgmRecord({ featureId: 'toy-a' })] }), { features: '##gff-version 3\rtoy\tpilot\tgene\t10\t30\t.\t+\t.\tID=toy-a\r' });
+    assert.equal(accepted.rules.K4, 'pass', 'the gene row under CR is addressable, exactly like its LF twin');
+    // And the correction must not overshoot into the other quiet answer:
+    // CR comments and directives are no more feature rows than LF ones.
+    const empty = judge(fhgmHeader(), { features: '##gff-version 3\r#~checksum: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\r# a comment\r' });
+    assert.equal(empty.rules.K4, 'not-checked', 'a header-only CR file is still an absent layer, and still says so');
+    assert.ok(empty.warnings.some((line) => /K4 not-checked/.test(line) && /no feature rows/.test(line)), 'the abstention is still named');
+  });
+
   it('abstains from K4 when a readable layer carries zero feature rows (#11, item 1)', () => {
     // The abstention vocabulary is the one #20 shipped for a missing layer:
     // state 'none', rules.K4 'not-checked', a null featureTarget, and a

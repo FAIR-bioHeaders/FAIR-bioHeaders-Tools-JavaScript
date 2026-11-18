@@ -11,7 +11,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { GENE_ROW_TYPES, MAX_LISTED_PROBLEMS, indexGff3FeatureRows, isGeneRowType } from '../src/features.js';
+import { FeatureRowIndexer, GENE_ROW_TYPES, MAX_LISTED_PROBLEMS, indexGff3FeatureRows, isGeneRowType } from '../src/features.js';
 
 const GENE = 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=toy-a';
 const RNA = 'toy\tpilot\tlncRNA\t10\t30\t.\t+\t.\tID=toy-a-rna;Parent=toy-a';
@@ -123,6 +123,52 @@ describe('indexGff3FeatureRows', () => {
     assert.equal(indexGff3FeatureRows(`${GENE}\n${RNA}\n${EXON}`).featureRows, 3, 'three feature rows yield two ID entries and one count of three');
     assert.equal(indexGff3FeatureRows(`${GENE}\n##FASTA\n${GENE}`).featureRows, 1, 'nothing below ##FASTA is a feature row');
     assert.equal(indexGff3FeatureRows(new TextEncoder().encode(`${GENE}\n${EXON}\n`)).featureRows, 2, 'the bytes path counts the same way');
+  });
+
+  it('recognizes LF, CRLF and lone CR alike when counting and indexing rows (#21 review, finding 1)', () => {
+    // The same content must be the same layer whatever terminator wrote it.
+    // `src/lines.js` and `src/scan.js` accept both CR and LF, and an
+    // abstention that rests on the scanner failing to see a row is exactly
+    // the evidence-free verdict #11 exists to remove. The lone-CR shapes
+    // below are the red cases: as written by LF-only splitting, the whole
+    // file collapses into one directive-prefixed blob the scanner reads as
+    // "no feature rows", silently turning a real rejection into `not-checked`
+    // (and, before #11, a real acceptance into a false rejection - the base
+    // scored the gene-row case `reject` while the row was there all along).
+    const noId = 'toy\tpilot\texon\t10\t20\t.\t+\t.\tParent=g1';
+    for (const [name, term] of [['LF', '\n'], ['CRLF', '\r\n'], ['lone CR', '\r']]) {
+      const index = indexGff3FeatureRows(`##gff-version 3${term}${noId}${term}${GENE}${term}`);
+      assert.deepEqual(index.problems, [], `${name}: a nine-field row is not a defect because of how it was terminated`);
+      assert.equal(index.featureRows, 2, `${name}: the ID-less exon counts as a feature row exactly as under LF`);
+      assert.deepEqual(index.rows, [{ id: 'toy-a', type: 'gene', line: 3 }], `${name}: the gene row is addressable exactly as under LF`);
+    }
+    const mixed = indexGff3FeatureRows(`##gff-version 3\r\n${noId}\r${GENE}\n`);
+    assert.deepEqual(mixed.problems, []);
+    assert.equal(mixed.featureRows, 2, 'one file, three terminator styles, two feature rows');
+    assert.deepEqual(mixed.rows, [{ id: 'toy-a', type: 'gene', line: 3 }]);
+    const stop = indexGff3FeatureRows(`${GENE}\r##FASTA\r${GENE}\r`);
+    assert.equal(stop.featureRows, 1, '##FASTA ends the scan whatever the terminator');
+    assert.deepEqual(stop.rows, [{ id: 'toy-a', type: 'gene', line: 1 }]);
+  });
+
+  it('splits the same lines from bytes, from a byte-at-a-time push, and across a CR/LF chunk boundary (#21 review, finding 1)', () => {
+    const noId = 'toy\tpilot\texon\t10\t20\t.\t+\t.\tParent=g1';
+    const text = `##gff-version 3\r\n${noId}\r${GENE}\n##FASTA\n`;
+    const bytes = new TextEncoder().encode(text);
+    const whole = indexGff3FeatureRows(bytes);
+    assert.equal(whole.featureRows, 2);
+    assert.deepEqual(whole.rows, [{ id: 'toy-a', type: 'gene', line: 3 }]);
+    assert.deepEqual(whole.problems, []);
+    const indexer = new FeatureRowIndexer();
+    for (const byte of bytes) indexer.push(new Uint8Array([byte]));
+    assert.deepEqual(indexer.finish(), whole, 'byte-at-a-time streaming sees the index the whole-bytes call sees');
+    // The awkward cut: the CR of a CRLF pair ends one chunk and its LF opens
+    // the next. One terminator, one line - a naive splitter inflates the count.
+    const split = new FeatureRowIndexer();
+    const at = bytes.indexOf(0x0d) + 1;
+    split.push(bytes.subarray(0, at));
+    split.push(bytes.subarray(at));
+    assert.deepEqual(split.finish(), whole, 'a CRLF cut between its two bytes is still one line');
   });
 });
 

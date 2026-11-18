@@ -21,6 +21,11 @@
  * checker (`FHGM-Specification/development/model/validate_fhgm.py`, `gene_targets`)
  * does with the vectors K4 was authored against:
  *
+ * - a line ends at LF, at CRLF, or at a lone CR - the terminators the rest of
+ *   this library accepts (`src/lines.js`, `src/scan.js`). Counting rows by
+ *   terminator rather than by content would make an editor's choice of line
+ *   ending decide whether K4 abstains, which is what issue #21's review
+ *   blocked: the same file's rows are the same rows either way;
  * - iteration stops at the `##FASTA` line: sequence bytes are not feature rows;
  * - blank lines and every line starting with `#` are skipped, which removes the
  *   FHGFF3 header block (`#~`), the `##gff-version` line, and other directives;
@@ -117,9 +122,12 @@ export function indexGff3FeatureRows(source) {
 
 /**
  * The same index as an incremental reader, for a file that is never held whole:
- * `push` decompressed chunks in order, then `finish`. Lines are split at LF and
- * decoded one at a time; only the line in progress is buffered, and nothing
- * after `##FASTA` is kept at all.
+ * `push` decompressed chunks in order, then `finish`. Lines end at LF, at CRLF,
+ * or at a lone CR - the same terminators `src/lines.js` and `src/scan.js`
+ * accept - and are decoded one at a time; only the line in progress is buffered,
+ * and nothing after `##FASTA` is kept at all. A CRLF cut across a chunk
+ * boundary (CR last byte of one push, LF first of the next) is one terminator,
+ * not two, and adds no empty line.
  */
 export class FeatureRowIndexer {
   constructor() {
@@ -133,6 +141,7 @@ export class FeatureRowIndexer {
     this.stopped = false;
     this.omitted = 0;
     this.featureRows = 0;
+    this.afterCR = false;
   }
 
   /**
@@ -141,13 +150,25 @@ export class FeatureRowIndexer {
   push(chunk) {
     let at = 0;
     while (!this.stopped && at < chunk.length) {
+      if (this.afterCR) {
+        // The previous push ended on a CR; an LF here is that terminator's
+        // second byte, consumed with no new line.
+        this.afterCR = false;
+        if (chunk[at] === 0x0a) {
+          at += 1;
+          continue;
+        }
+      }
       const lf = chunk.indexOf(0x0a, at);
-      if (lf === -1) {
+      const cr = chunk.indexOf(0x0d, at);
+      const end = lf === -1 ? cr : cr === -1 ? lf : Math.min(lf, cr);
+      if (end === -1) {
         this.pending.push(chunk.slice(at));
         return;
       }
-      this.pending.push(chunk.subarray(at, lf));
-      at = lf + 1;
+      this.pending.push(chunk.subarray(at, end));
+      this.afterCR = chunk[end] === 0x0d;
+      at = end + 1;
       this.flush();
     }
   }
@@ -249,7 +270,10 @@ function scanText(text) {
   const problems = [];
   let omitted = 0;
   let featureRows = 0;
-  const lines = text.split('\n');
+  // LF, CRLF and lone CR all end a line: a row is a row whatever its author's
+  // editor wrote, and a terminator this scanner failed to see must never be
+  // reportable as "no feature rows" (#21 review, finding 1).
+  const lines = text.split(/\r\n|\r|\n/);
   for (let index = 0; index < lines.length; index += 1) {
     const outcome = scanLine(lines[index], index, rows, problems);
     if (outcome === STOP) break;
