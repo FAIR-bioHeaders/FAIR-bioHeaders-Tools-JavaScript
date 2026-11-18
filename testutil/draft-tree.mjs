@@ -41,6 +41,9 @@ export function draftTreeWith(mutate = () => {}) {
   // `"type": "module"` lives here, and without it `src/*.js` loads as CommonJS - a copy
   // that fails for that reason would test the fixture harness, not the lane.
   cpSync(join(ROOT, 'package.json'), join(dir, 'package.json'));
+  // The draft runner prints the shared suite's count from the vendored provenance record.
+  mkdirSync(join(dir, 'conformance'), { recursive: true });
+  cpSync(join(ROOT, 'conformance', 'provenance.json'), join(dir, 'conformance', 'provenance.json'));
   // Dependencies are the one part that is linked rather than copied: `ajv` is resolved by
   // package lookup from the importing file, so a link is enough, and copying node_modules
   // to answer one lookup would make the fixture slower than what it proves.

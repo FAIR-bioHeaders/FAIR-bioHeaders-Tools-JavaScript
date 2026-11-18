@@ -3,16 +3,16 @@
   "source": {
     "repository": "FAIR-bioHeaders-Specification",
     "url": "https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification",
-    "ref": "main",
-    "commit": "a60bc02ad94c364e4bff30d43561c60663d72beb",
+    "ref": "v0.6.0",
+    "commit": "0ae18b00ee4bd71ab2dc28bae706b0f9d195076b",
     "path": "conformance",
-    "retrieved": "2026-11-14",
-    "note": "The vector files are identical to those at tag v0.6.0 (0ae18b00ee4bd71ab2dc28bae706b0f9d195076b); main differs only in conformance/manifest.json, where the retired converterResults field was removed, and in conformance/README.md."
+    "retrieved": "2026-11-18",
+    "note": "Every file here is byte-identical to conformance/ at tag v0.6.0, which is the release these vectors were generated for. The copy taken on 2026-11-14 came from main at a60bc02ad94c364e4bff30d43561c60663d72beb and matched no tag: its manifest.json lacked the converterResults field of two vectors and its README.md had been reworded. Re-vendored on 2026-11-18 so the copy is a released artefact; the vector files themselves did not change."
   },
   "vectors": 291,
   "files": 294,
-  "manifestSha256": "bc3edf9e9d2e248b70c7c90eb6011a83054b201547c1f4ddb5576baaa5ee0989",
-  "combinedSha256": "8708420cb7ad2aedc3cf850921e6579728b972bf662e3c63a97a321152254b4a",
+  "manifestSha256": "cdbb79b1fbfda52b27a9f54b73d3bae1efb662efcbb4c41ba02b9e3be40a51e1",
+  "combinedSha256": "346615a0541fcad69f73fdf44f4ae5e328fc24bb7a02eb4d5fb6c3325311cf47",
   "formats": {
     "fasta": 98,
     "gfa": 56,
@@ -22,7 +22,7 @@
     "microdata": 26
   },
   "perFile": {
-    "README.md": "9f84bb073d32d29b0907084f944e463cb702a310220f0a9ffcd75f8380af11f5",
+    "README.md": "b0732b5dc4eb09ca777e3d463685c1dbe9436393ed54ed711c08e20e0ab33ff0",
     "invalid/fasta-block-literal-checksum.fhr.fasta": "80dba4339c430205191e67e2a66b302ec858b0d837c5dacc5bfe40b4f6dd278e",
     "invalid/fasta-checksum-terminator-hashed.fhr.fasta": "84ed0c8960c6ee73303e0a73bc78080f8e2aaff8ecdbfe94eaf7627f9860ffa2",
     "invalid/fasta-comment-on-checksum-line.fhr.fasta": "aedea69ed6adac488f524876f681a10d0474cbe740a3ed08ffc243ec2e17eaf4",
@@ -195,7 +195,7 @@
     "invalid/microdata-type-mismatch-value-attribute.fhr.html": "41268537704b29ce80d3177aea7ee0dadf16aae307e340e0562ef579d7930d3a",
     "invalid/microdata-type-mismatch.fhr.html": "76cb4064341c6dae1cbf64e1613731921169f3ef258bf752d91c2088a7c4bfa4",
     "invalid/microdata-value-attribute-applies.fhr.html": "c0f06778b1f24b78b25f67d7f18f0cee1e793db0303f7935b878c692a06a012f",
-    "manifest.json": "bc3edf9e9d2e248b70c7c90eb6011a83054b201547c1f4ddb5576baaa5ee0989",
+    "manifest.json": "cdbb79b1fbfda52b27a9f54b73d3bae1efb662efcbb4c41ba02b9e3be40a51e1",
     "valid/fasta-bgzf.fhr.fasta.gz": "fc6deb4c1b50901e437dd936a9222433dc9f732e4e48ea513ef9b8d305df72c3",
     "valid/fasta-checksum-first.fhr.fasta": "b98e311d86f22f32a1bc97dc4b8e13543c1993533b76fc9c1e555598ef9304b6",
     "valid/fasta-checksum-trailing-spaces.fhr.fasta": "501d4ad3218ef6e36c9b1056057c382e0d03a91de496b6379efc2453f9025a65",

@@ -239,7 +239,7 @@ the 291. Full breakdown, and the list of what is not implemented or claimed:
 [`docs/CONFORMANCE.md`](docs/CONFORMANCE.md), and [`docs/USAGE.md`](docs/USAGE.md) for recipes.
 
 The same vectors were also run through the released Python toolkit
-(`fair-bioheaders` 0.11.0) for comparison: `npm run capability:toolkit` reports
+(`fair-bioheaders` 0.12.0) for comparison: `npm run capability:toolkit` reports
 validity on 217 uncompressed sequence vectors and byte-equality of `strip` on the
 77 valid ones, with no disagreements.
 

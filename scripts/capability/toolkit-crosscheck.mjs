@@ -12,7 +12,7 @@
  * Without the toolkit it exits 3 and says so; it never reports a pass it did
  * not compute.
  *
- *     FHR_TOOLKIT_BIN=/path/to/.venvs/converter-0.11.0/bin \
+ *     FHR_TOOLKIT_BIN=/path/to/.venvs/converter-0.12.0/bin \
  *       node scripts/capability/toolkit-crosscheck.mjs [path/to/conformance ...]
  *
  * Recorded output: `docs/CAPABILITY.md`.

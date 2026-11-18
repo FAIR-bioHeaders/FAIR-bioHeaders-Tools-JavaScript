@@ -121,9 +121,8 @@ describe('default gate (rule V7: no lane requested)', () => {
 
   it('covers every vector of the pinned shared suite', () => {
     const manifest = JSON.parse(readFileSync(join(SUITE, 'manifest.json'), 'utf8'));
-    assert.equal(manifest.vectors.length, 291, 'the shared suite this golden was pinned at holds 291 vectors');
     assert.equal(golden.vectors.length, manifest.vectors.length, 'the golden holds one row per vector');
-    assert.equal(golden.counts.vectors, 291);
+    assert.equal(golden.counts.vectors, manifest.vectors.length, 'and counts the same vectors the vendored suite holds');
   });
 
   it('reads every vector exactly as the pre-lane tree did', () => {

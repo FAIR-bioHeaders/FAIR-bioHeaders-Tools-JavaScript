@@ -27,6 +27,10 @@ import { containerFor, notRunReason } from '../src/serializations.js';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SUITE = join(ROOT, 'conformance');
 const manifest = JSON.parse(readFileSync(join(SUITE, 'manifest.json'), 'utf8'));
+// The vector count comes from the provenance record of the vendored copy, which
+// `npm run check:vendoring` ties to the manifest bytes, so a re-vendor changes the
+// count in one place instead of in every test that mentions it.
+const provenance = JSON.parse(readFileSync(join(SUITE, 'provenance.json'), 'utf8'));
 
 // Which formats are scored, and which are declared not-run with a reason, comes
 // from src/serializations.js: the runner, the capability matrix, the acceptance
@@ -67,9 +71,11 @@ const supported = manifest.vectors.filter((vector) => containerFor(vector.format
 const unsupportedVectors = manifest.vectors.filter((vector) => notRunReason(vector) !== null);
 
 describe('shared conformance vectors', () => {
-  it('cover the 291 vectors this suite was pinned at', () => {
-    assert.equal(manifest.vectors.length, 291);
-    assert.equal(supported.length + unsupportedVectors.length, 291);
+  it('cover every vector of the pinned suite, each either run or reported not-run', () => {
+    assert.ok(Number.isInteger(provenance.vectors) && provenance.vectors > 0, 'conformance/provenance.json records the vector count');
+    assert.equal(manifest.vectors.length, provenance.vectors, 'the manifest holds the vectors its provenance records');
+    assert.equal(supported.length + unsupportedVectors.length, manifest.vectors.length, 'no vector is neither run nor reported');
+    assert.equal(new Set(manifest.vectors.map((vector) => vector.id)).size, manifest.vectors.length, 'vector ids are unique');
   });
 
   for (const vector of supported) {

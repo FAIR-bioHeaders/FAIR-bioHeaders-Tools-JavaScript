@@ -419,9 +419,10 @@ describe('the draft-lane runner enforces the suite pin', () => {
     assert.match(runner, /verifySuitePin/, 'the runner verifies before it scores');
   });
 
-  it('cannot move the shared ledger: the 291 holds no draft vector', () => {
+  it('cannot move the shared ledger: the shared suite holds no draft vector', () => {
     const manifest = JSON.parse(readFileSync(join(ROOT, 'conformance', 'manifest.json'), 'utf8'));
-    assert.equal(manifest.vectors.length, 291);
+    const provenance = JSON.parse(readFileSync(join(ROOT, 'conformance', 'provenance.json'), 'utf8'));
+    assert.equal(manifest.vectors.length, provenance.vectors, 'the shared count is the vendored suite\'s own, and no draft run adds to it');
     assert.equal(manifest.vectors.filter((vector) => /^fht|^fhgm/.test(String(vector.format))).length, 0);
   });
 

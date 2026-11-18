@@ -49,8 +49,8 @@ and each exits 3 with a message rather than reporting a pass when the reference 
 missing:
 
 ```sh
-FHR_PYTHON=/path/to/.venvs/converter-0.11.0/bin/python npm run capability:yaml -- --sweep
-FHR_TOOLKIT_BIN=/path/to/.venvs/converter-0.11.0/bin  npm run capability:toolkit
+FHR_PYTHON=/path/to/.venvs/converter-0.12.0/bin/python npm run capability:yaml -- --sweep
+FHR_TOOLKIT_BIN=/path/to/.venvs/converter-0.12.0/bin  npm run capability:toolkit
 npm run capability:ajv      # needs nothing but the installed dependencies
 npm run capability:digest   # needs nothing but the installed dependencies
 ```
