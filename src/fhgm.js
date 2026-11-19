@@ -502,7 +502,7 @@ function checkSnapshot(header, settings) {
   return { valid: errors.length === 0, errors, warnings, records, byModelId, rules };
 }
 
-const STRICT_UTF8 = new TextDecoder('utf-8', { fatal: true });
+const STRICT_UTF8 = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
 
 /**
  * Percent-decode a GFF3 `ID=` value over raw bytes, matching Python's
