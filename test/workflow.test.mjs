@@ -204,6 +204,36 @@ describe('the CI workflow is native where it has to be', () => {
     assert.ok(!(ci.jobs[PRIMARY].steps ?? []).some((step) => /suite-pin/.test(String(step.run ?? ''))), 'the primary job does not run suite controls: it needs no upstream checkout');
   });
 
+  it('preserves script exit status through every non-advisory tee pipeline (#23)', () => {
+    const checkPipefail = (jobId, job) => {
+      if (job['continue-on-error'] === true) return [];
+      const offenders = [];
+      for (const step of job.steps ?? []) {
+        if (step['continue-on-error'] === true) continue;
+        const script = String(step.run ?? '');
+        if (!/\|\s*tee\b/.test(script)) continue;
+        if (!/\bset\s+-[A-Za-z]*o\s+pipefail\b/.test(script)) {
+          offenders.push(`${jobId} / ${step.name ?? '(unnamed)'}: pipes into tee without pipefail`);
+        }
+      }
+      return offenders;
+    };
+    const offenders = Object.entries(ci.jobs).flatMap(([id, job]) => checkPipefail(id, job));
+    assert.deepEqual(offenders, [], 'every non-advisory run step that pipes into tee must enable pipefail');
+    // Self-check that the detector fails when pipefail is stripped from either gated tee step:
+    const strippedNative = structuredClone(ci.jobs[PRIMARY]);
+    for (const step of strippedNative.steps ?? []) {
+      if (typeof step.run === 'string') step.run = step.run.replace(/\bset\s+-[A-Za-z]*o\s+pipefail\b/g, 'set -eu');
+    }
+    assert.equal(checkPipefail(PRIMARY, strippedNative).length, 1, 'removing pipefail from native tee step must be caught');
+    const strippedDraft = structuredClone(ci.jobs['draft-lane']);
+    for (const step of strippedDraft.steps ?? []) {
+      if (typeof step.run === 'string') step.run = step.run.replace(/\bset\s+-[A-Za-z]*o\s+pipefail\b/g, 'set -eu');
+    }
+    assert.equal(checkPipefail('draft-lane', strippedDraft).length, 1, 'removing pipefail from draft-lane tee step must be caught');
+    assert.notEqual(ci.jobs['draft-lane']['continue-on-error'], true, 'draft-lane is a real gate on the pinned draft suites, never continue-on-error');
+  });
+
   it('keeps draft-pin freshness advisory, native, and incapable of reporting a verdict it cannot support', () => {
     const job = ci.jobs['draft-pin-freshness'];
     assert.ok(job !== undefined, 'ci.yml must define a "draft-pin-freshness" job: a pin that nothing checks against live main is a stale claim waiting to happen');

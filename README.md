@@ -223,9 +223,12 @@ run** (jsonld 37, microdata 26) because those reader paths are not implemented.
 They are reported as skipped with a reason, never as passes. With the V7 lane
 requested, the same reading path is exercised against the two development suites
 that own the drafts, each verified against its own pin before anything is scored:
-**140 of the 144 draft vectors pass.** FHT **82/82, 0 fail, 0 not-run** at suite pin
-`86438f21` (`C1`/`C2`/`C3`, the labels the registry states), and FHGM **58 pass, 4 fail,
-0 not-run** at suite pin `06176262` — the four failures stated below, not smoothed over.
+**all 144 draft vectors pass.** FHT **82/82, 0 fail, 0 not-run** at suite pin
+`86438f21` (`C1`/`C2`/`C3`, the labels the registry states), and FHGM **62/62, 0 fail,
+0 not-run** at suite pin `06176262` — FHGM scored 58/4 when the re-pin landed on
+2026-11-18; the four named `layers.model` expectations of FHGM-Specification#29 are
+implemented in this build (2026-11-19), against a draft whose upstream semantics
+`FHGM#22`/`#27`/`#28`/`#32` still hold open.
 The re-pin of 2026-11-18 moved **both contract byte sets** for the first time since the
 lane existed: the old pins (FHT `226f923c`/`be9bcc82` at 72 vectors, FHGM
 `ac3d37b3`/`c503ecf3` at 43) are superseded and named in `previousPin` fields of
@@ -240,12 +243,14 @@ revision or says it names none. A K4 vector whose feature layer is absent or
 untrustworthy is still reported not-run with that state, never scored by assumption, and
 so is a vector whose `layers.gff3` expectation asks about the feature layer this library
 does not judge. Four of the 82 FHT vectors carry `promotion: candidate-unreviewed` upstream,
-twelve FHGM vectors came from a packet marked `Status: DRAFT`, and FHGM's four failures are
-this build not yet implementing four expectations FHGM-Specification#29 added to
+twelve FHGM vectors came from a packet marked `Status: DRAFT`, and FHGM's four
+failures on the day the re-pin landed were this build not yet implementing four
+expectations FHGM-Specification#29 added to
 `layers.model` — base selection by cited release (`carrier-cites-raw-main`), root-gene-row
 target and raw-vs-decoded featureId identity (`feature-target-gene-with-parent`,
 `feature-id-names-percent-encoding`), and NFC-compared modelId uniqueness
-(`model-ids-equal-under-nfc`); they are reported by name with their reasons
+(`model-ids-equal-under-nfc`); those four are implemented in this build (2026-11-19,
+Round 14 #23). They are reported by name with their reasons
 ([`docs/CONFORMANCE.md`](docs/CONFORMANCE.md)), because a pass on an unreviewed expectation
 is agreement with a draft claim, not review of it, and a failure is where the work is.
 Those counts are draft evidence and are never added to

@@ -100,7 +100,8 @@
         "suiteManifestSha256": "0d2790151c4a29551e9b92fb6b3c3c62ea062f2889ffbd00b3c425e7b6da3458",
         "suiteManifestBytes": 51114,
         "suiteVectors": 43
-      }
+      },
+      "laneStanding": "Measured 2026-11-19 (Round 14 #23) against the same pinned bytes (suite 06176262, manifest e41f05fd…): 62 pass / 0 fail / 0 not-run. The four expectations FHGM-Specification#29 added, named as failures in the verification above, are implemented in this build: K1 refuses a carrier whose cited schema URL is not a registered base release of the pinned overlay (raw main, v0.4.0, or missing); K4 targets only a root gene row — a Parent= with no value or a bare Parent token is indeterminate and rejects — and decodes row ID= over raw bytes with strict UTF-8, so an un-decodable escape such as %FF is unaddressable, while the record's featureId is compared as written; K3 compares modelIds after Unicode NFC normalisation, after the whole-record K2 pass and before per-record K4/K5. These implement the FHGM#29 reading of a DRAFT: FHGM-Specification#22/#27/#28/#32 remain open upstream and an accepted decision can move the expectations; this field names the bytes this build answers to, not a settled rule text. The 2026-11-18 verification above is retained as the dated measurement it was."
     }
   }
 }

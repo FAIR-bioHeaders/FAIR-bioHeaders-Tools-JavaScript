@@ -11,7 +11,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { FeatureRowIndexer, GENE_ROW_TYPES, MAX_LISTED_PROBLEMS, indexGff3FeatureRows, isGeneRowType } from '../src/features.js';
+import { FeatureRowIndexer, GENE_ROW_TYPES, MAX_LISTED_PROBLEMS, PARENT_STATE, indexGff3FeatureRows, isGeneRowType } from '../src/features.js';
 
 const GENE = 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=toy-a';
 const RNA = 'toy\tpilot\tlncRNA\t10\t30\t.\t+\t.\tID=toy-a-rna;Parent=toy-a';
@@ -23,8 +23,8 @@ describe('indexGff3FeatureRows', () => {
     assert.deepEqual(index.problems, []);
     assert.deepEqual(index.rows, [
       { id: 'toy-a', type: 'gene', line: 2 },
-      { id: 'toy-a-rna', type: 'lncRNA', line: 3 },
-    ], 'the exon carries no ID and contributes no entry');
+      { id: 'toy-a-rna', type: 'lncRNA', line: 3, parent: 'nested' },
+    ], 'the exon carries no ID and contributes no entry; the transcript row records its Parent');
   });
 
   it('keeps percent escapes in the id: decoding is the K4 comparison step, not the scanner step', () => {
@@ -169,6 +169,22 @@ describe('indexGff3FeatureRows', () => {
     split.push(bytes.subarray(0, at));
     split.push(bytes.subarray(at));
     assert.deepEqual(split.finish(), whole, 'a CRLF cut between its two bytes is still one line');
+  });
+
+  it('distinguishes absent, nested and indeterminate Parent attributes on indexed rows (#23)', () => {
+    const rootRow = 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=g-root';
+    const nestedRow = 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=g-nested;Parent=p1';
+    const emptyParentRow = 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=g-empty;Parent=';
+    const bareParentRow = 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=g-bare;Parent';
+    const spacedParentRow = 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=g-spaced; Parent=p1';
+    const index = indexGff3FeatureRows([rootRow, nestedRow, emptyParentRow, bareParentRow, spacedParentRow].join('\n'));
+    assert.deepEqual(index.rows, [
+      { id: 'g-root', type: 'gene', line: 1 },
+      { id: 'g-nested', type: 'gene', line: 2, parent: PARENT_STATE.nested },
+      { id: 'g-empty', type: 'gene', line: 3, parent: PARENT_STATE.indeterminate },
+      { id: 'g-bare', type: 'gene', line: 4, parent: PARENT_STATE.indeterminate },
+      { id: 'g-spaced', type: 'gene', line: 5 },
+    ]);
   });
 });
 

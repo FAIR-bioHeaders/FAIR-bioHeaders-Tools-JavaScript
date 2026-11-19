@@ -23,31 +23,27 @@
  * `development/conformance/manifest.json`:
  *
  * - K1 transport: the header states a `schemaVersion` that admits extension
- *   fields - 1.1 or later, per R15 - and carries one or more records under the
- *   single top-level `x-fhgm-models` key. `overlay: true` additionally applies
- *   the pinned transport overlay. Since FHGM-Specification#17 (the maintainer
- *   dual-base decision of 2026-11-15) that overlay admits either released FHGFF3
- *   identity a carrier can cite, and since FHGM-Specification#26 - vendored by
- *   this build's 2026-11-18 re-pin - as a widened v0.6.0 branch: the v0.5.0
- *   citation set pairs only with `schemaVersion` 1.1, while the v0.6.0 citation
- *   set (w3id, raw tag under either repository name, trailing slash either way)
- *   pairs with 1.2 or 1.1, because the v0.6.0 release accepts 1.1 records per
- *   the shared docs/SCHEMA-VERSIONS.md. Each branch is a closed pairing, so a
- *   citation and a stated version that contradict each other - a v0.5.0
- *   citation stating 1.2 - are refused by the overlay and neither branch falls
- *   back to the other. R15 alone reads only the
- *   stated version, so seeing the contradiction is the overlay's contribution,
- *   not the default reading's; the narrower single-pin overlay this repository
- *   vendored before that decision could not tell 1.1 and 1.2 apart either, and
- *   the divergence recorded here in favour of R15 is closed. The overlay stays
- *   opt-in: this library's default verdict is the published rule, and a pin in
- *   another repository's draft is evidence a caller can ask for, not a norm this
- *   build silently adopts. `docs/CAPABILITY.md` records both readings.
+ *   fields - 1.1 or later, per R15 - cites a registered FHGFF3 base release URL
+ *   recognised by the pinned transport overlay (v0.5.0 or v0.6.0, w3id with or
+ *   without trailing slash or raw tag under FAIR-bioHeaders-Specification or the
+ *   FHR-Specification compatibility alias; refusing raw main, superseded
+ *   releases such as v0.4.0, or a missing URL), and carries one or more records
+ *   under the single top-level `x-fhgm-models` key. `overlay: true` additionally
+ *   applies the full pinned transport overlay schema, which since
+ *   FHGM-Specification#17 and #26 enforces the closed branch pairing of the
+ *   cited release with its admitted `schemaVersion` (`1.1` for v0.5.0; `1.1` or
+ *   `1.2` for v0.6.0), so a citation and a stated version that contradict each
+ *   other - a v0.5.0 citation stating 1.2 - are refused by the overlay and
+ *   neither branch falls back to the other. `docs/CAPABILITY.md` records both
+ *   readings.
  * - K2 record shape: every record validates against the pinned record contract,
- *   whose required set is `modelId`, `modelVersion`, `featureId` and `reference`.
- * - K3 uniqueness: `modelId` is unique within one snapshot; a shared id makes the
- *   identity a pointer needs unselectable, is reported as ambiguous, and rejects
- *   that snapshot - the current one or a supplied predecessor.
+ *   whose required set is `modelId`, `modelVersion`, `featureId` and `reference`,
+ *   evaluated across the whole record array before K3 compares identities.
+ * - K3 uniqueness: `modelId` is unique within one snapshot after Unicode NFC
+ *   normalisation, checked before any per-record K4/K5 rule; a shared id (or two
+ *   distinct spellings that fold together under NFC) makes the identity a
+ *   pointer needs unselectable, is reported as ambiguous, and rejects that
+ *   snapshot - the current one or a supplied predecessor.
  * - K5 reference agreement: a record reference shares at least one comparable
  *   form with the file's genome link and never contradicts it. Both halves are
  *   enforced, which the draft records as stricter than its own adoption summary.
@@ -58,17 +54,23 @@
  *
  * K4 feature-target resolution, and its boundary:
  *
- * - K4: a `featureId` must resolve, percent-decoded, to exactly one local gene
- *   row. Resolving it means reading the GFF3 feature layer below the header, so
- *   the API is an injected resolver: `options.features` is either row facts the
- *   caller took from elsewhere (`[{id, type}]`, the same two facts K4 needs that
- *   gff3-validator or any other feature tool computes) or the GFF3 content
- *   itself, which `src/features.js` indexes minimally - the `type` and `ID` of
- *   each feature row, nothing else. `inspectBytes` supplies the default: when
- *   the FHGM lane is open on a file, K4 resolves against that file's own bytes,
- *   which is what a reader of the file can honestly claim. This remains not a
- *   feature validator: SO terms, coordinates, parent/child structure and biology
- *   belong to gff3-validator, and no row fact read here judges them.
+ * - K4: a `featureId` (a plain YAML string in the record, never percent-decoded
+ *   on the record side) must resolve to the percent-decoded `ID=` of exactly one
+ *   local root `gene` row (`gene` or `SO:0000704` with no `Parent` attribute).
+ *   A gene row carrying a non-empty `Parent` attribute is nested, and a row
+ *   carrying an empty `Parent=` or bare `Parent` token has an indeterminate
+ *   parent relationship; neither is a root gene row and both reject. Percent-decoding
+ *   of the GFF3 `ID=` value operates on raw bytes with strict UTF-8 decoding, so
+ *   an invalid UTF-8 escape such as `%FF` is unaddressable by any text `featureId`
+ *   and never substitutes `U+FFFD`. Resolving it means reading the GFF3 feature
+ *   layer below the header, so the API is an injected resolver: `options.features`
+ *   is either row facts the caller took from elsewhere (`[{id, type, parent?}]`)
+ *   or the GFF3 content itself, which `src/features.js` indexes minimally.
+ *   `inspectBytes` supplies the default: when the FHGM lane is open on a file,
+ *   K4 resolves against that file's own bytes, which is what a reader of the
+ *   file can honestly claim. This remains not a feature validator: SO terms,
+ *   coordinates, parent/child structure and biology belong to gff3-validator,
+ *   and no row fact read here judges them.
  * - when no feature layer exists for the reading (a bare `checkFhgmModels` call
  *   with no resolver) `rules.K4` is `not-checked`; when the layer is present but
  *   untrustworthy (a row without nine fields, compressed content handed to the
@@ -96,7 +98,7 @@
 
 import { HeaderError } from './errors.js';
 import { draftEntry, draftWarning, loadDraft } from './drafts.js';
-import { indexGff3FeatureRows, isGeneRowType } from './features.js';
+import { PARENT_STATE, indexGff3FeatureRows, isGeneRowType } from './features.js';
 import { draftValidator, emptyValueWarnings, hasAcceptedLinkScheme } from './validate.js';
 
 /** The R15 extension key the draft pilot transports records under. */
@@ -283,6 +285,25 @@ function recordLinkSchemeWarnings(record) {
 }
 
 /**
+ * Whether the carrier cites a registered FHGFF3 base release URL named in the
+ * pinned transport overlay (`development/model/base-schemas.json` /
+ * `fhgm-transport-draft.json`).
+ *
+ * @param {unknown} cited
+ * @returns {boolean}
+ */
+function isRegisteredCarrierCitation(cited) {
+  if (typeof cited !== 'string' || cited === '') return false;
+  const loaded = loadDraft('FHGM', 'overlay');
+  if (loaded === null) throw new HeaderError('the pinned FHGM transport overlay is unavailable (rule V7)', { rule: 'V7' });
+  const branches = Array.isArray(loaded.schema?.anyOf) ? loaded.schema.anyOf : [];
+  return branches.some((branch) => {
+    const allowed = branch?.properties?.schema?.enum;
+    return Array.isArray(allowed) && allowed.includes(cited);
+  });
+}
+
+/**
  * Run the snapshot-level rules over one FHGFF3 header: K1, K2, K3 and K5.
  *
  * This is the unit both the current file and every supplied predecessor go
@@ -324,6 +345,18 @@ function checkSnapshot(header, settings) {
     return { valid: false, errors, warnings, records, byModelId, rules: { ...rules, K2: 'skipped', K3: 'skipped', K4: 'skipped', K5: 'skipped' } };
   }
 
+  // K1 carrier-citation check: the carrier must cite a registered FHGFF3 base
+  // release URL (v0.5.0 or v0.6.0, w3id with or without trailing slash or raw tag
+  // under FAIR-bioHeaders-Specification or FHR-Specification). Raw main, a
+  // superseded release such as v0.4.0, or a missing citation is refused.
+  const citedSchema = header.schema;
+  if (!isRegisteredCarrierCitation(citedSchema)) {
+    rules.K1 = 'reject';
+    errors.push(
+      `${label} K1: the carrier cites schema ${JSON.stringify(citedSchema ?? null)}, which no registered FHGFF3 base release in the pinned draft overlay answers to`,
+    );
+  }
+
   if (settings.overlay) {
     const loaded = loadDraft('FHGM', 'overlay');
     if (loaded === null) throw new HeaderError('the pinned FHGM transport overlay is unavailable (rule V7)', { rule: 'V7' });
@@ -344,6 +377,9 @@ function checkSnapshot(header, settings) {
   const { validate } = draftValidator('FHGM', 'contract');
   const fileForms = referenceForms(header, 'header');
 
+  // K2 first, across the whole record array, so every record is validated before
+  // K3 compares modelIds. A missing or non-string modelId is a K2 error and must
+  // never invent an empty identity or be masked by K3.
   models.forEach((raw, index) => {
     if (!isObject(raw)) return; // K1 already refused a non-record entry
     const ok = validate(raw);
@@ -369,24 +405,72 @@ function checkSnapshot(header, settings) {
       predecessor: null,
       featureTarget: null,
     };
+    records.push(result);
+  });
+
+  // K3 uniqueness next, before per-record K4/K5 checks, comparing non-empty string
+  // modelIds after Unicode NFC normalisation (Deviation D4).
+  /** @type {Map<string, string[]>} */
+  const spellingsByNfc = new Map();
+  records.forEach((result, index) => {
+    const raw = models[index];
+    if (!isObject(raw)) return;
+    if (typeof result.modelId === 'string' && result.modelId !== '') {
+      const normalized = result.modelId.normalize('NFC');
+      const seen = spellingsByNfc.get(normalized);
+      if (seen !== undefined) {
+        seen.push(result.modelId);
+        rules.K3 = 'reject';
+        const distinct = [...new Set(seen)];
+        const detail = distinct.length > 1 ? ` (${distinct.length} spellings equal under NFC normalisation)` : '';
+        errors.push(
+          `${label} K3: Ambiguous model ID ${JSON.stringify(result.modelId)}: more than one record in this snapshot shares it${detail}, so the identity a pointer needs is unselectable`,
+        );
+      } else {
+        spellingsByNfc.set(normalized, [result.modelId]);
+        byModelId.set(result.modelId, raw);
+      }
+    }
+  });
+
+  // Per-record K4 and K5 checks.
+  records.forEach((result, index) => {
+    const raw = models[index];
+    if (!isObject(raw)) return;
 
     // K4, only against rows this reading actually got. No layer means nothing to
     // resolve against, which is `not-checked`, not a pass and not a rejection; an
     // untrustworthy layer is `unchecked` on every record, for the same reason.
-    if (recordErrors.length === 0) {
+    // The record's featureId is a plain YAML string and is NOT percent-decoded;
+    // only the GFF3 row's ID= attribute was percent-decoded when indexed.
+    if (result.errors.length === 0) {
       if (layer.state === 'rows') {
-        const decoded = decodeFeatureId(/** @type {string} */ (result.featureId));
-        const types = layer.rows.get(decoded) ?? [];
-        if (types.length === 1 && isGeneRowType(types[0])) {
-          result.featureTarget = { verdict: 'pass', detail: `one local gene row carries the decoded ID ${JSON.stringify(decoded)}` };
+        const targetId = /** @type {string} */ (result.featureId);
+        const matches = layer.rows.get(targetId) ?? [];
+        const unreadableNote
+          = layer.undecodableIds > 0
+            ? `; the feature layer also carries ${layer.undecodableIds} row ID(s) whose percent-decoded bytes are not valid UTF-8, so no text featureId can name them`
+            : '';
+        if (matches.length === 1 && isGeneRowType(matches[0].type)) {
+          if (matches[0].parent === PARENT_STATE.absent) {
+            result.featureTarget = { verdict: 'pass', detail: `one local root gene row carries the decoded ID ${JSON.stringify(targetId)}` };
+          } else {
+            rules.K4 = 'reject';
+            const why
+              = matches[0].parent === PARENT_STATE.nested
+                ? `the single local gene row carrying the decoded ID ${JSON.stringify(targetId)} has a Parent attribute, so it is not a root gene row`
+                : `the single local gene row carrying the decoded ID ${JSON.stringify(targetId)} carries a Parent attribute with no readable value, so this reader cannot establish that it is a root gene row`;
+            result.featureTarget = { verdict: 'reject', detail: why };
+            errors.push(`${label} K4 record ${index}: its featureId must target one local gene row, and ${JSON.stringify(result.featureId)} does not: ${why}`);
+          }
         } else {
           rules.K4 = 'reject';
           const why
-            = types.length === 0
-              ? `no local feature row carries the decoded ID ${JSON.stringify(decoded)}`
-              : types.length > 1
-                ? `${types.length} local feature rows share the decoded ID ${JSON.stringify(decoded)}, so it is not exactly one row`
-                : `the single local row carrying the decoded ID ${JSON.stringify(decoded)} is of type ${JSON.stringify(types[0])}, not a gene row`;
+            = matches.length === 0
+              ? `no local feature row carries the decoded ID ${JSON.stringify(targetId)}${unreadableNote}`
+              : matches.length > 1
+                ? `${matches.length} local feature rows share the decoded ID ${JSON.stringify(targetId)}, so it is not exactly one row`
+                : `the single local row carrying the decoded ID ${JSON.stringify(targetId)} is of type ${JSON.stringify(matches[0].type)}, not a gene row`;
           result.featureTarget = { verdict: 'reject', detail: why };
           errors.push(`${label} K4 record ${index}: its featureId must target one local gene row, and ${JSON.stringify(result.featureId)} does not: ${why}`);
         }
@@ -405,16 +489,6 @@ function checkSnapshot(header, settings) {
         `${label} K5 record ${index}: has no reference form comparable with the file genome link (the file states ${Object.keys(fileForms).join(', ') || 'nothing'}; the record states ${Object.keys(recordForms).join(', ') || 'nothing'})`,
       );
     }
-
-    if (result.modelId !== null) {
-      if (byModelId.has(result.modelId)) {
-        rules.K3 = 'reject';
-        errors.push(`${label} K3: Ambiguous model ID ${JSON.stringify(result.modelId)}: more than one record in this snapshot shares it, so the identity a pointer needs is unselectable`);
-      } else {
-        byModelId.set(result.modelId, raw);
-      }
-    }
-    records.push(result);
   });
 
   // A caller that handed over a layer and got an abstention back is told so in
@@ -428,22 +502,71 @@ function checkSnapshot(header, settings) {
   return { valid: errors.length === 0, errors, warnings, records, byModelId, rules };
 }
 
+const STRICT_UTF8 = new TextDecoder('utf-8', { fatal: true });
+
 /**
- * Percent-decode a featureId the way a GFF3 `ID=` value is decoded.
+ * Percent-decode a GFF3 `ID=` value over raw bytes, matching Python's
+ * `urllib.parse.unquote_to_bytes` and strict UTF-8 decoding.
  *
- * A malformed escape is left as written rather than throwing: the identifier is
- * data, and K4 compares it to whatever the file actually carries.
+ * `%` not followed by two hex digits stays literal, `+` stays `+` (not space),
+ * and if the resulting byte sequence is not valid UTF-8 (for example `%FF`),
+ * `null` is returned rather than substituting U+FFFD so an invalid UTF-8 row ID
+ * can never match a literal U+FFFD in a record's `featureId`.
  *
  * @param {string|null} value
- * @returns {string}
+ * @returns {string|null}
  */
-function decodeFeatureId(value) {
+function decodeGff3RowId(value) {
   if (typeof value !== 'string') return '';
-  try {
-    return decodeURIComponent(value.replace(/\+/g, '%2B'));
-  } catch {
-    return value;
+  const raw = new TextEncoder().encode(value);
+  const out = new Uint8Array(raw.length);
+  let at = 0;
+  for (let i = 0; i < raw.length; i += 1) {
+    if (raw[i] === 0x25 && i + 2 < raw.length) {
+      const hi = hexDigit(raw[i + 1]);
+      const lo = hexDigit(raw[i + 2]);
+      if (hi >= 0 && lo >= 0) {
+        out[at] = (hi << 4) | lo;
+        at += 1;
+        i += 2;
+        continue;
+      }
+    }
+    out[at] = raw[i];
+    at += 1;
   }
+  try {
+    return STRICT_UTF8.decode(out.subarray(0, at));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * @param {number} byte
+ * @returns {number}
+ */
+function hexDigit(byte) {
+  if (byte >= 0x30 && byte <= 0x39) return byte - 0x30;
+  if (byte >= 0x61 && byte <= 0x66) return byte - 0x61 + 10;
+  if (byte >= 0x41 && byte <= 0x46) return byte - 0x41 + 10;
+  return -1;
+}
+
+/**
+ * Normalize a caller-supplied `parent` fact into the three states K4 distinguishes.
+ *
+ * @param {unknown} parent
+ * @returns {'absent'|'nested'|'indeterminate'}
+ */
+function normalizeParentState(parent) {
+  if (parent === undefined || parent === null || parent === false || parent === PARENT_STATE.absent) {
+    return PARENT_STATE.absent;
+  }
+  if (parent === true || parent === PARENT_STATE.nested) return PARENT_STATE.nested;
+  if (parent === PARENT_STATE.indeterminate || parent === '') return PARENT_STATE.indeterminate;
+  if (typeof parent === 'string') return parent.length > 0 ? PARENT_STATE.nested : PARENT_STATE.indeterminate;
+  return PARENT_STATE.indeterminate;
 }
 
 /**
@@ -465,9 +588,10 @@ function decodeFeatureId(value) {
  * is the one that found it empty - it names the abstention in the warnings
  * without inventing a second state for it.
  *
- * @typedef {{state: 'rows', rows: Map<string, string[]>, problems: string[]}
- *   | {state: 'unusable', rows: Map<string, string[]>, problems: string[]}
- *   | {state: 'none', rows: Map<string, string[]>, problems: string[], reason?: string}} FeatureLayer
+ * @typedef {{type: string, parent: 'absent'|'nested'|'indeterminate'}} IndexedRowFact
+ * @typedef {{state: 'rows', rows: Map<string, IndexedRowFact[]>, problems: string[], undecodableIds: number}
+ *   | {state: 'unusable', rows: Map<string, IndexedRowFact[]>, problems: string[], undecodableIds: number}
+ *   | {state: 'none', rows: Map<string, IndexedRowFact[]>, problems: string[], undecodableIds: number, reason?: string}} FeatureLayer
  */
 
 /**
@@ -478,33 +602,39 @@ function decodeFeatureId(value) {
  * @returns {FeatureLayer}
  */
 function absentLayer(reason) {
-  return { state: 'none', rows: new Map(), problems: [], ...(reason === undefined ? {} : { reason }) };
+  return { state: 'none', rows: new Map(), problems: [], undecodableIds: 0, ...(reason === undefined ? {} : { reason }) };
 }
 
 /**
- * @param {Array<{id: string, type: string}>} rows feature rows with decoded ids
+ * @param {Array<{id: string|null, type: string, parent: 'absent'|'nested'|'indeterminate'}>} rows feature rows with decoded ids
  * @returns {FeatureLayer}
  */
 function indexRows(rows) {
-  /** @type {Map<string, string[]>} */
+  /** @type {Map<string, IndexedRowFact[]>} */
   const index = new Map();
+  let undecodableIds = 0;
   for (const row of rows) {
-    const types = index.get(row.id);
-    if (types === undefined) index.set(row.id, [row.type]);
-    else types.push(row.type);
+    if (row.id === null) {
+      undecodableIds += 1;
+      continue;
+    }
+    const entries = index.get(row.id);
+    const fact = { type: row.type, parent: row.parent };
+    if (entries === undefined) index.set(row.id, [fact]);
+    else entries.push(fact);
   }
-  return { state: 'rows', rows: index, problems: [] };
+  return { state: 'rows', rows: index, problems: [], undecodableIds };
 }
 
 /**
  * Resolve the K4 feature layer for one call, in the order the caller chose.
  *
  * `features` first - bytes or text indexed by `src/features.js`, or row facts
- * taken from elsewhere; its ids are percent-decoded here so the comparison is
- * decoded against decoded, whichever side carried escapes. `geneIds` second -
- * the older shorthand of already-decoded gene row ids, where a repeated entry is
- * a second row because the rule counts rows. Neither, at the direct call, is
- * `none`: no layer, no verdict.
+ * taken from elsewhere; its row `ID=` values are percent-decoded here so K4
+ * compares the record's raw `featureId` against the decoded row IDs. `geneIds`
+ * second - the older shorthand of already-decoded root gene row ids, where a
+ * repeated entry is a second row because the rule counts rows. Neither, at the
+ * direct call, is `none`: no layer, no verdict.
  *
  * @param {FhgmOptions} options
  * @returns {FeatureLayer}
@@ -514,17 +644,17 @@ function resolveFeatureLayer(options) {
   if (given !== undefined && given !== null) {
     if (typeof given === 'string' || given instanceof Uint8Array) {
       const indexed = indexGff3FeatureRows(given);
-      if (indexed.problems.length > 0) return { state: 'unusable', rows: new Map(), problems: indexed.problems };
+      if (indexed.problems.length > 0) return { state: 'unusable', rows: new Map(), problems: indexed.problems, undecodableIds: 0 };
       // featureRows is terminator-independent (#21 review, finding 1), so
       // zero here is a characterized emptiness of the layer, not a scanner
       // that failed to see its lines.
       if (indexed.featureRows === 0) return absentLayer('the GFF3 content handed to this reading is readable and trustworthy, but holds no feature rows');
-      return indexRows(indexed.rows.map((row) => ({ id: decodeFeatureId(row.id), type: row.type })));
+      return indexRows(indexed.rows.map((row) => ({ id: decodeGff3RowId(row.id), type: row.type, parent: normalizeParentState(row.parent) })));
     }
     // A FeatureIndex already built (by the streaming reader, or by a caller with
     // indexGff3FeatureRows): its problems count exactly as if the bytes were given.
     if (isObject(given) && Array.isArray(given.rows) && Array.isArray(given.problems)) {
-      if (given.problems.length > 0) return { state: 'unusable', rows: new Map(), problems: [...given.problems] };
+      if (given.problems.length > 0) return { state: 'unusable', rows: new Map(), problems: [...given.problems], undecodableIds: 0 };
       if (typeof given.featureRows === 'number') {
         if (given.featureRows === 0) return absentLayer('the feature index handed to this reading holds no feature rows');
       } else if (given.rows.length === 0) {
@@ -536,18 +666,18 @@ function resolveFeatureLayer(options) {
         // answer is the one outcomes.json already reserves for a layer this
         // reading cannot characterize: unchecked, with the ambiguity itself
         // recorded as the problem (#21 review, finding 2).
-        return { state: 'unusable', rows: new Map(), problems: ['the supplied feature index is empty and carries no featureRows count, so this reading cannot tell a file with no feature rows from rows that carry no identifiers; an uncharacterized layer is never evidence of absence, and is treated as one it cannot trust'] };
+        return { state: 'unusable', rows: new Map(), problems: ['the supplied feature index is empty and carries no featureRows count, so this reading cannot tell a file with no feature rows from rows that carry no identifiers; an uncharacterized layer is never evidence of absence, and is treated as one it cannot trust'], undecodableIds: 0 };
       }
-      return indexRows(given.rows.map((row) => ({ id: decodeFeatureId(row.id), type: row.type })));
+      return indexRows(given.rows.map((row) => ({ id: decodeGff3RowId(row.id), type: row.type, parent: normalizeParentState(row.parent) })));
     }
     if (Array.isArray(given) && given.every((row) => isObject(row) && typeof row.id === 'string' && typeof row.type === 'string')) {
       if (given.length === 0) {
         // Same reasoning as the uncounted prebuilt index: a row-fact array
         // represents its layer through ID-carrying rows only, so an empty
         // one states nothing about whether the file held rows at all.
-        return { state: 'unusable', rows: new Map(), problems: ['the caller stated a feature layer with an empty row-fact array, which cannot tell a file with no feature rows from rows that carry no identifiers; an uncharacterized layer is never evidence of absence, and is treated as one it cannot trust'] };
+        return { state: 'unusable', rows: new Map(), problems: ['the caller stated a feature layer with an empty row-fact array, which cannot tell a file with no feature rows from rows that carry no identifiers; an uncharacterized layer is never evidence of absence, and is treated as one it cannot trust'], undecodableIds: 0 };
       }
-      return indexRows(given.map((row) => ({ id: decodeFeatureId(row.id), type: row.type })));
+      return indexRows(given.map((row) => ({ id: decodeGff3RowId(row.id), type: row.type, parent: normalizeParentState(row.parent) })));
     }
     throw new HeaderError('options.features must be GFF3 text, decompressed GFF3 bytes, a {rows, problems} feature index, or an array of {id, type} row facts (K4)', { rule: 'K4' });
   }
@@ -558,7 +688,7 @@ function resolveFeatureLayer(options) {
     // An empty list stays scoreable here, unlike `features: []`: this shorthand
     // asserts "no local row is a gene row", which a gene target can contradict,
     // and it can never observe the non-gene rows a layer would still hold.
-    return indexRows(options.geneIds.map((id) => ({ id, type: 'gene' })));
+    return indexRows(options.geneIds.map((id) => ({ id, type: 'gene', parent: PARENT_STATE.absent })));
   }
   return absentLayer();
 }

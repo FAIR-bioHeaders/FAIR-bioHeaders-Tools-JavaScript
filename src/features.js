@@ -73,11 +73,21 @@ export function isGeneRowType(type) {
   return GENE_ROW_TYPES.includes(type);
 }
 
+/** What one row's attribute column says about that row's parent. */
+export const PARENT_STATE = Object.freeze({
+  absent: 'absent',
+  nested: 'nested',
+  indeterminate: 'indeterminate',
+});
+
 /**
  * @typedef {object} FeatureRow
  * @property {string} id the `ID=` value as written, percent escapes intact
  * @property {string} type the row's type field (column 3), as written
  * @property {number} line 1-based line number of the row in the source
+ * @property {'absent'|'nested'|'indeterminate'} [parent] whether the row carries no
+ *   Parent tag (`absent`), a non-empty Parent value (`nested`), or an empty/unparseable
+ *   Parent token (`indeterminate`)
  */
 
 /**
@@ -244,17 +254,35 @@ function scanLine(raw, index, rows, problems) {
     problems.push(`${where}: a GFF3 feature row holds nine tab-separated fields, this line holds ${columns.length}; the feature index cannot trust this layer`);
     return undefined;
   }
+  let idValue = null;
+  let sawId = false;
+  /** @type {'absent'|'nested'|'indeterminate'} */
+  let parent = PARENT_STATE.absent;
   for (const attribute of columns[8].split(';')) {
     const eq = attribute.indexOf('=');
-    if (eq < 0) continue;
-    if (attribute.slice(0, eq) !== 'ID') continue;
-    // The first ID tag of the row holds the identifier and no other does, and
-    // a tag with no value is not an identifier: both are the oracle's reading
-    // (gff3-validator `parse_attributes` keeps the first value of a repeated
-    // tag; `_check_reserved` sets `attributes.id` only on a truthy value).
-    const value = attribute.slice(eq + 1);
-    if (value !== '') rows.push({ id: value, type: columns[2], line: index + 1 });
-    break;
+    const key = eq < 0 ? attribute : attribute.slice(0, eq);
+    const value = eq < 0 ? '' : attribute.slice(eq + 1);
+    if (key === 'ID' && !sawId && eq >= 0) {
+      // The first ID tag of the row holds the identifier and no other does, and
+      // a tag with no value is not an identifier: both are the oracle's reading
+      // (gff3-validator `parse_attributes` keeps the first value of a repeated
+      // tag; `_check_reserved` sets `attributes.id` only on a truthy value).
+      sawId = true;
+      if (value !== '') idValue = value;
+    } else if (key === 'Parent' && parent !== PARENT_STATE.nested) {
+      // FHGM#29 requires a root-level gene row (no Parent attribute). A non-empty
+      // Parent value makes the row nested; an empty `Parent=` or bare `Parent`
+      // without `=` cannot support a root claim and is recorded as indeterminate.
+      parent = value !== '' ? PARENT_STATE.nested : PARENT_STATE.indeterminate;
+    }
+  }
+  if (idValue !== null) {
+    rows.push({
+      id: idValue,
+      type: columns[2],
+      line: index + 1,
+      ...(parent === PARENT_STATE.absent ? {} : { parent }),
+    });
   }
   return FEATURE;
 }

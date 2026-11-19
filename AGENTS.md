@@ -246,10 +246,11 @@ The draft-lane run is *labelled draft evidence*, not acceptance: it reads the
 development suites that live in the repositories owning FHT and FHGM, verifies each
 stated suite manifest against its own pin before scoring anything, and its counts are
 never added to the shared 291. The measured counts are FHT **82 pass / 0 fail / 0
-not-run**, from the suite pin `86438f21`, and FHGM **58 pass / 4 fail / 0 not-run**,
-from `06176262` - the four failures being expectations FHGM-Specification#29 added to
-`layers.model` that this build has not implemented yet, each named in
-`docs/CONFORMANCE.md` rather than smoothed over. The re-pin of 2026-11-18 **moved both
+not-run**, from the suite pin `86438f21`, and FHGM **62 pass / 0 fail / 0 not-run**,
+from `06176262` - FHGM scored 58/4 when the re-pin landed (2026-11-18), the four
+`layers.model` expectations FHGM-Specification#29 added being implemented on
+2026-11-19 (Round 14 #23) and named in `docs/CONFORMANCE.md`, together with the
+upstream semantics still open (`FHGM#22`/`#27`/`#28`/`#32`). The re-pin of 2026-11-18 **moved both
 contract byte sets** (`59ad9641`→`4156353a` for FHT, `bf1553ca`→`b7075e58` for FHGM) -
 a suite moving does not usually move a contract, but this one could not be scored
 without it, and a re-pin that changes contract bytes is exactly the louder change the
