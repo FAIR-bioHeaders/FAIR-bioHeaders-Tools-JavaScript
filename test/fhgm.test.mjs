@@ -627,6 +627,29 @@ describe('FHGM#29 pinned-draft parity and adversarial controls (#23)', () => {
     assert.equal(genuineReplacement.rules.K4, 'pass', 'genuine UTF-8 bytes for U+FFFD (%EF%BF%BD) still resolve to literal U+FFFD');
   });
 
+  it('K4 keeps a leading BOM in a decoded row ID: %EF%BB%BFtoy-a never matches the plain toy-a (#21 review, Copilot finding)', () => {
+    // TextDecoder strips a leading BOM by default even with fatal: true; with the
+    // round-13 ignoreBOM fix the U+FEFF survives, so the row addresses as
+    // '\ufefftoy-a' - never as 'toy-a', which is the invented match this guards.
+    // The oracle agrees: unquote_to_bytes('toy-a') != b'\xef\xbb\xbftoy-a'.
+    const bomRow = judge(
+      fhgmHeader({ models: [fhgmRecord({ featureId: 'toy-a' })] }),
+      { features: 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=%EF%BB%BFtoy-a\n' },
+    );
+    assert.equal(bomRow.rules.K4, 'reject',
+      'a BOM-prefixed row ID is a different identifier; matching it fabricates a resolution');
+    assert.match(bomRow.errors.join(' '), /no local feature row carries/);
+
+    // The draft contract forbids U+FEFF in featureId, so K2 prevents this record
+    // from reaching K4. The decoder's retained key is asserted in features.test.mjs.
+    const bomNamed = judge(
+      fhgmHeader({ models: [fhgmRecord({ featureId: '\ufefftoy-a' })] }),
+      { features: 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=%EF%BB%BFtoy-a\n' },
+    );
+    assert.equal(bomNamed.rules.K2, 'reject');
+    assert.equal(bomNamed.records[0].featureTarget, null);
+  });
+
   it('K3 compares modelIds after Unicode NFC normalisation, after whole-array K2 and before K4/K5', () => {
     const nfcAndNfd = judge(
       fhgmHeader({

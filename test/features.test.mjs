@@ -11,6 +11,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { decodeGff3RowId } from '../src/fhgm.js';
 import { FeatureRowIndexer, GENE_ROW_TYPES, MAX_LISTED_PROBLEMS, PARENT_STATE, indexGff3FeatureRows, isGeneRowType } from '../src/features.js';
 
 const GENE = 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=toy-a';
@@ -30,6 +31,11 @@ describe('indexGff3FeatureRows', () => {
   it('keeps percent escapes in the id: decoding is the K4 comparison step, not the scanner step', () => {
     const index = indexGff3FeatureRows('toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=toy%2Da');
     assert.deepEqual(index.rows, [{ id: 'toy%2Da', type: 'gene', line: 1 }]);
+  });
+
+  it('preserves a leading BOM in the decoded row ID', () => {
+    const index = indexGff3FeatureRows('toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=%EF%BB%BFtoy-a');
+    assert.equal(decodeGff3RowId(index.rows[0].id), '\ufefftoy-a');
   });
 
   it('stops at the ##FASTA line, skips directives, header lines and blanks, and survives CRLF', () => {
