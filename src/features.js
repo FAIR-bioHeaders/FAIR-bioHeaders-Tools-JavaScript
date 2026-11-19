@@ -21,6 +21,11 @@
  * checker (`FHGM-Specification/development/model/validate_fhgm.py`, `gene_targets`)
  * does with the vectors K4 was authored against:
  *
+ * - a line ends at LF, at CRLF, or at a lone CR - the terminators the rest of
+ *   this library accepts (`src/lines.js`, `src/scan.js`). Counting rows by
+ *   terminator rather than by content would make an editor's choice of line
+ *   ending decide whether K4 abstains, which is what issue #21's review
+ *   blocked: the same file's rows are the same rows either way;
  * - iteration stops at the `##FASTA` line: sequence bytes are not feature rows;
  * - blank lines and every line starting with `#` are skipped, which removes the
  *   FHGFF3 header block (`#~`), the `##gff-version` line, and other directives;
@@ -30,11 +35,24 @@
  *   `unchecked`, never a rejection of the file and never a pass (rule V7 keeps
  *   draft verdicts beside the released FHGFF3 result, and an unchecked clause
  *   must not move either);
- * - each `ID=` attribute of a row contributes one entry: `ID` values are
- *   percent-escaped in GFF3, and the entry keeps the value as written; decoding
- *   is `src/fhgm.js`'s step, shared with the record side, so K4 compares
- *   decoded identifiers on both sides (the rule text in FHGM-Specification,
- *   "resolves to exactly one local `gene` row (percent-decoded)").
+ * - the first `ID=` attribute of a row holds the identifier and no other
+ *   does: gff3-validator's `parse_attributes` keeps the first value of a
+ *   repeated tag and reports the repeat as GFF-ATT-004, so a second, distinct
+ *   `ID=` on one row is a syntax defect, not an addressable identifier, and an
+ *   `ID=` with no value is not an identifier at all (`_check_reserved` sets
+ *   `attributes.id` only on a truthy value). The index follows both rules
+ *   exactly (issue #11, items 2-prime and 3); judging the row's syntax stays
+ *   gff3-validator's job;
+ * - `ID` values are percent-escaped in GFF3, and an indexed entry keeps the
+ *   value as written; decoding is `src/fhgm.js`'s step, shared with the record
+ *   side, so K4 compares decoded identifiers on both sides (the rule text in
+ *   FHGM-Specification, "resolves to exactly one local `gene` row
+ *   (percent-decoded)");
+ * - every nine-field feature row is counted, whether or not it carries an ID.
+ *   That count - not the number of ID entries - is what tells a caller "this
+ *   layer has no rows to resolve against" apart from "its rows carry no
+ *   identifiers": the first is absent, which is never scored, the second is
+ *   not-found, which is (issue #11, item 1).
  *
  * @module features
  */
@@ -64,9 +82,12 @@ export function isGeneRowType(type) {
 
 /**
  * @typedef {object} FeatureIndex
- * @property {FeatureRow[]} rows one entry per `ID=` attribute seen, in file order
+ * @property {FeatureRow[]} rows one entry per addressable `ID=` attribute seen, in file order;
+ *   a row contributes at most one, for its first non-empty `ID=` tag
  * @property {string[]} problems why the layer cannot be trusted, empty when it can;
  *   a non-empty list means the caller must not score any rule that depends on it
+ * @property {number} featureRows nine-field feature rows scanned, whether or not they
+ *   carry an ID; 0 with no problems is what an oracle calls an absent layer
  */
 
 /**
@@ -89,20 +110,24 @@ export function indexGff3FeatureRows(source) {
       return {
         rows: [],
         problems: ['the feature layer was handed to the index still compressed; decompress it (or pass the bytes to inspectBytes, which indexes the decompressed content)'],
+        featureRows: 0,
       };
     }
     const indexer = new FeatureRowIndexer();
     indexer.push(source);
     return indexer.finish();
   }
-  return { rows: [], problems: [`indexGff3FeatureRows takes decompressed GFF3 text or bytes, found ${source === null ? 'null' : typeof source}`] };
+  return { rows: [], problems: [`indexGff3FeatureRows takes decompressed GFF3 text or bytes, found ${source === null ? 'null' : typeof source}`], featureRows: 0 };
 }
 
 /**
  * The same index as an incremental reader, for a file that is never held whole:
- * `push` decompressed chunks in order, then `finish`. Lines are split at LF and
- * decoded one at a time; only the line in progress is buffered, and nothing
- * after `##FASTA` is kept at all.
+ * `push` decompressed chunks in order, then `finish`. Lines end at LF, at CRLF,
+ * or at a lone CR - the same terminators `src/lines.js` and `src/scan.js`
+ * accept - and are decoded one at a time; only the line in progress is buffered,
+ * and nothing after `##FASTA` is kept at all. A CRLF cut across a chunk
+ * boundary (CR last byte of one push, LF first of the next) is one terminator,
+ * not two, and adds no empty line.
  */
 export class FeatureRowIndexer {
   constructor() {
@@ -115,6 +140,8 @@ export class FeatureRowIndexer {
     this.index = 0;
     this.stopped = false;
     this.omitted = 0;
+    this.featureRows = 0;
+    this.afterCR = false;
   }
 
   /**
@@ -123,13 +150,25 @@ export class FeatureRowIndexer {
   push(chunk) {
     let at = 0;
     while (!this.stopped && at < chunk.length) {
+      if (this.afterCR) {
+        // The previous push ended on a CR; an LF here is that terminator's
+        // second byte, consumed with no new line.
+        this.afterCR = false;
+        if (chunk[at] === 0x0a) {
+          at += 1;
+          continue;
+        }
+      }
       const lf = chunk.indexOf(0x0a, at);
-      if (lf === -1) {
+      const cr = chunk.indexOf(0x0d, at);
+      const end = lf === -1 ? cr : cr === -1 ? lf : Math.min(lf, cr);
+      if (end === -1) {
         this.pending.push(chunk.slice(at));
         return;
       }
-      this.pending.push(chunk.subarray(at, lf));
-      at = lf + 1;
+      this.pending.push(chunk.subarray(at, end));
+      this.afterCR = chunk[end] === 0x0d;
+      at = end + 1;
       this.flush();
     }
   }
@@ -139,7 +178,7 @@ export class FeatureRowIndexer {
    */
   finish() {
     if (!this.stopped) this.flush();
-    return { rows: this.rows, problems: withOmitted(this.problems, this.omitted) };
+    return { rows: this.rows, problems: withOmitted(this.problems, this.omitted), featureRows: this.featureRows };
   }
 
   flush() {
@@ -161,12 +200,14 @@ export class FeatureRowIndexer {
     const outcome = scanLine(text, this.index, this.rows, this.problems);
     if (outcome === STOP) this.stopped = true;
     else if (outcome === OMITTED) this.omitted += 1;
+    else if (outcome === FEATURE) this.featureRows += 1;
     this.index += 1;
   }
 }
 
 const STOP = Symbol('stop');
 const OMITTED = Symbol('omitted');
+const FEATURE = Symbol('feature');
 
 /**
  * How many malformed lines are described one by one. A single one already makes
@@ -190,7 +231,7 @@ function withOmitted(problems, omitted) {
  * @param {number} index 0-based line index
  * @param {FeatureRow[]} rows
  * @param {string[]} problems
- * @returns {typeof STOP|typeof OMITTED|undefined}
+ * @returns {typeof STOP|typeof OMITTED|typeof FEATURE|undefined}
  */
 function scanLine(raw, index, rows, problems) {
   const line = raw.replace(/\r$/, '');
@@ -207,9 +248,15 @@ function scanLine(raw, index, rows, problems) {
     const eq = attribute.indexOf('=');
     if (eq < 0) continue;
     if (attribute.slice(0, eq) !== 'ID') continue;
-    rows.push({ id: attribute.slice(eq + 1), type: columns[2], line: index + 1 });
+    // The first ID tag of the row holds the identifier and no other does, and
+    // a tag with no value is not an identifier: both are the oracle's reading
+    // (gff3-validator `parse_attributes` keeps the first value of a repeated
+    // tag; `_check_reserved` sets `attributes.id` only on a truthy value).
+    const value = attribute.slice(eq + 1);
+    if (value !== '') rows.push({ id: value, type: columns[2], line: index + 1 });
+    break;
   }
-  return undefined;
+  return FEATURE;
 }
 
 /**
@@ -222,11 +269,16 @@ function scanText(text) {
   /** @type {string[]} */
   const problems = [];
   let omitted = 0;
-  const lines = text.split('\n');
+  let featureRows = 0;
+  // LF, CRLF and lone CR all end a line: a row is a row whatever its author's
+  // editor wrote, and a terminator this scanner failed to see must never be
+  // reportable as "no feature rows" (#21 review, finding 1).
+  const lines = text.split(/\r\n|\r|\n/);
   for (let index = 0; index < lines.length; index += 1) {
     const outcome = scanLine(lines[index], index, rows, problems);
     if (outcome === STOP) break;
     if (outcome === OMITTED) omitted += 1;
+    else if (outcome === FEATURE) featureRows += 1;
   }
-  return { rows, problems: withOmitted(problems, omitted) };
+  return { rows, problems: withOmitted(problems, omitted), featureRows };
 }

@@ -74,7 +74,17 @@
  *   untrustworthy (a row without nine fields, compressed content handed to the
  *   direct call) `rules.K4` is `unchecked`, with the reason on every record.
  *   Neither is ever scored as a pass, and neither rejects the file: K4 can only
- *   reject a `featureId` against rows it actually read.
+ *   reject a `featureId` against rows it actually read. A layer the caller did
+ *   supply, readable and trustworthy but holding zero feature rows, is the same
+ *   `not-checked` and not a rejection (issue #11, item 1): the shared verdict
+ *   map puts `absent-layer` - which the oracle defines to include zero feature
+ *   rows - among what is never scored. Rows that carry no identifiers are not
+ *   an empty layer; that is still `not-found`, and still a rejection. Only a
+ *   layer this reading can characterize reaches the abstention: an empty
+ *   prebuilt index or row-fact array with no `featureRows` count states
+ *   neither absence nor a miss, and answers `unchecked` - the loud never-scored
+ *   verdict, mapped from `malformed-layer` - with the ambiguity itself recorded
+ *   (#21 review, finding 2).
  * - `options.geneIds` stays as the shorthand it was - an array of decoded gene
  *   row ids - and now counts repeated entries, because "exactly one" is what the
  *   rule says; a caller that can distinguish row types should inject `features`
@@ -407,6 +417,14 @@ function checkSnapshot(header, settings) {
     records.push(result);
   });
 
+  // A caller that handed over a layer and got an abstention back is told so in
+  // words, not only in rules.K4: this is the same `not-checked` signal #20 gave
+  // a container that cannot hold GFF3 rows, reached from the other side - the
+  // file could hold them and held none.
+  if (layer.state === 'none' && layer.reason !== undefined) {
+    warnings.push(`FHGM K4 not-checked: ${layer.reason}, so no feature target was checked`);
+  }
+
   return { valid: errors.length === 0, errors, warnings, records, byModelId, rules };
 }
 
@@ -431,10 +449,37 @@ function decodeFeatureId(value) {
 /**
  * A decoded-ID index over the feature rows one reading has.
  *
+ * `state: 'none'` is the lane's single "no feature layer" signal - what #20
+ * shipped for a container that cannot hold GFF3 rows at all, and what the
+ * shared verdict map calls `absent-layer`: never scored in either direction,
+ * so K4 reports `not-checked` and says nothing per record. A supplied layer
+ * that is readable and trustworthy but holds **zero feature rows** joins it
+ * (issue #11, item 1): "no rows examined" and "no matching row among the rows"
+ * are different observations, and only the second is a verdict. Only a layer
+ * this reading can *characterize* may reach it: an empty prebuilt index or
+ * row-fact array with no `featureRows` count cannot tell a file with no rows
+ * from rows that carry no identifiers, and joins `unusable` - the loud
+ * never-scored answer, `unchecked`, with the ambiguity recorded as the
+ * problem - rather than stating an absence it never saw (#21 review,
+ * finding 2). `reason` is set when the caller did hand a layer and the lane
+ * is the one that found it empty - it names the abstention in the warnings
+ * without inventing a second state for it.
+ *
  * @typedef {{state: 'rows', rows: Map<string, string[]>, problems: string[]}
  *   | {state: 'unusable', rows: Map<string, string[]>, problems: string[]}
- *   | {state: 'none', rows: Map<string, string[]>, problems: string[]}} FeatureLayer
+ *   | {state: 'none', rows: Map<string, string[]>, problems: string[], reason?: string}} FeatureLayer
  */
+
+/**
+ * The lane's own "no feature layer" answer, with the words to say why when
+ * the caller did supply a layer and it simply held no feature rows.
+ *
+ * @param {string} [reason]
+ * @returns {FeatureLayer}
+ */
+function absentLayer(reason) {
+  return { state: 'none', rows: new Map(), problems: [], ...(reason === undefined ? {} : { reason }) };
+}
 
 /**
  * @param {Array<{id: string, type: string}>} rows feature rows with decoded ids
@@ -470,15 +515,38 @@ function resolveFeatureLayer(options) {
     if (typeof given === 'string' || given instanceof Uint8Array) {
       const indexed = indexGff3FeatureRows(given);
       if (indexed.problems.length > 0) return { state: 'unusable', rows: new Map(), problems: indexed.problems };
+      // featureRows is terminator-independent (#21 review, finding 1), so
+      // zero here is a characterized emptiness of the layer, not a scanner
+      // that failed to see its lines.
+      if (indexed.featureRows === 0) return absentLayer('the GFF3 content handed to this reading is readable and trustworthy, but holds no feature rows');
       return indexRows(indexed.rows.map((row) => ({ id: decodeFeatureId(row.id), type: row.type })));
     }
     // A FeatureIndex already built (by the streaming reader, or by a caller with
     // indexGff3FeatureRows): its problems count exactly as if the bytes were given.
     if (isObject(given) && Array.isArray(given.rows) && Array.isArray(given.problems)) {
       if (given.problems.length > 0) return { state: 'unusable', rows: new Map(), problems: [...given.problems] };
+      if (typeof given.featureRows === 'number') {
+        if (given.featureRows === 0) return absentLayer('the feature index handed to this reading holds no feature rows');
+      } else if (given.rows.length === 0) {
+        // An index in the pre-#11 shape carries only ID entries, so an empty
+        // one is byte-for-byte identical whether the file had no rows at all
+        // or rows that carry no identifiers. Absence was never observed, so
+        // absence may not be stated; and a miss was never counted, so a
+        // rejection may not be claimed either. The louder, still-unscored
+        // answer is the one outcomes.json already reserves for a layer this
+        // reading cannot characterize: unchecked, with the ambiguity itself
+        // recorded as the problem (#21 review, finding 2).
+        return { state: 'unusable', rows: new Map(), problems: ['the supplied feature index is empty and carries no featureRows count, so this reading cannot tell a file with no feature rows from rows that carry no identifiers; an uncharacterized layer is never evidence of absence, and is treated as one it cannot trust'] };
+      }
       return indexRows(given.rows.map((row) => ({ id: decodeFeatureId(row.id), type: row.type })));
     }
     if (Array.isArray(given) && given.every((row) => isObject(row) && typeof row.id === 'string' && typeof row.type === 'string')) {
+      if (given.length === 0) {
+        // Same reasoning as the uncounted prebuilt index: a row-fact array
+        // represents its layer through ID-carrying rows only, so an empty
+        // one states nothing about whether the file held rows at all.
+        return { state: 'unusable', rows: new Map(), problems: ['the caller stated a feature layer with an empty row-fact array, which cannot tell a file with no feature rows from rows that carry no identifiers; an uncharacterized layer is never evidence of absence, and is treated as one it cannot trust'] };
+      }
       return indexRows(given.map((row) => ({ id: decodeFeatureId(row.id), type: row.type })));
     }
     throw new HeaderError('options.features must be GFF3 text, decompressed GFF3 bytes, a {rows, problems} feature index, or an array of {id, type} row facts (K4)', { rule: 'K4' });
@@ -487,9 +555,12 @@ function resolveFeatureLayer(options) {
     if (!Array.isArray(options.geneIds) || options.geneIds.some((id) => typeof id !== 'string')) {
       throw new HeaderError('options.geneIds must be an array of decoded gene row ids (K4)', { rule: 'K4' });
     }
+    // An empty list stays scoreable here, unlike `features: []`: this shorthand
+    // asserts "no local row is a gene row", which a gene target can contradict,
+    // and it can never observe the non-gene rows a layer would still hold.
     return indexRows(options.geneIds.map((id) => ({ id, type: 'gene' })));
   }
-  return { state: 'none', rows: new Map(), problems: [] };
+  return absentLayer();
 }
 
 /**
