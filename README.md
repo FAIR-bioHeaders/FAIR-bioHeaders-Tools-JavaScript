@@ -114,20 +114,22 @@ withModels.fhgm.valid; // the draft verdict on x-fhgm-models
 The draft bytes are vendored under `drafts/` and pinned in `drafts/provenance.json`
 to the commit and SHA-256 below; the digest is re-verified before anything reads
 them, and a draft that moved under this build is reported instead of being read
-quietly.
+quietly. The re-pin of 2026-11-18 **moved these contract bytes** — unlike the suite-only
+re-pin of 2026-11-16, whose narrative claimed the contracts had not moved and is now
+superseded in `drafts/provenance.json` with the superseded digests kept on the record.
 
 | Draft | Owning repository | Pinned commit | SHA-256 of the pinned bytes |
 | --- | --- | --- | --- |
-| FHT | FHT-Specification | `226f923c28b680edb3c546e99a751482d06aef1a` | `59ad9641adcb0e5591045c2d894c066d1adc9984cca84c5ff6502f8dad88487e` |
-| FHGM | FHGM-Specification | `ac3d37b3033312844fc3151217731928ae33aa54` | `bf1553cac04dc88d8afaff1d39bc50360342e1ebedac4b73dfe3dff570ff410f` |
+| FHT | FHT-Specification | `86438f21c3a17a58334c97aed4955be1a2393522` | `4156353aa6d077fee2d2c69be4e17859b8e4f81bb10824f3c87f6701de196e7a` |
+| FHGM | FHGM-Specification | `06176262f9824f26d974a15d8feeebde1fbeb0a8` | `b7075e5872e0a5ffce5ae61c590ce182f1f219fa269413cad3b1a966753cfeae` |
 
 Those are the **contract** bytes the lane compiles. The **development suites** are a
 separate pair of pins, because a suite and its contract move at different times:
 
 | Draft | Suite commit | Suite manifest | SHA-256 | Vectors |
 | --- | --- | --- | --- | --- |
-| FHT | `be9bcc825f55db92852fd882ffba4c1c214f53db` | `conformance/manifest.json` | `9fd8c0b2a4638d5ddc0bf9b5d1e96c66778b26bcf8f93975aafb707d8f2b702c` | 72 |
-| FHGM | `c503ecf38deaba289e8384124ee5e2b8e81b86f1` | `development/conformance/manifest.json` | `0d2790151c4a29551e9b92fb6b3c3c62ea062f2889ffbd00b3c425e7b6da3458` | 43 |
+| FHT | `86438f21c3a17a58334c97aed4955be1a2393522` | `conformance/manifest.json` | `e5a4a5d027259e29a7e3cfb42da5e1ef07fa78d4a0e604ef73f28b8e5a59a508` | 82 |
+| FHGM | `06176262f9824f26d974a15d8feeebde1fbeb0a8` | `development/conformance/manifest.json` | `e41f05fd8bb8b8ec175b0192b80832041c84e15c325876aa66a86ba6e59413ce` | 62 |
 
 A count is a note about a digest, never the thing being pinned: `scripts/ci/suite-pin.mjs`
 refuses a manifest that does not digest to the recorded value, and refuses one that does
@@ -221,22 +223,31 @@ run** (jsonld 37, microdata 26) because those reader paths are not implemented.
 They are reported as skipped with a reason, never as passes. With the V7 lane
 requested, the same reading path is exercised against the two development suites
 that own the drafts, each verified against its own pin before anything is scored:
-**115 draft vectors pass and none is left unrun** — FHT **72/72** at the suite revision
-`be9bcc82` (`C1`/`C2`/`C3`, the labels the registry states; the contract itself is pinned
-separately at `226f923c`, whose bytes the re-pin did not move), and FHGM **43/43** at
-`c503ecf3`, the first suite revision this build has ever been able to name for FHGM: its
-row used to read `UNPINNED`, and the 31 vectors it scored were scored against a checkout
-nobody had checked. The K4-dependent FHGM vectors are now eight, up from five, and all
-eight reached a `pass` or `reject` verdict against the file's own feature rows.
+**140 of the 144 draft vectors pass.** FHT **82/82, 0 fail, 0 not-run** at suite pin
+`86438f21` (`C1`/`C2`/`C3`, the labels the registry states), and FHGM **58 pass, 4 fail,
+0 not-run** at suite pin `06176262` — the four failures stated below, not smoothed over.
+The re-pin of 2026-11-18 moved **both contract byte sets** for the first time since the
+lane existed: the old pins (FHT `226f923c`/`be9bcc82` at 72 vectors, FHGM
+`ac3d37b3`/`c503ecf3` at 43) are superseded and named in `previousPin` fields of
+`drafts/provenance.json`, where the retrieval date, command and digests are recorded.
+FHGM's suite has had a stated pin since the re-pin of 2026-11-16 — before that its row
+read `UNPINNED`, and the 31 vectors it scored were scored against a checkout nobody had
+checked. The K4-dependent FHGM vectors are now eleven, up from eight, and all eleven
+reached a `pass` or `reject` verdict against the file's own feature rows.
 `node scripts/capability/draft-vectors.mjs` refuses a suite
 whose manifest digest is not the one it pins, so a draft count here names a checked
 revision or says it names none. A K4 vector whose feature layer is absent or
 untrustworthy is still reported not-run with that state, never scored by assumption, and
 so is a vector whose `layers.gff3` expectation asks about the feature layer this library
-does not judge. Four of the 72 FHT vectors carry `promotion: candidate-unreviewed` upstream
-and twelve of the FHGM ones came from a packet marked `Status: DRAFT`: the runner prints
-that, because a pass on an unreviewed expectation is agreement with a draft claim, not
-review of it.
+does not judge. Four of the 82 FHT vectors carry `promotion: candidate-unreviewed` upstream,
+twelve FHGM vectors came from a packet marked `Status: DRAFT`, and FHGM's four failures are
+this build not yet implementing four expectations FHGM-Specification#29 added to
+`layers.model` — base selection by cited release (`carrier-cites-raw-main`), root-gene-row
+target and raw-vs-decoded featureId identity (`feature-target-gene-with-parent`,
+`feature-id-names-percent-encoding`), and NFC-compared modelId uniqueness
+(`model-ids-equal-under-nfc`); they are reported by name with their reasons
+([`docs/CONFORMANCE.md`](docs/CONFORMANCE.md)), because a pass on an unreviewed expectation
+is agreement with a draft claim, not review of it, and a failure is where the work is.
 Those counts are draft evidence and are never added to
 the 291. Full breakdown, and the list of what is not implemented or claimed:
 [`docs/CONFORMANCE.md`](docs/CONFORMANCE.md), and [`docs/USAGE.md`](docs/USAGE.md) for recipes.

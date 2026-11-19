@@ -71,14 +71,19 @@ describe('K1 transport', () => {
     assert.deepEqual(result.errors, []);
   });
 
-  it('applies the pinned overlay only when asked, and the re-pinned overlay admits both released bases', () => {
+  it('applies the pinned overlay only when asked, and the re-pinned overlay admits every pairing the draft publishes', () => {
     // FHGM-Specification#17 (maintainer dual-base decision, 2026-11-15) rewrote the
-    // overlay from a single v0.5.0/1.1 pin into a closed anyOf of two pairings. The
-    // earlier version of this test asserted the opposite - that a 1.2 carrier was
-    // refused by the overlay and accepted only by the R15 reading - and that divergence
-    // is what the re-pinned bytes closed. Both pairings now transport; a citation and a
-    // stated version that contradict each other are still refused, by the overlay and
-    // never by a fallback to the other branch.
+    // overlay from a single v0.5.0/1.1 pin into a closed anyOf of two branch pairings.
+    // FHGM-Specification#26 widened the v0.6.0 branch: the release accepts 1.1 records
+    // per the shared docs/SCHEMA-VERSIONS.md, so the v0.6.0 citation set now pairs with
+    // schemaVersion 1.2 *or* 1.1, and its URI set gained the raw tag URL under the
+    // FHR-Specification historical repository name. The 2026-11-18 re-pin vendored
+    // those bytes (533b3120…, 3191 B), and `test/fhgm.test.mjs` moves with them: the
+    // earlier version of this test asserted that v0.6.0-citation-stating-1.1 was a
+    // contradiction, and the suite's new `v0.6.0-citation-stating-1.1` and
+    // `fhr-specification-alias-v0.6.0` vectors now pin the opposite reading. What stays
+    // refused is a citation and a stated version that contradict each other - a v0.5.0
+    // citation stating 1.2 - and never a fallback to the other branch.
     const currentRelease = judge(fhgmHeader({ header: { schema: 'https://w3id.org/fair-bioheaders/fhgff3/v0.6.0', schemaVersion: '1.2' } }));
     assert.equal(currentRelease.valid, true, 'the R15 reading admits extension fields from 1.1, so a 1.2 header transports');
     const onNewer = judge(fhgmHeader({ header: { schema: 'https://w3id.org/fair-bioheaders/fhgff3/v0.6.0', schemaVersion: '1.2' } }), { overlay: true });
@@ -86,13 +91,16 @@ describe('K1 transport', () => {
     assert.equal(onNewer.valid, true, onNewer.errors.join(' '));
     const onOlder = judge(fhgmHeader({ header: { schema: 'https://w3id.org/fair-bioheaders/fhgff3/v0.5.0', schemaVersion: '1.1' } }), { overlay: true });
     assert.equal(onOlder.valid, true, 'the overlay admits the v0.5.0/1.1 pairing it named before');
-    for (const [schema, schemaVersion] of [['https://w3id.org/fair-bioheaders/fhgff3/v0.6.0', '1.1'], ['https://w3id.org/fair-bioheaders/fhgff3/v0.5.0', '1.2']]) {
-      const crossed = judge(fhgmHeader({ header: { schema, schemaVersion } }), { overlay: true });
-      assert.equal(crossed.rules.K1, 'reject', `${schema} with schemaVersion ${schemaVersion} is a contradiction, not a pairing`);
-      assert.match(crossed.errors.join(' '), /K1 overlay/, 'and the refusal is attributed to the overlay');
-      const plain = judge(fhgmHeader({ header: { schema, schemaVersion } }));
-      assert.equal(plain.rules.K1, 'pass', 'the R15 reading alone cannot see the contradiction: it reads the stated version, not the citation');
-    }
+    const onNewerStating11 = judge(fhgmHeader({ header: { schema: 'https://w3id.org/fair-bioheaders/fhgff3/v0.6.0', schemaVersion: '1.1' } }), { overlay: true });
+    assert.equal(onNewerStating11.rules.K1, 'pass', 'the re-pinned overlay admits a v0.6.0 citation stating 1.1, the pairing FHGM-Specification#26 added');
+    assert.equal(onNewerStating11.valid, true, onNewerStating11.errors.join(' '));
+    const onAlias = judge(fhgmHeader({ header: { schema: 'https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/v0.6.0/fhgff3.json', schemaVersion: '1.2' } }), { overlay: true });
+    assert.equal(onAlias.rules.K1, 'pass', 'the v0.6.0 raw tag URL under the FHR-Specification alias name is the same release identity');
+    const crossed = judge(fhgmHeader({ header: { schema: 'https://w3id.org/fair-bioheaders/fhgff3/v0.5.0', schemaVersion: '1.2' } }), { overlay: true });
+    assert.equal(crossed.rules.K1, 'reject', 'a v0.5.0 citation stating 1.2 remains a contradiction, not a pairing');
+    assert.match(crossed.errors.join(' '), /K1 overlay/, 'and the refusal is attributed to the overlay');
+    const plain = judge(fhgmHeader({ header: { schema: 'https://w3id.org/fair-bioheaders/fhgff3/v0.5.0', schemaVersion: '1.2' } }));
+    assert.equal(plain.rules.K1, 'pass', 'the R15 reading alone cannot see the contradiction: it reads the stated version, not the citation');
     const tooOld = judge(fhgmHeader({ header: { schema: 'https://w3id.org/fair-bioheaders/fhgff3/v0.4.0', schemaVersion: '1.0' } }), { overlay: true });
     assert.equal(tooOld.rules.K1, 'reject', 'FHGFF3 1.0 cannot carry an extension key at all (R15), so no overlay question is reached');
     assert.match(tooOld.errors.join(' '), /R15 admits extension fields only from FHGFF3 1.1/);
@@ -107,7 +115,12 @@ describe('K2 the record contract, K3 uniqueness, K5 reference agreement', () => 
 
     const typed = judge(fhgmHeader({ models: [fhgmRecord({ modelVersion: 2 })] }));
     assert.equal(typed.rules.K2, 'reject');
-    assert.match(typed.errors.join(' '), /modelVersion must be string/);
+    // 2026-11-18 wording note: under the re-pinned contract `modelVersion` is the shared
+    // `text` definition, so a number surfaces through that composite (`must NOT be valid
+    // (not)`) rather than the old flat `must be string`. What the test is about is
+    // unchanged and still proven: the finding cites the record contract's instance path,
+    // not a hand-written field list in this library.
+    assert.match(typed.errors.join(' '), /x-fhgm-models\/modelVersion/);
 
     const closed = judge(fhgmHeader({ models: [fhgmRecord({ notAField: 'x' })] }));
     assert.equal(closed.rules.K2, 'reject');

@@ -179,7 +179,13 @@ describe('the CI workflow is native where it has to be', () => {
     for (const sha of literalShas) {
       assert.ok(!text2.includes(sha.slice(0, 12)), `no commit sha (${sha.slice(0, 12)}) may be hardcoded in the draft-lane job`);
     }
-    assert.ok(literalShas.size >= 3, `the control must have something to check (found ${literalShas.size} pinned revisions: ${[...literalShas].map((s) => s.slice(0, 8)).join(', ')})`);
+    assert.ok(literalShas.size >= 2, `the control must have something to check (found ${literalShas.size} pinned revisions: ${[...literalShas].map((s) => s.slice(0, 8)).join(', ')})`);
+    // The bound is 2, not 3: before the 2026-11-18 re-pin the six commit fields held
+    // four distinct revisions across the two owning repositories; after it, each
+    // repository's contract, overlay and suite bytes all stand at one last-touched
+    // commit (86438f21 for FHT, 06176262 for FHGM), so two distinct shas is the honest
+    // shape. The control still refuses any hardcoded commit in the job, whatever the
+    // count - which is exactly the property that keeps a future divergence out.
   });
 
   it('shows on Linux that the suite-pin guard can fail, in three ways', () => {

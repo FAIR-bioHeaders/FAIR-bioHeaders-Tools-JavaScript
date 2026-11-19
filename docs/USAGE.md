@@ -150,21 +150,23 @@ this library recognises them, and it is a caller decision.
 import { inspectFile, inspectBytes, draftSupport, draftSuitePin, verifyDraftBytes, checkFhgmModels, verifyParentLinks } from 'fair-bioheaders';
 
 draftSupport();
-// [{ type: 'FHT', citation: '…/FHT-Specification/main/fht.json', commit: '226f923c…', sha256: '59ad9641…', status: 'draft' }, …]
+// [{ type: 'FHT', citation: '…/FHT-Specification/main/fht.json', commit: '86438f21…', sha256: '4156353a…', status: 'draft' }, …]
 
 // The suite is a separate pin from the contract, and it is the one that names the
 // development suite `scripts/capability/draft-vectors.mjs` scores. Both drafts state one
-// as of the re-pin of 2026-11-16; a draft that stated none would report `stated: false`,
-// and the runner refuses before scoring any requested suite. It never invents a revision.
+// as of the re-pin of 2026-11-16; the re-pin of 2026-11-18 moved the contract bytes too,
+// and both revisions now coincide per owning repository while staying separate fields.
+// A draft that stated no pin would report `stated: false`, and the runner refuses before
+// scoring any requested suite. It never invents a revision.
 // The values below are printed, not transcribed: `node -e` over `draftSuitePin`.
 draftSuitePin('FHT');
 // { type: 'FHT', repository: 'FHT-Specification', stated: true, partial: false,
-//   commit: 'be9bcc82…', manifest: 'conformance/manifest.json', sha256: '9fd8c0b2…',
-//   bytes: 65615, vectors: 72, rules: ['C1', 'C2', 'C3'] }
+//   commit: '86438f21…', manifest: 'conformance/manifest.json', sha256: 'e5a4a5d0…',
+//   bytes: 76939, vectors: 82, rules: ['C1', 'C2', 'C3'] }
 draftSuitePin('FHGM');
 // { type: 'FHGM', repository: 'FHGM-Specification', stated: true, partial: false,
-//   commit: 'c503ecf3…', manifest: 'development/conformance/manifest.json',
-//   sha256: '0d279015…', bytes: 51114, vectors: 43,
+//   commit: '06176262…', manifest: 'development/conformance/manifest.json',
+//   sha256: 'e41f05fd…', bytes: 69526, vectors: 62,
 //   rules: ['B1', 'K1', 'K2', 'K3', 'K4', 'K5', 'K6'] }
 
 const reading = inspectFile('rna.fht.fasta', { drafts: ['FHT'] });

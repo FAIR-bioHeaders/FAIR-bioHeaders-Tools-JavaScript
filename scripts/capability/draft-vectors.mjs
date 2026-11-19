@@ -449,9 +449,9 @@ function runSuite(type, repoPath) {
   console.log(`${type}: ${pass} pass, ${fail} fail, ${notRun} not-run${revision}`);
   // A draft suite can carry vectors whose *expectation* is not yet reviewed even though
   // the file and its digest are real: FHT-Specification marks its promoted pilot cases
-  // `promotion: candidate-unreviewed` in the manifest. Printing the tally keeps a 72/72
-  // from reading as 72 reviewed facts, and reads the field rather than a hardcoded id list
-  // so the line stays true when the suite moves again.
+  // `promotion: candidate-unreviewed` in the manifest. Printing the tally keeps a clean
+  // sweep from reading as fully reviewed facts, and reads the field rather than a
+  // hardcoded id list so the line stays true when the suite moves again.
   const unreviewed = manifest.vectors.filter((vector) => vector.promotion !== undefined && vector.promotion !== null);
   if (unreviewed.length > 0) {
     console.log(`of the ${manifest.vectors.length}, ${unreviewed.length} carry an upstream promotion marker, i.e. the owning repository has not finished reviewing the expectation itself:`);

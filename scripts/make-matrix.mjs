@@ -175,6 +175,16 @@ if (fhtPin.suiteCommit !== null && fhtPin.suiteManifestSha256 !== null) {
   lines.push(`rules carry the ${(fhtPin.suiteRules ?? []).join('/')} ids listed below. The guard is`);
   lines.push('`scripts/ci/suite-pin.mjs`, and it refuses any other suite revision, so no draft');
   lines.push('count in this repository is attributed to a revision that was never checked.');
+  if (fhtPin.commit === fhtPin.suiteCommit) {
+    lines.push('(The two values above are the same commit by design: the 2026-11-18 re-pin found one');
+    lines.push('commit that last touched both files, and the registry repeats it so the check is');
+    lines.push('uniform - two fields, two claims, one revision.)');
+  }
+  lines.push('The re-pin of 2026-11-18 moved the contract bytes themselves for the first time: the');
+  lines.push('pinned contract grew `mixed` to a fifth `MoleculeType` value, made `properties.schema` a');
+  lines.push('const admitting only the raw-main citation while the type is a draft, and made the');
+  lines.push('remaining patterns dialect-portable (FHT-Specification#54); contract and suite were');
+  lines.push('re-pinned together because the new suite cannot be scored against the old bytes.');
 } else {
   lines.push('No FHT suite pin is stated, so this build names no suite revision for FHT and no');
   lines.push('draft count here may claim one.');
@@ -182,16 +192,30 @@ if (fhtPin.suiteCommit !== null && fhtPin.suiteManifestSha256 !== null) {
 const fhgmPin = draftEntry('FHGM');
 if (fhgmPin.suiteCommit !== null && fhgmPin.suiteManifestSha256 !== null) {
   lines.push('');
-  lines.push('FHGM is the same shape, over two revisions: the record contract at');
-  lines.push(`\`${fhgmPin.commit}\` (sha256 \`${fhgmPin.sha256.slice(0, 16)}…\`), and then the transport overlay and the`);
-  lines.push('development suite together at a later one - the overlay beside it at');
+  lines.push('FHGM is the same shape, over three artifacts: the record contract at');
+  lines.push(`\`${fhgmPin.commit}\` (sha256 \`${fhgmPin.sha256.slice(0, 16)}…\`), the transport overlay beside it at`);
   lines.push(`\`${fhgmPin.overlay?.commit}\` (sha256 \`${fhgmPin.overlay?.sha256.slice(0, 16)}…\`), and the suite`);
   lines.push(`this build verifies at \`${fhgmPin.suiteCommit}\` - manifest`);
   lines.push(`\`${fhgmPin.suiteManifest}\`, sha256 \`${fhgmPin.suiteManifestSha256.slice(0, 16)}…\`,`);
   lines.push(`${fhgmPin.suiteVectors} vectors across ${fhgmPin.suiteManifestBytes} bytes, labelled ${(fhgmPin.suiteRules ?? []).join('/')}. Before the`);
   lines.push('re-pin of 2026-11-16 this registry stated no suite revision for FHGM at all, so its');
   lines.push('draft-lane run could only print `UNPINNED`; the guard is the same one and it refuses');
-  lines.push('any other suite bytes.');
+  lines.push('any other suite bytes. That re-pin left the record contract where it was; the');
+  lines.push('re-pin of 2026-11-18 moved all three FHGM byte sets together, and each of the three');
+  lines.push('commit fields above was checked to name a revision at which its artifact is');
+  lines.push('byte-identical to the owning repository\'s live main (git blob, not timestamp).');
+  lines.push('');
+  lines.push('Two semantics travel with these bytes that no digest diff and no vector count shows.');
+  lines.push('FHGM-Specification#29 widened what a `layers.model` **pass** means: on top of the previous');
+  lines.push('checks, a pass now additionally implies trimmed invisible-character-free text, an RFC 3986');
+  lines.push('scheme with a real host for every link, non-blank deposits, NFC-unique identifiers, and a');
+  lines.push('root-level gene target. A matrix that only prints pins would hide that behind identical');
+  lines.push('rule ids, so it is stated here as a note; this build\'s current standing against it is');
+  lines.push('measured and reported in `docs/CONFORMANCE.md`, not asserted in this generated file. And');
+  lines.push('K4 still cannot abstain: FAIR-bioHeaders-Tools-JavaScript#11 records that a feature layer');
+  lines.push('with no usable rows yields `reject` where the disagreement with gff3-validator is about an');
+  lines.push('abstention, so pinning this suite means running a lane whose K4 abstention semantics are');
+  lines.push('disputed upstream - a stated condition of the pin, not a settled fact about the draft.');
 } else if (fhgmPin.suiteCommit === null) {
   lines.push('');
   lines.push('FHGM states no suite pin in `drafts/provenance.json`, so its draft-lane run is');
