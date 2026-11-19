@@ -640,14 +640,14 @@ describe('FHGM#29 pinned-draft parity and adversarial controls (#23)', () => {
       'a BOM-prefixed row ID is a different identifier; matching it fabricates a resolution');
     assert.match(bomRow.errors.join(' '), /no local feature row carries/);
 
-    // The complement: a record that names the BOM literally resolves to that row,
-    // proving the BOM survived decoding rather than the row going unaddressable.
+    // The draft contract forbids U+FEFF in featureId, so K2 prevents this record
+    // from reaching K4. The decoder's retained key is asserted in features.test.mjs.
     const bomNamed = judge(
       fhgmHeader({ models: [fhgmRecord({ featureId: '\ufefftoy-a' })] }),
       { features: 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=%EF%BB%BFtoy-a\n' },
     );
-    assert.equal(bomNamed.rules.K4, 'pass',
-      'the BOM must survive as data so the true name still resolves');
+    assert.equal(bomNamed.rules.K2, 'reject');
+    assert.equal(bomNamed.records[0].featureTarget, null);
   });
 
   it('K3 compares modelIds after Unicode NFC normalisation, after whole-array K2 and before K4/K5', () => {

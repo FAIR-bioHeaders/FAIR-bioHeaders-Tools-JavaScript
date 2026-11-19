@@ -516,7 +516,7 @@ const STRICT_UTF8 = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
  * @param {string|null} value
  * @returns {string|null}
  */
-function decodeGff3RowId(value) {
+export function decodeGff3RowId(value) {
   if (typeof value !== 'string') return '';
   const raw = new TextEncoder().encode(value);
   const out = new Uint8Array(raw.length);
