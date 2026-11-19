@@ -107,15 +107,17 @@ so the rules are narrow and each is checked:
   deletes the suite fields from the copy's `drafts/provenance.json`, and runs the copy's
   runner - and a test that filtered the live registry for an unpinned draft would run zero
   iterations and pass by saying nothing. The reported counts are FHT **82 pass / 0 fail / 0 not-run**
-  from the suite pin `86438f21c3a17a58…` and FHGM **58 pass / 4 fail / 0 not-run** from
+  from the suite pin `86438f21c3a17a58…` and FHGM **62 pass / 0 fail / 0 not-run** from
   `06176262f9824f26…`; the superseded pins they replaced (FHT `be9bcc825f55db92…` with 72
   vectors and `24d3b033ab951ef7…` with 66, FHGM `c503ecf38deaba28…` with 43, and the
   31-vector FHGM suite this build previously scored with no pin stated at all) and the
   65-vector pre-rename manifest at the old contract revision are all `DRIFT` to the guard
-  and are not scored. The four FHGM failures are the standing of this build against
-  expectations FHGM-Specification#29 added: they are reported by name in
-  `docs/CONFORMANCE.md`, and closing them is separate reviewed work - a re-pin moves
-  pins, it does not quietly implement a draft's new semantics in the same diff.
+  and are not scored. FHGM stood at 58 pass / 4 fail on the day the re-pin landed
+  (2026-11-18): the four expectations FHGM-Specification#29 added to `layers.model`
+  were implemented on 2026-11-19 (Round 14 #23) and are named in `docs/CONFORMANCE.md`,
+  where the draft semantics still open upstream (`FHGM#22`/`#27`/`#28`/`#32`) are stated
+  rather than assumed settled - a re-pin moves pins; rule semantics get their own
+  reviewed change, which is what that one was.
   The three owners of "is the pin checked" are listed in
   `docs/CONFORMANCE.md`; keep it that way, because two half-owners is how the FHT count
   came to be reported against a revision nothing had verified;

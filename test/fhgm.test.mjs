@@ -156,10 +156,13 @@ describe('K2 the record contract, K3 uniqueness, K5 reference agreement', () => 
     assert.equal(without.rules.K4, 'not-checked', 'no resolver at the direct call means no verdict, stated rather than silently skipped');
     assert.equal(without.records[0].featureTarget, null);
 
-    const resolved = judge(fhgmHeader({ models: [fhgmRecord({ featureId: 'toy%2Da' })] }), { geneIds: ['toy-a'] });
-    assert.equal(resolved.valid, true, `a decoded ID that matches one gene row passes: ${resolved.errors.join('; ')}`);
+    const resolved = judge(fhgmHeader({ models: [fhgmRecord({ featureId: 'toy-a' })] }), { geneIds: ['toy-a'] });
+    assert.equal(resolved.valid, true, `a record featureId that matches one decoded gene row passes: ${resolved.errors.join('; ')}`);
     assert.equal(resolved.rules.K4, 'pass');
     assert.equal(resolved.records[0].featureTarget.verdict, 'pass');
+
+    const rawPercentInRecord = judge(fhgmHeader({ models: [fhgmRecord({ featureId: 'toy%2Da' })] }), { geneIds: ['toy-a'] });
+    assert.equal(rawPercentInRecord.rules.K4, 'reject', 'the record featureId is a plain YAML string, not percent-decoded on the record side');
 
     const missing = judge(fhgmHeader({ models: [fhgmRecord({ featureId: 'absent' })] }), { geneIds: ['toy-a'] });
     assert.equal(missing.rules.K4, 'reject');
@@ -182,12 +185,12 @@ describe('K2 the record contract, K3 uniqueness, K5 reference agreement', () => 
     assert.equal(counted.rules.K4, 'reject', 'the geneIds shorthand counts a repeated id as two rows');
   });
 
-  it('K4 reads GFF3 content through the injected resolver, decoded against decoded', () => {
+  it('K4 reads GFF3 content through the injected resolver, raw record featureId against percent-decoded row ID', () => {
     const gff3 = ['##gff-version 3', 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=toy%2Da', '##FASTA', 'toy\tpilot\tgene\t1\t1\t.\t+\t.\tID=toy-a'].join('\n');
     const escaped = judge(fhgmHeader({ models: [fhgmRecord({ featureId: 'toy-a' })] }), { features: gff3 });
     assert.equal(escaped.rules.K4, 'pass', 'the row is ID=toy%2Da, the record names toy-a, and the second gene row sits after ##FASTA and is not indexed');
     const sameEscape = judge(fhgmHeader({ models: [fhgmRecord({ featureId: 'toy%2Da' })] }), { features: gff3 });
-    assert.equal(sameEscape.rules.K4, 'pass', 'an escaped record side decodes to the same identifier');
+    assert.equal(sameEscape.rules.K4, 'reject', 'the record side is not percent-decoded: a record naming literal toy%2Da does not resolve to the row written ID=toy%2Da');
 
     const broken = judge(fhgmHeader(), { features: 'toy\tpilot\tgene\t10\t30\t.\t+\t.\n' });
     assert.equal(broken.rules.K4, 'unchecked', 'a row without nine fields makes the layer untrustworthy');
@@ -559,5 +562,113 @@ describe('K4 feature-layer parity with gff3-validator (#11, items 1, 2-prime and
     // rather than a refusal to read GFF3 at all
     const withRow = inspectBytes(buildFhgff3File(fhgmHeader(), { rows: ['toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=toy-a'] }).bytes, { container: 'gff3', drafts: ['FHGM'] });
     assert.equal(withRow.fhgm.rules.K4, 'pass', 'one gene row carrying toy-a still passes: the default resolver was not narrowed away');
+  });
+});
+
+describe('FHGM#29 pinned-draft parity and adversarial controls (#23)', () => {
+  it('K1 accepts all 8 registered FHGFF3 carrier release citations and refuses raw-main, v0.4.0, or missing URLs', () => {
+    const registered = [
+      'https://w3id.org/fair-bioheaders/fhgff3/v0.5.0',
+      'https://w3id.org/fair-bioheaders/fhgff3/v0.5.0/',
+      'https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/v0.5.0/fhgff3.json',
+      'https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/v0.5.0/fhgff3.json',
+      'https://w3id.org/fair-bioheaders/fhgff3/v0.6.0',
+      'https://w3id.org/fair-bioheaders/fhgff3/v0.6.0/',
+      'https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/v0.6.0/fhgff3.json',
+      'https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/v0.6.0/fhgff3.json',
+    ];
+    for (const url of registered) {
+      const result = judge(fhgmHeader({ header: { schema: url, schemaVersion: '1.1' } }));
+      assert.equal(result.rules.K1, 'pass', `registered carrier citation ${url} must pass K1`);
+    }
+    const unregistered = [
+      'https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/main/fhgff3.json',
+      'https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhgff3.json',
+      'https://w3id.org/fair-bioheaders/fhgff3/v0.4.0',
+      '',
+      undefined,
+    ];
+    for (const url of unregistered) {
+      const result = judge(fhgmHeader({ header: { schema: url, schemaVersion: '1.1' } }));
+      assert.equal(result.rules.K1, 'reject', `unregistered carrier citation ${JSON.stringify(url)} must be refused under K1`);
+      assert.match(result.errors.join(' '), /no registered FHGFF3 base release/);
+    }
+  });
+
+  it('K4 requires a root gene row: rejects a non-empty Parent, an empty Parent=, and a bare Parent token', () => {
+    const root = judge(fhgmHeader(), { features: 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=toy-a\n' });
+    assert.equal(root.rules.K4, 'pass');
+
+    const nested = judge(fhgmHeader(), { features: 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=toy-a;Parent=toy-b-rna\n' });
+    assert.equal(nested.rules.K4, 'reject');
+    assert.match(nested.errors.join(' '), /has a Parent attribute, so it is not a root gene row/);
+
+    const emptyParent = judge(fhgmHeader(), { features: 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=toy-a;Parent=\n' });
+    assert.equal(emptyParent.rules.K4, 'reject', 'Parent= is a present tag with an empty value, not an absent tag');
+    assert.match(emptyParent.errors.join(' '), /carries a Parent attribute with no readable value/);
+
+    const bareParent = judge(fhgmHeader(), { features: 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=toy-a;Parent\n' });
+    assert.equal(bareParent.rules.K4, 'reject', 'a bare Parent token cannot support a root gene claim');
+    assert.match(bareParent.errors.join(' '), /carries a Parent attribute with no readable value/);
+  });
+
+  it('K4 never substitutes U+FFFD for invalid UTF-8 percent-escapes in a GFF3 row ID', () => {
+    const badUtf8 = judge(
+      fhgmHeader({ models: [fhgmRecord({ featureId: '\ufffd' })] }),
+      { features: 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=%FF\n' },
+    );
+    assert.equal(badUtf8.rules.K4, 'reject', '%FF is not valid UTF-8 and must not false-match literal U+FFFD');
+    assert.match(badUtf8.errors.join(' '), /percent-decoded bytes are not valid UTF-8/);
+
+    const genuineReplacement = judge(
+      fhgmHeader({ models: [fhgmRecord({ featureId: '\ufffd' })] }),
+      { features: 'toy\tpilot\tgene\t10\t30\t.\t+\t.\tID=%EF%BF%BD\n' },
+    );
+    assert.equal(genuineReplacement.rules.K4, 'pass', 'genuine UTF-8 bytes for U+FFFD (%EF%BF%BD) still resolve to literal U+FFFD');
+  });
+
+  it('K3 compares modelIds after Unicode NFC normalisation, after whole-array K2 and before K4/K5', () => {
+    const nfcAndNfd = judge(
+      fhgmHeader({
+        models: [
+          fhgmRecord({ modelId: 'model-caf\u00e9', featureId: 'toy-a' }),
+          fhgmRecord({ modelId: 'model-cafe\u0301', featureId: 'toy-b' }),
+        ],
+      }),
+      { geneIds: ['toy-a', 'toy-b'] },
+    );
+    assert.equal(nfcAndNfd.rules.K3, 'reject', 'NFC and NFD spellings of the same modelId collide under K3');
+    assert.match(nfcAndNfd.errors.join(' '), /equal under NFC normalisation/);
+
+    // Two records missing modelId must report K2 required-field errors, never K3 ambiguity on an invented empty string.
+    const missingIds = judge(
+      fhgmHeader({
+        models: [
+          { modelVersion: '1', featureId: 'toy-a', reference: { genomeReference: { accession: 'SYNTHETIC_ASSEMBLY.1', seqcol_id: 'J3Hvvqu0USaOuxA-3wRFyZ3YPdnSEDCp' } } },
+          { modelVersion: '2', featureId: 'toy-b', reference: { genomeReference: { accession: 'SYNTHETIC_ASSEMBLY.1', seqcol_id: 'J3Hvvqu0USaOuxA-3wRFyZ3YPdnSEDCp' } } },
+        ],
+      }),
+    );
+    assert.equal(missingIds.rules.K2, 'reject');
+    assert.equal(missingIds.rules.K3, 'pass', 'missing modelId is a K2 defect and must not invent an empty K3 collision');
+    assert.ok(!missingIds.errors.some((e) => /K3:/.test(e)));
+
+    // Deviation D4 ordering: K3 runs before per-record K4/K5 checks, so the first error attributes K3.
+    const d4 = judge(
+      fhgmHeader({
+        models: [
+          fhgmRecord({ modelId: 'model-a', featureId: 'toy-a' }),
+          fhgmRecord({
+            modelId: 'model-a',
+            modelVersion: '2',
+            featureId: 'toy-missing',
+            reference: { genomeReference: { accession: 'OTHER.1', seqcol_id: 'J3Hvvqu0USaOuxA-3wRFyZ3YPdnSEDCp' } },
+          }),
+        ],
+      }),
+      { geneIds: ['toy-a'] },
+    );
+    assert.equal(d4.rules.K3, 'reject');
+    assert.match(d4.errors[0], /K3: Ambiguous model ID "model-a"/, 'K3 must be reported before per-record K4/K5 errors');
   });
 });

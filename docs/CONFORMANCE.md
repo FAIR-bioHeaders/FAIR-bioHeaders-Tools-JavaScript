@@ -195,7 +195,10 @@ suite is supposed to do.
 
 ### What the re-pin of 2026-11-18 moved, and what this build scored against it
 
-The lane now runs 144 draft vectors; **140 pass and 4 fail**, each stated. The
+The lane now runs 144 draft vectors; **144 pass and 0 fail** on the pinned bytes, with
+every not-run reported under its own count. When the re-pin landed on 2026-11-18 the
+lane scored 140 pass / 4 fail; the four are named in the FHGM bullet below and were
+implemented in this build on 2026-11-19 (Round 14 #23). The
 contract and the suite moved *together*, atomically, and that was a hard requirement,
 not a style choice: measured in a scratch build, the OLD FHT contract bytes against the
 NEW 82-vector suite score 80 pass / 2 fail - `fht-fasta-molecule-type-mixed` (expected
@@ -212,23 +215,34 @@ also what made `properties.schema` a raw-main-only const (FHT-Specification#54).
   `fht-fasta-blank-version-separator`, `fht-fasta-schema-shared-raw-tag`). Four vectors
   still carry `promotion: candidate-unreviewed` - the same four parent-link cases as the
   previous revision - and the runner prints that under its own count.
-- FHGM **43 -> 62, all 62 scored: 58 pass, 4 fail, 0 not-run.** The nineteen additions
-  are the `layers.model` widening of FHGM-Specification#29 reaching the manifest. This
-  build refuses four of the new expectations, and the four are named because the point
-  of the run is to locate the work, not to decorate the count:
+- FHGM **43 -> 62, all 62 scored.** The nineteen additions
+  are the `layers.model` widening of FHGM-Specification#29 reaching the manifest.
+  When the re-pin landed on 2026-11-18 this build scored **58 pass / 4 fail** against
+  them, and the four were named because the point of the run is to locate the work:
   `carrier-cites-raw-main` (K1 - upstream selects the carrier's base release *by cited
-  URL* and refuses a raw-main carrier; this build's default K1 reads the stated version
-  per R15 and the opt-in overlay does not cover base selection),
+  URL* and refuses a raw-main carrier),
   `feature-target-gene-with-parent` (K4 - upstream requires a **root** gene row, no
-  `Parent`; this build resolves any single gene row),
+  `Parent`),
   `feature-id-names-percent-encoding` (K4 - upstream compares the record's `featureId`
-  literally against decoded row IDs, so the raw spelling `toy%2Da` must not resolve;
-  this build percent-decodes the record side too and resolves it), and
+  literally against decoded row IDs, so the raw spelling `toy%2Da` must not resolve),
+  and
   `model-ids-equal-under-nfc` (K3 - upstream compares `modelId`s after Unicode NFC
-  normalisation; this build compares the raw strings). Implementing them is separate
-  reviewed work against the pinned draft, not something a re-pin slips into the same
-  diff. No released ledger moves with this: the released 291-vector run above is
-  unchanged by anything in this section.
+  normalisation). That work is implemented in this build (2026-11-19, Round 14 #23):
+  K1 now refuses a carrier whose `schema` citation is not a registered FHGFF3 base
+  release of the pinned overlay (raw main, v0.4.0, or no citation); K4 requires a root
+  gene row — a `Parent=` with no value or a bare `Parent` token is indeterminate and
+  rejects, never a silent root pass — and row `ID=` values are percent-decoded over
+  raw bytes with strict UTF-8, so an un-decodable escape such as `%FF` is unaddressable
+  rather than matching a `U+FFFD` someone invented; the record side is compared as
+  written; and K3 compares NFC-normalised `modelId`s, after the whole K2 pass and
+  before per-record K4/K5, so a shape defect can never hide behind an invented empty
+  identity. FHGM now scores **62 pass / 0 fail / 0 not-run** on the same pinned
+  bytes, and the lane total is **144 pass / 0 fail**. The semantics they implement are
+  still the FHGM-Specification#29 reading of a **draft**: `FHGM#22`/`#27`/`#28`/`#32`
+  remain open upstream, and an upstream decision can still move them — the pin names
+  the bytes this build answers to, it does not claim the rule text is final. No
+  released ledger moves with this: the released 291-vector run above is unchanged by
+  anything in this section.
 - **A semantic note no digest diff shows.** FHGM-Specification#29 widened what a
   `layers.model` **pass** means - trimmed, invisible-character-free text; RFC 3986
   schemes with a real host (`javascript:`, `data:` and friends rejected); non-blank
