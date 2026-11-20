@@ -76,7 +76,7 @@ function beyondExactIntegerRange(text) {
 function auditEvents(events, source) {
   // D10: directives and document markers are not header metadata syntax.
   // Column-zero matching preserves identical text inside indented block scalars.
-  if (/^(?:%(?:YAML|TAG)(?:[ \t]|$)|---(?:[ \t]|$))/m.test(source)) {
+  if (/^(?:%(?:YAML|TAG)(?:[ \t]|$)|---(?:[ \t]|$))/m.test(source.replace(/^\uFEFF/, ''))) {
     throw new HeaderError('YAML directives and document-start markers are not allowed (FORMAT.md R12)', { rule: 'R12' });
   }
   let documents = 0;

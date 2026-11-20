@@ -19,6 +19,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -45,7 +46,7 @@ const WORK = mkdtempSync(join(tmpdir(), 'fhr-crosscheck-'));
 let compared = 0;
 let stripCompared = 0;
 const problems = [];
-const policyChanges = new Set(JSON.parse(readFileSync(fileURLToPath(new URL('../../reader-policy/retirement-crosswalk.json',import.meta.url)),'utf8')).cases.filter(x=>x.expected==='valid').map(x=>x.id));
+const policyChanges = new Map(JSON.parse(readFileSync(fileURLToPath(new URL('../../reader-policy/retirement-crosswalk.json',import.meta.url)),'utf8')).cases.filter(x=>x.expected==='valid').map(x=>[x.id,x.oldSha256]));
 const policyObserved=[];
 const expectedPolicy=new Set();
 
@@ -55,7 +56,8 @@ for (const suite of suites) {
     if (!(vector.format in COMMAND)) continue;
     const path = join(suite, vector.file);
     if (vector.compressed) continue; // the toolkit reads plain and BGZF; this pair is checked by the vectors themselves
-    if(policyChanges.has(vector.id))expectedPolicy.add(vector.id);
+    const byteQualified = policyChanges.get(vector.id) === createHash('sha256').update(readFileSync(path)).digest('hex');
+    if(byteQualified)expectedPolicy.add(vector.id);
     const prefix = COMMAND[vector.format];
     compared += 1;
 
@@ -72,7 +74,7 @@ for (const suite of suites) {
     }
     const reading = inspectFile(path, { container: CONTAINER[vector.format] });
     if (reading.valid !== toolkitSaysValid) {
-      if(policyChanges.has(vector.id)&&toolkitSaysValid&&!reading.valid&&reading.errors.some(x=>x.includes('R4:'))){
+      if(byteQualified&&toolkitSaysValid&&!reading.valid&&reading.errors.some(x=>x.includes('R4:'))){
         policyObserved.push(vector.id);
       }else problems.push(`${vector.id}: toolkit valid=${toolkitSaysValid}, this library valid=${reading.valid} (${reading.errors.join('; ')})`);
     }

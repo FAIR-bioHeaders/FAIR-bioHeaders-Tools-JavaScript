@@ -45,6 +45,10 @@ for(const entry of counterparts)test(`canonical counterpart ${entry.id}`,()=>{
  const container=entry.format==='fhp-fasta'?'fasta':entry.format==='fhgff3'?'gff3':entry.format;
  const reading=inspectBytes(bytes,{container});
  assert.equal(reading.valid,entry.expected==='valid',reading.errors.join('; '));
+ if(entry.expected==='valid'){
+  assert.equal(reading.checksum.computed,entry.checksum);
+  for(const [key,value]of Object.entries(entry.metadata??{}))assert.deepEqual(reading.metadata[key],value);
+ }
  if(entry.result==='unsupported-version')assert.match(reading.errors.join('; '),/unsupported schema version/);
 });
 
@@ -54,4 +58,23 @@ test('opaque extension checksum names do not acquire R4 semantics',()=>{
  const before=JSON.stringify(record);
  assert.equal(validateRecord(record,selectSchema(record)).valid,true);
  assert.equal(JSON.stringify(record),before,'runtime validation preserves supplied extension values');
+});
+
+test('complete policy and counterpart ledgers cannot silently disappear',()=>{
+ assert.equal(data.cases.length,64);
+ assert.equal(new Set(data.cases.map(x=>x.id)).size,64);
+ const retired=JSON.parse(readFileSync(new URL('retirement-crosswalk.json',root))).cases;
+ assert.equal(retired.length,78);
+ assert.deepEqual(counterparts.map(x=>x.id).sort(),retired.map(x=>x.replacedBy).sort());
+ for(const entry of counterparts){
+  const source=retired.find(x=>x.replacedBy===entry.id);
+  assert.equal(entry.file,source.replacementFile);
+  assert.equal(entry.expected,source.expected);
+ }
+});
+test('BOM does not exempt forbidden YAML document syntax',()=>{
+ for(const source of ['\uFEFF---\na: 1\n','\uFEFF%YAML 1.2\n---\na: 1\n']){
+  assert.throws(()=>loadHeaderYaml(source),error=>error instanceof HeaderError&&error.rule==='R12');
+ }
+ assert.equal(loadHeaderYaml('text: |\n  ---\n  %YAML 1.2\n').metadata.text,'---\n%YAML 1.2\n');
 });

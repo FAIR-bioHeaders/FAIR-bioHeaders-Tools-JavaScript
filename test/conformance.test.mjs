@@ -17,6 +17,7 @@
 
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
@@ -30,7 +31,7 @@ const manifest = JSON.parse(readFileSync(join(SUITE, 'manifest.json'), 'utf8'));
 // The vector count comes from the provenance record of the vendored copy, which
 // `npm run check:vendoring` ties to the manifest bytes, so a re-vendor changes the
 // count in one place instead of in every test that mentions it.
-const retired = new Set(JSON.parse(readFileSync(join(ROOT,'reader-policy/retirement-crosswalk.json'),'utf8')).cases.map(x=>x.id));
+const retired = new Map(JSON.parse(readFileSync(join(ROOT,'reader-policy/retirement-crosswalk.json'),'utf8')).cases.map(x=>[x.id,x]));
 const provenance = JSON.parse(readFileSync(join(SUITE, 'provenance.json'), 'utf8'));
 
 // Which formats are scored, and which are declared not-run with a reason, comes
@@ -83,6 +84,8 @@ describe('shared conformance vectors', () => {
     it(`${vector.id} (${vector.format}, expected ${vector.expected})`, () => {
       const reading = inspectBytes(read(vector), { container: containerFor(vector.format) });
       if (retired.has(vector.id)) {
+        assert.equal(createHash('sha256').update(read(vector)).digest('hex'),retired.get(vector.id).oldSha256,'retirement is exact bytes, not ID alone');
+        if(vector.expected==='valid')assert.ok(reading.errors.some(x=>x.includes('R4')));
         assert.equal(reading.valid,false,'D9 rejects the preserved noncanonical historical parent; new counterpart tested separately');
         return;
       }

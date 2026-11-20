@@ -31,10 +31,10 @@ readings, 63 explicitly unsupported JSON-LD/HTML). That view is not the historic
 The canonical counterparts and 64 supplementary policy cases are separate tests,
 not additions silently folded into the old release ledger.
 
-Current local native acceptance: 711 leaf tests, 648 passed, 63 declared unsupported
+Prior full native acceptance: 711 leaf tests, 648 passed, 63 declared unsupported
 skips, zero failures and zero unexplained skips. Focused policy/counterpart suite:
-143 passed, no skips. A packed candidate archive was extracted outside the checkout
-with lockfile dependencies copied into its private tree; all 143 tests also passed
+146 passed, no skips (including the caller-selected suite override control). A packed candidate archive was extracted outside the checkout
+with lockfile dependencies copied into its private tree; all 145 policy/counterpart tests also passed
 through that artifact's native runtime. This is an installed candidate receipt,
 not npm publication. The supplemental comparison against the pinned historical
 Python reader reports its exact expected D9 differences separately from unexpected
@@ -57,9 +57,10 @@ pin enforcement. The added policy corpus is a deliberate selected-file projectio
 with exact per-file source/local digests and an immutable last-change commit for
 the complete selected closure. It is not a whole upstream conformance mirror.
 
-Strict CI controls use independent temporary Git authorities, proving three
-positive groups and 404 controls, changed-digest DRIFT, missing-tag-commit ABSENT
-and missing-local ABSENT. Real advisory findings remain non-gating and scheduled;
+Strict CI controls use independent temporary Git authorities, proving four
+positive groups and four 404 controls, changed-digest DRIFT, missing-tag-commit ABSENT,
+missing-local and missing-policy-declaration ABSENT, unrecorded-policy-payload DRIFT,
+and rejection of a wrong policy publisher. Real advisory findings remain non-gating and scheduled;
 setup/query failure emits QUERY_FAILED, never FRESH. Reports retain class and
 coverage limits. Run:
 
@@ -72,3 +73,5 @@ python3 scripts/audit_declared_references.py --checker-root /exact/checker/check
 The Python audit is a separate job. Primary native acceptance still uses Node
 alone. Historical and source receipts are under the coordinating workspace's
 issue-review/round15a-20261119 directory; current PR CI supersedes progress counts.
+
+Review hardening binds retirement overrides and historical differential exceptions to exact payload SHA-256 values, including caller-selected suites. YAML document markers and directives remain forbidden after an initial BOM. Missing policy provenance and undeclared local payloads cannot silently disappear from audit coverage.

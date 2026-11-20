@@ -86,12 +86,19 @@ def inventory(root=ROOT):
             files=[{'path':relative(v['sourcePath']),'local':'examples/'+relative(k),'sha256':v['sha256']}
                    for k,v in data['files'].items()]
         row(local+'-copies','copied-tree',AUTHORITY,source[sourcekey],'tag',source['commit'],files,name,
-            materialStatus='released',sourcePatterns=[x['path'] for x in files],localTree=local,
+            materialStatus='released',sourcePatterns=['conformance/**'] if local=='conformance' else [x['path'] for x in files],localTree=local,
             localExclusions=[name])
-    if (root/'reader-policy/provenance.json').exists():
-        name='reader-policy/provenance.json';data=read(name)
-        row('adopted-reader-policy','copied-tree',AUTHORITY,data['commit'],'commit',data['commit'],
-            data['files'],name,materialStatus='historical',sourcePatterns=[x['path'] for x in data['files']])
+    name='reader-policy/provenance.json'
+    if not (root/name).is_file():
+        row('adopted-reader-policy','copied-tree',AUTHORITY,None,'commit',None,[],name,
+            materialStatus='historical')
+    else:
+        data=read(name)
+        if data.get('repository') != AUTHORITY:
+            raise ValueError('policy publisher is not the declared shared authority')
+        row('adopted-reader-policy','copied-tree',AUTHORITY,data.get('commit'),'commit',data.get('commit'),
+            data['files'],name,materialStatus='historical',sourcePatterns=[x['path'] for x in data['files']],
+            localTree='reader-policy',localExclusions=[name,'reader-policy/counterparts.json'])
     return {'inventoryVersion':1,'advisory':True,'declarationRecords':records,'references':rows,
             'coverageGaps':[{'scope':'Owning suites are external, not vendored',
                             'disposition':'Manifest authorities checked; native draft runners verify fixture reads at their immutable suite pins.'},
