@@ -86,7 +86,7 @@ explicit in README, `llms.txt`, docs and code comments, in both directions:
   `options.features`, and a missing or untrustworthy layer leaves K4
   `not-checked`/`unchecked`, never a pass and never a rejection.
 
-## Drafts take no release form (rule V7)
+## Historical pinned drafts take no release form here (rule V7)
 
 The shared project published FHT in `v0.7.0` and native FHGM in `v0.8.0`.
 This consumer still bundles historical owning-draft bytes. Its own

@@ -180,6 +180,11 @@ jobs:
           FHGM_REPO: ${{ steps.pins.outputs.fhgm-repo }}
           FHGM_COMMIT: ${{ steps.pins.outputs.fhgm-commit }}
         run: |
+          set -eu
+          : "${FHT_REPO:?missing FHT repository pin}"
+          : "${FHT_COMMIT:?missing FHT commit pin}"
+          : "${FHGM_REPO:?missing FHGM repository pin}"
+          : "${FHGM_COMMIT:?missing FHGM commit pin}"
           git clone --quiet "https://github.com/FAIR-bioHeaders/$FHT_REPO" .upstream/FHT-Specification
           git -C .upstream/FHT-Specification checkout --detach --quiet "$FHT_COMMIT"
           git clone --quiet "https://github.com/FAIR-bioHeaders/$FHGM_REPO" .upstream/FHGM-Specification
