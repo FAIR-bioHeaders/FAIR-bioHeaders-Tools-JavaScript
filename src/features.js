@@ -44,8 +44,8 @@
  *   exactly (issue #11, items 2-prime and 3); judging the row's syntax stays
  *   gff3-validator's job;
  * - `ID` values are percent-escaped in GFF3, and an indexed entry keeps the
- *   value as written; decoding is `src/fhgm.js`'s step, shared with the record
- *   side, so K4 compares decoded identifiers on both sides (the rule text in
+ *   value as written; decoding is `src/fhgm.js`'s step on the row
+ *   side only; the record's plain YAML `featureId` is already the target text (the rule text in
  *   FHGM-Specification, "resolves to exactly one local `gene` row
  *   (percent-decoded)");
  * - every nine-field feature row is counted, whether or not it carries an ID.

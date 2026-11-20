@@ -52,7 +52,9 @@ console.log(result.schema.type, result.schema.release, body.length);
 | `computeChecksum(bytes, container)` / `digest(bytes)` | Compute file-covered checksum or primitive SHA-512/256. A checksum provides integrity, not author authentication. |
 
 See [USAGE](USAGE.md) for warning/error fields, helper APIs, draft pins and parent
-resolvers, [MATRIX](MATRIX.md) for formats, and [SECURITY](../SECURITY.md) for private
+resolvers. Injected `features` row facts use GFF3-encoded IDs, decoded once;
+use `geneIds` for already-decoded gene IDs. Preserve `%25` for literal percent
+characters in encoded row facts. See [MATRIX](MATRIX.md) for formats, and [SECURITY](../SECURITY.md) for private
 reporting. `HeaderError` carries a rule when applicable. Invalid records generally
 produce Reading errors; programmer options and filesystem failures can throw.
 A failed Reading can contain empty metadata/checksum fields and a placeholder

@@ -161,8 +161,10 @@ export const VERDICTS = Object.freeze({
  *   prior snapshots K6 may resolve against; each is itself run through K1-K3 and K5
  * @property {string|Uint8Array|import('./features.js').FeatureIndex|Array<{id: string, type: string}>|null} [features]
  *   the K4 resolver: GFF3 text or decompressed bytes to index with `src/features.js`,
- *   an index that module already built (`{rows, problems}`), or row facts `[{id, type}]` taken from elsewhere (decoded or percent-escaped ids
- *   both work - ids are decoded before comparison). `null` says "no feature layer,
+ *   an index that module already built (`{rows, problems}`), or row facts `[{id, type}]`
+ *   using GFF3-encoded IDs (percent escapes are decoded once before comparison).
+ *   For already-decoded gene IDs, use `geneIds`; an encoded literal percent must
+ *   remain `%25` here to avoid being interpreted as another escape. `null` says "no feature layer,
  *   do not look for one"; absent at the direct call means `not-checked`, and
  *   `inspectBytes` defaults it to the file's own bytes when the lane names FHGM
  * @property {string[]} [geneIds] the decoded `ID` of every local gene row, as an
