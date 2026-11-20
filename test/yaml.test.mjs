@@ -138,7 +138,7 @@ describe('loadHeaderYaml', () => {
   });
 
   it('refuses a second document', () => {
-    assert.throws(() => loadHeaderYaml('a: 1\n---\nb: 2'), /one YAML document/);
+    assert.throws(() => loadHeaderYaml('a: 1\n---\nb: 2'), /R12/);
   });
 
   it('refuses nesting deeper than the reader limit', () => {
@@ -182,15 +182,19 @@ describe('untrusted-input handling', () => {
     assert.throws(() => loadHeaderYaml(wide), /node limit/);
   });
 
-  it('accepts a %YAML or %TAG directive, as the toolkit does', () => {
+  it('refuses %YAML and %TAG directives under adopted D10', () => {
     for (const source of ['%YAML 1.2\n---\na: 1', '%YAML 1.1\n---\na: 1', '%TAG !e! tag:example.com,2000:\n---\na: 1']) {
-      assert.deepEqual(loadHeaderYaml(source).metadata, { a: 1 }, source);
+      assert.throws(() => loadHeaderYaml(source), /R12/, source);
     }
   });
 
   it('still refuses a %YAML 2 directive and a tag a %TAG handle names', () => {
     assert.throws(() => loadHeaderYaml('%YAML 2.0\n---\na: 1'), /not readable YAML/);
-    assert.throws(() => loadHeaderYaml('%TAG !e! tag:example.com,2000:\n---\na: !e!x 1'), /explicit tag/);
+    assert.throws(() => loadHeaderYaml('%TAG !e! tag:example.com,2000:\n---\na: !e!x 1'), /R12/);
+  });
+
+  it('preserves directive-like text within a block scalar', () => {
+    assert.equal(loadHeaderYaml('protocol: |\n  ---\n  %YAML 1.2\n').metadata.protocol, '---\n%YAML 1.2\n');
   });
 
   it('holds __proto__ inside an x- value as plain data, without touching any prototype', () => {

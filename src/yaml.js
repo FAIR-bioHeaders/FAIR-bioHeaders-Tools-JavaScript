@@ -74,6 +74,11 @@ function beyondExactIntegerRange(text) {
  * @returns {string[]} warnings about what was read but cannot be kept exactly
  */
 function auditEvents(events, source) {
+  // D10: directives and document markers are not header metadata syntax.
+  // Column-zero matching preserves identical text inside indented block scalars.
+  if (/^(?:%(?:YAML|TAG)(?:[ \t]|$)|---(?:[ \t]|$))/m.test(source)) {
+    throw new HeaderError('YAML directives and document-start markers are not allowed (FORMAT.md R12)', { rule: 'R12' });
+  }
   let documents = 0;
   let nodes = 0;
   /** @type {string[]} */
@@ -97,10 +102,6 @@ function auditEvents(events, source) {
   for (const event of events) {
     if (event.type === EVENT_ID.DOCUMENT) {
       documents += 1;
-      // A %YAML or %TAG directive is accepted, as the toolkit's YAML reader accepts
-      // it: it changes no plain-scalar resolution here (R12 is checked against both
-      // dialects regardless), and a tag a %TAG handle would expand is still refused
-      // below. A %YAML major version other than 1 is refused by the parser.
       continue;
     }
     if (event.type === EVENT_ID.POP) {

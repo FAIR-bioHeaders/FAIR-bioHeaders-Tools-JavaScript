@@ -259,7 +259,7 @@ describe('B1 and the separation of a draft verdict from the file result', () => 
   });
 
   it('leaves the released FHGFF3 reading untouched whether the lane is open or not', () => {
-    const bytes = new Uint8Array(readFileSync(join(ROOT, 'conformance', 'valid', 'fhgff3-both-links.fhgff3.gff3')));
+    const bytes = new Uint8Array(readFileSync(join(ROOT, 'reader-policy', 'counterparts', 'valid', 'fhgff3-both-links-canonical-parent.fhgff3.gff3')));
     const plain = inspectBytes(bytes, { container: 'gff3' });
     const lane = inspectBytes(bytes, { container: 'gff3', drafts: ['FHGM'] });
     assert.equal(lane.fhgm.status, 'absent', 'a released FHGFF3 file with no records carries no FHGM verdict');
@@ -377,7 +377,7 @@ describe('the FHGM lane on an FHGFF3 header in a container with no feature rows 
 
   // A real released vector, read as GFA: its `#~` block is also the GFA prefix, so
   // the header is found, selects FHGFF3, and digests to what it states.
-  const gfaCarrier = { container: 'gfa', bytes: new Uint8Array(readFileSync(join(ROOT, 'conformance', 'valid', 'fhgff3-both-links.fhgff3.gff3'))) };
+  const gfaCarrier = { container: 'gfa', bytes: new Uint8Array(readFileSync(join(ROOT, 'reader-policy', 'counterparts', 'valid', 'fhgff3-both-links-canonical-parent.fhgff3.gff3'))) };
   // A synthetic FHGFF3 header carrying model records, written with the `;~` prefix
   // a FASTA file uses. `#~` is not the FASTA prefix, so reusing the GFF3 vector
   // here would fail at R2 before the lane ever ran: that is a coincidence of

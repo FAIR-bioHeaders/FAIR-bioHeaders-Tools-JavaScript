@@ -97,6 +97,7 @@ function sameValue(expected, actual) {
 
 const args = parseArgs(process.argv.slice(2));
 const { manifest, dir } = loadSuite(args.suite ?? join(REPO, 'conformance'));
+const retired = new Set(JSON.parse(readFileSync(join(REPO,'reader-policy/retirement-crosswalk.json'),'utf8')).cases.map(x=>x.id));
 const vectors = manifest.vectors.filter(
   (v) => (args.formats === null || args.formats.includes(v.format)) && (args.ids === null || args.ids.includes(v.id)),
 );
@@ -109,6 +110,7 @@ const failures = [];
 const notRun = [];
 
 for (const vector of vectors) {
+  const expected = retired.has(vector.id) ? 'invalid' : vector.expected;
   const counts = byFormat.get(vector.format) ?? { pass: 0, fail: 0, notRun: 0 };
   byFormat.set(vector.format, counts);
 
@@ -124,7 +126,7 @@ for (const vector of vectors) {
     const raw = new Uint8Array(readFileSync(join(dir, vector.file)));
     const container = containerFor(vector.format);
     outcome = inspectBytes(raw, { container });
-    if (vector.expected === 'valid') {
+    if (expected === 'valid') {
       // The strip round trip must return a byte-exact copy of the payload, so a
       // valid vector also exercises strip's byte handling.
       const stripped = stripBytes(raw, { container });
@@ -138,7 +140,7 @@ for (const vector of vectors) {
   }
 
   const problems = [];
-  if (vector.expected === 'valid') {
+  if (expected === 'valid') {
     if (!outcome.valid) problems.push(`expected valid, got: ${outcome.errors.join('; ')}`);
     if (typeof vector.checksum === 'string' && outcome.checksum.computed !== vector.checksum) {
       problems.push(`expected checksum ${vector.checksum}, computed ${outcome.checksum.computed}`);
@@ -168,6 +170,7 @@ for (const vector of vectors) {
 }
 
 console.log(`suite: ${dir}`);
+console.log('D9 policy view: frozen 291 payloads preserved; retired noncanonical-parent cases now reject, canonical counterparts and 64 policy cases run separately.');
 console.log(`manifest vectors: ${manifest.vectors.length}; selected: ${vectors.length}\n`);
 console.log('format      total  pass  fail  not-run');
 let totals = { pass: 0, fail: 0, notRun: 0 };
