@@ -30,7 +30,9 @@
  */
 
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
@@ -239,6 +241,30 @@ describe('the CI workflow is native where it has to be', () => {
     }
     assert.equal(checkPipefail('draft-lane', strippedDraft).length, 1, 'removing pipefail from draft-lane tee step must be caught');
     assert.notEqual(ci.jobs['draft-lane']['continue-on-error'], true, 'draft-lane is a real gate on the pinned draft suites, never continue-on-error');
+  });
+
+  it('forwards freshness producer exit0/1/2 through the real advisory shell snippet', () => {
+    const job = ci.jobs['draft-pin-freshness'];
+    const step = job.steps.find((row) => String(row.run ?? '').includes('scripts/ci/draft-pin-freshness.mjs'));
+    const script = String(step.run);
+    assert.equal(job['continue-on-error'], true, 'the observation remains non-gating');
+    const dir = mkdtempSync(join(tmpdir(), 'fhr-advisory-pipeline-'));
+    const bin = join(dir, 'bin'); mkdirSync(bin);
+    try {
+      for (const exit of [0, 1, 2]) {
+        writeFileSync(join(bin, 'node'), `#!/bin/sh\nprintf '%s\\n' simulated-advisory\nexit ${exit}\n`, { mode: 0o755 });
+        const options = { cwd: dir, encoding: 'utf8', env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } };
+        const result = spawnSync('bash', ['-e', '-c', script], options);
+        assert.equal(result.status, exit, `producer exit${exit} must survive tee: ${result.stderr}`);
+        assert.equal(readFileSync(join(dir, 'draft-freshness.txt'), 'utf8'), 'simulated-advisory\n');
+        if (exit === 2) {
+          const old = script.replace(/^[ \t]*set -o pipefail\n/m, '');
+          assert.notEqual(old, script, 'negative control must actually remove pipefail');
+          const masked = spawnSync('bash', ['-e', '-c', old], options);
+          assert.equal(masked.status, 0, 'the old shell snippet incorrectly credits tee success');
+        }
+      }
+    } finally { rmSync(dir, { recursive: true, force: true }); }
   });
 
   it('keeps draft-pin freshness advisory, native, and incapable of reporting a verdict it cannot support', () => {
