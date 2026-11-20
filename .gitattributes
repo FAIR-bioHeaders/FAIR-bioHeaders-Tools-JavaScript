@@ -26,3 +26,6 @@ examples/** -text
 
 # Compressed vectors are transport, not text, in either direction.
 *.gz binary
+
+# Adopted supplementary policy and canonical counterpart payloads are exact bytes.
+reader-policy/** -text

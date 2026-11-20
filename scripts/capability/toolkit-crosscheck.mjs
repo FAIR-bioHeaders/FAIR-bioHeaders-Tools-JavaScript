@@ -19,9 +19,11 @@
  */
 
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { inspectFile, stripFile } from '../../src/reader.js';
 
@@ -44,6 +46,9 @@ const WORK = mkdtempSync(join(tmpdir(), 'fhr-crosscheck-'));
 let compared = 0;
 let stripCompared = 0;
 const problems = [];
+const policyChanges = new Map(JSON.parse(readFileSync(fileURLToPath(new URL('../../reader-policy/retirement-crosswalk.json',import.meta.url)),'utf8')).cases.filter(x=>x.expected==='valid').map(x=>[x.id,x.oldSha256]));
+const policyObserved=[];
+const expectedPolicy=new Set();
 
 for (const suite of suites) {
   const manifest = JSON.parse(readFileSync(join(suite, 'manifest.json'), 'utf8'));
@@ -51,6 +56,8 @@ for (const suite of suites) {
     if (!(vector.format in COMMAND)) continue;
     const path = join(suite, vector.file);
     if (vector.compressed) continue; // the toolkit reads plain and BGZF; this pair is checked by the vectors themselves
+    const byteQualified = policyChanges.get(vector.id) === createHash('sha256').update(readFileSync(path)).digest('hex');
+    if(byteQualified)expectedPolicy.add(vector.id);
     const prefix = COMMAND[vector.format];
     compared += 1;
 
@@ -67,7 +74,9 @@ for (const suite of suites) {
     }
     const reading = inspectFile(path, { container: CONTAINER[vector.format] });
     if (reading.valid !== toolkitSaysValid) {
-      problems.push(`${vector.id}: toolkit valid=${toolkitSaysValid}, this library valid=${reading.valid} (${reading.errors.join('; ')})`);
+      if(byteQualified&&toolkitSaysValid&&!reading.valid&&reading.errors.some(x=>x.includes('R4:'))){
+        policyObserved.push(vector.id);
+      }else problems.push(`${vector.id}: toolkit valid=${toolkitSaysValid}, this library valid=${reading.valid} (${reading.errors.join('; ')})`);
     }
 
     if (toolkitSaysValid) {
@@ -83,10 +92,12 @@ for (const suite of suites) {
   }
 }
 
+for(const id of expectedPolicy)if(!policyObserved.includes(id))problems.push(`${id}: pinned historical reader no longer exhibits the recorded D9 difference; revise dated differential evidence`);
 rmSync(WORK, { recursive: true, force: true });
 
+console.log(`adopted D9 differences against the pinned historical reader (${policyObserved.length}): ${policyObserved.join(', ')}`);
 console.log(`validity compared on ${compared} vectors; strip compared on ${stripCompared} valid vectors`);
-if (problems.length === 0) console.log('no disagreements with the released toolkit');
+if (problems.length === 0) console.log('no unexplained disagreements with the pinned historical toolkit; D9 differences are explicit above');
 else {
   console.log(`disagreements (${problems.length}):`);
   for (const line of problems) console.log(`  ${line}`);

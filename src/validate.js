@@ -365,31 +365,31 @@ export function linkSchemeWarnings(record, type, release) {
  * @param {Set<object>} [onPath] schema nodes already on this recursion path
  * @returns {Array<Array<string|null>>}
  */
-function collectUriPaths(root, node, prefix = [], onPath = new Set()) {
+function collectUriPaths(root, node, prefix = [], onPath = new Set(), mode = 'uri') {
   if (node === null || typeof node !== 'object' || Array.isArray(node)) return [];
   if (onPath.has(/** @type {object} */ (node))) return [];
   const schema = /** @type {Record<string, unknown>} */ (node);
   const here = new Set(onPath).add(schema);
   const found = [];
-  if (schema.format === 'uri') found.push([...prefix]);
+  if (mode === 'checksum' ? prefix.at(-1) === 'checksum' : schema.format === 'uri') found.push([...prefix]);
   if (schema.properties !== null && typeof schema.properties === 'object') {
     for (const [name, child] of Object.entries(/** @type {Record<string, unknown>} */ (schema.properties))) {
-      found.push(...collectUriPaths(root, child, [...prefix, name], here));
+      found.push(...collectUriPaths(root, child, [...prefix, name], here, mode));
     }
   }
   if (typeof schema.items === 'object' && schema.items !== null) {
-    found.push(...collectUriPaths(root, schema.items, [...prefix, null], here));
+    found.push(...collectUriPaths(root, schema.items, [...prefix, null], here, mode));
   }
   for (const branch of ['anyOf', 'oneOf', 'allOf']) {
     if (Array.isArray(schema[branch])) {
       for (const child of schema[branch]) {
-        found.push(...collectUriPaths(root, child, prefix, here));
+        found.push(...collectUriPaths(root, child, prefix, here, mode));
       }
     }
   }
   if (typeof schema.$ref === 'string' && schema.$ref.startsWith('#/')) {
     const target = resolvePointer(root, schema.$ref);
-    if (target !== undefined) found.push(...collectUriPaths(root, target, prefix, here));
+    if (target !== undefined) found.push(...collectUriPaths(root, target, prefix, here, mode));
   }
   return found;
 }
@@ -456,6 +456,17 @@ export function validateRecord(record, selection) {
   const { validate, entry } = draft ? draftValidator(selection.type, 'contract') : validator(selection.type, selection.release);
   const ok = validate(record);
   const errors = ok ? [] : (validate.errors ?? []).map((error) => formatError(error));
+  const document = contractDocument(selection.type, selection.release);
+  const checked = new Set();
+  for (const path of collectUriPaths(document, document, [], new Set(), 'checksum')) {
+    for (const item of readPaths(record, path, '')) {
+      if (checked.has(item.path)) continue;
+      checked.add(item.path);
+      if (typeof item.value === 'string' && !/^[A-Za-z0-9+/]{42}[AEIMQUYcgkosw048]=$/.test(item.value)) {
+        errors.push(`R4: ${item.path} must be canonical padded base64 of a 32-byte checksum`);
+      }
+    }
+  }
   const warnings = [...emptyValueWarnings(record, selection.type), ...linkSchemeWarnings(record, selection.type, selection.release)];
   if (selection.warning !== undefined) warnings.push(selection.warning);
   return {

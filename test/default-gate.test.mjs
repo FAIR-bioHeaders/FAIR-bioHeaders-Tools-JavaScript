@@ -128,6 +128,14 @@ describe('default gate (rule V7: no lane requested)', () => {
   it('reads every vector exactly as the pre-lane tree did', () => {
     const now = recompute();
     const byId = new Map(golden.vectors.map((row) => [row.id, row.digest]));
+    const delta = JSON.parse(readFileSync(join(ROOT,'test/goldens/reader-policy-delta.json'),'utf8'));
+    assert.equal(delta.baselineAggregate,golden.aggregate);
+    const allowed = new Set(JSON.parse(readFileSync(join(ROOT,'reader-policy/retirement-crosswalk.json'),'utf8')).cases.map(x=>x.id));
+    for(const change of delta.changes){
+      assert.ok(allowed.has(change.id), 'every default change has a shared exact-byte counterpart');
+      assert.equal(byId.get(change.id),change.before, 'predecessor fingerprint remains frozen');
+      byId.set(change.id,change.after);
+    }
     const differences = [];
     for (const row of now.vectors) {
       if (!byId.has(row.id)) differences.push(`${row.id}: present now, named by no golden row`);
@@ -137,7 +145,7 @@ describe('default gate (rule V7: no lane requested)', () => {
       if (!now.vectors.some((entry) => entry.id === row.id)) differences.push(`${row.id}: named by the golden, produced by no run`);
     }
     assert.deepEqual(differences, [], 'with no drafts option, every vector must read byte-for-byte as it did before the lane existed');
-    assert.equal(now.aggregate, golden.aggregate, 'the aggregate digest must match the captured golden');
+    assert.equal(now.aggregate, delta.aggregate, 'only the explicitly reviewed D9 default delta is allowed');
   });
 
   it('reads every bundled example exactly as the pre-lane tree did', () => {

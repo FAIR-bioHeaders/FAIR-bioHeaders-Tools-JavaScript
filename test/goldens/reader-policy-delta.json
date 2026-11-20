@@ -1,0 +1,338 @@
+{
+  "predecessorCommit": "5b2fbc9",
+  "baselineAggregate": "cefb059e520e76fe49321e3015b525f68e883429f0bbf88cbed5beb0ae503baf",
+  "adoptedDecision": "https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/211#issuecomment-7017854934",
+  "aggregate": "a18946c6fceb759aa4eb21e5589536bcfcfafd120ed314074e6d4ec739619024",
+  "changes": [
+    {
+      "id": "fhp-fasta-lf",
+      "before": "667beecfba704a442d7c4d1ae29fd792e97d31d205d9321995a52318a2f97664",
+      "after": "d02cf035cb5bfc5e4f9844901aed495c9b32285a91b2b2d5abb82a958b93fee3",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-crlf",
+      "before": "ab3117d0bdb4db1eb5fa369ea1e2436a607f4ebbb6cc9a28d89a163c2c4010ef",
+      "after": "6bee8aa0f67f03995c4761381c66650e0a6553ecbbbad4db792d9146212812e7",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-no-final-newline",
+      "before": "d1ae92a98e2a6b73af81912b22b8d1670828a5e83b15516f6a628829885ee047",
+      "after": "d414ad8f864810a9054d84b613970760ccd7997432112d6c85cf1892c3eae1e3",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-comments-and-blank-lines",
+      "before": "97083939288ec589bbd557409df518d542e6f7bf04de54008ae2fa0a6d83b1f2",
+      "after": "681eb192d8c7ae88e1384ccf95971eb3f9630dca14b5cfe23024e85dbeee55d7",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-escaped-record-markers",
+      "before": "ae13e35a8b1f01e6c768edda3c2968cbd922a85063ef77d2d19f6452feec1b56",
+      "after": "0857c0b029f2fbf6df6650d1400b3f5c141ba5ec67359cd58ef12d2334339c49",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-gzip",
+      "before": "667beecfba704a442d7c4d1ae29fd792e97d31d205d9321995a52318a2f97664",
+      "after": "d02cf035cb5bfc5e4f9844901aed495c9b32285a91b2b2d5abb82a958b93fee3",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-bgzf",
+      "before": "667beecfba704a442d7c4d1ae29fd792e97d31d205d9321995a52318a2f97664",
+      "after": "d02cf035cb5bfc5e4f9844901aed495c9b32285a91b2b2d5abb82a958b93fee3",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-mixed-sources",
+      "before": "2d96b642e54749bac0f5cb30745dfd8df6b3ad94aa6326b46a88c75bbc18ebd1",
+      "after": "760943d4d0c287fdc31a5843bb2646a63d68e6a257d8828e6e13c8ca6169fc2b",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-rich",
+      "before": "f281ef00179a71d53224cd03e8702f4984ed89f52fcab58d88422a08881dd9ba",
+      "after": "b494a12932c501aa8b75875dcaefb9c18a40870a3fc8b7fc48f0ec403572ce8e",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-busco-lineage-dotted",
+      "before": "4af61fda5c9f419a2d89a1c2f39d03e82ccd694d7a327431b1c4d862fc4aba0b",
+      "after": "2ff7ba1aca2ee7fd48f358fe30cb44c9487dabc44d3ffff8dc8c3bd33253f492",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-minimal-checksum-link",
+      "before": "3bd4b7964b71fc642d8f55e883f1f4c64e69190b5f2f48d08f25b54dbb633897",
+      "after": "c7f940a32dad31c285a897aecd534b380ad895957b99d50ebb3d21c2619a4a44",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-both-links",
+      "before": "b8505d7621670bd4c3344a8b5b6b7e2f3f628fe9af7db9216771ba65738e19a8",
+      "after": "322f193ab8d16ab11df76782d8b25a336e85496ea03c8bc7c4961a38a4c533ac",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-directives-interleaved",
+      "before": "7f7348c6d10288311f153165423c3805e522703210d2520931488022db8ed724",
+      "after": "1406089c9215b403b839ac82ece29da2d5dea19821966431830e1705b1829f7d",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-directives-after-header",
+      "before": "8e912b82bbe75789a3a62d25282aa93ce4c55477373b83491fa90061a9de929b",
+      "after": "717c7c0026058531614b965421b2172cdad0eefbec3e9c47677f85a659adb800",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-triple-hash-before-features",
+      "before": "667ce14ab9e8510c1ea9197a71bd68e1c9ec321e8c0bdfaf0855d16510c7fe1a",
+      "after": "d13cc65860632af7b1b487afe29c9dde28ca209644d6c48071cfc277aafe8acb",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-embedded-fasta",
+      "before": "49893af272c5959fae2b4027ea66b2e40465b557e973a9c9781897fb403fb221",
+      "after": "22025713f461dd11e8454198bb3b285b5ae09c133d4c159527eb1a1eee284d1a",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-header-only",
+      "before": "803711266800e84eda81d1395ac1f19b67230aff7b49da09482cddd8dbce988a",
+      "after": "8e0d68cca459d0d50ab06293155961311fc21e33376dc3da4ec9e5fe66dce558",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-version-3-1-26",
+      "before": "6917d67b1dac44a1353cb9326e7bee6d5f80a602112db58888c39a5d99f25fda",
+      "after": "3e68e92ca487721dc5827957f6b238acc3711fc8abfe7f279718078d02d07571",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-version-3-trailing-whitespace",
+      "before": "16ec737063bfdb23f1afb34c7b116f60978733aa220b365703128b456787f6e5",
+      "after": "e6fa4fffdcd94c3a17fe1849342fb85746e2d6419521da68ff356371534ba619",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-crlf",
+      "before": "70ebad646a051b8383bcdd4e419b2cca414d11f7ffe58f5552a7454c44edffd8",
+      "after": "7a290a46540d73cc5e02edc650ea3d948b9f5cdca7237f36f51a5bf1e3e1a3dd",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-gzip",
+      "before": "3bd4b7964b71fc642d8f55e883f1f4c64e69190b5f2f48d08f25b54dbb633897",
+      "after": "c7f940a32dad31c285a897aecd534b380ad895957b99d50ebb3d21c2619a4a44",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-bgzf",
+      "before": "3bd4b7964b71fc642d8f55e883f1f4c64e69190b5f2f48d08f25b54dbb633897",
+      "after": "c7f940a32dad31c285a897aecd534b380ad895957b99d50ebb3d21c2619a4a44",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-nested-parent-checksum",
+      "before": "eb3022d8980b78510c360389cfd5518b7444af50f5b2a3b661d11eacd3f028cc",
+      "after": "f2ceca8c43b6cc667680dc95428fad544e7c0462f982476bb9f3ce727b53d0ba",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-busco-lineage-dotted",
+      "before": "24cdb9df6a57f952df9d645d096d2bb13e7ef80a4cb46ec368051a8352440b3d",
+      "after": "a3989f0f08e6ce77a2d082937a7c1a7f749663cc20174abff1b00bfcefb3b5ca",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-schema-canonical-raw-main",
+      "before": "f919568b4305108602902ee6928215d536f79ae54864a53f2fef6d4cd9390af0",
+      "after": "901d02b692935115579a1d52480bdbc7851689f85a54bf44f2c0b7e0d9a24493",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-schema-canonical-raw-main",
+      "before": "dab148d9efdb41b74d0b4d837c25b3f687e49938d6fa95dc7ed0386b9ac0548d",
+      "after": "b6a3cc15b3f5189627cb1fce39d40333bdda09dd2d2da19bfccb41d1aeed2efa",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-schema-raw-tag",
+      "before": "610929b08f8eee6b3af75bfb7449ffb9524a252e12ec0a36c37d4cf0ab5ef2c4",
+      "after": "fd71eccd2e81b54496dafc1eaabe4496f351922c4c616d61a46407fbd358a3a8",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-schema-raw-main",
+      "before": "b990e13c1a315f7a2463c4f5b32c355a1b33244601c2f4e1ee46fff860538e53",
+      "after": "5d31dcbd48e88708d9fb8bea739afed51ef42cd0d2bd385f7455ee5c406b312f",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-extension-fields",
+      "before": "bd943a1e0e517809f8add8d24da3a0e8b01b4911e92ea30ae89e66f076adc64a",
+      "after": "df6ae7379d58bcce2966ce89e5a9106e0da028c754178284a9aeeaddc2f5f548",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-extension-fields",
+      "before": "ebbdc75be3143a2b7ec75c1d3e1f04c6c6e64a661038f8527c743ef20562ee68",
+      "after": "ea1b5ed23d3949f4e6926ed5761baa9b84826bfb20bb2377e2b106d4e864520e",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-sequence-tampered",
+      "before": "f627d8bb9d69d4a37d68f0e664afdc02f7d7a0e9956c29d7c288644d11a439b5",
+      "after": "e589ac3692ff704f01b0a8ccccd04c8d053dddd193adca587c90619253f1d269",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-stop-normalized-checksum",
+      "before": "577e58654727dea30e881b2ef690b8ec95b71853aa73d6753bf1a9df95a04260",
+      "after": "72f42fc44f3bf3191afcc09e699d7dc954064b6057209c2f2967a2b436b40ebc",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-case-normalized-checksum",
+      "before": "dda3f45b4ac080f3b1e11183ebf2f21996b01e88e31f8f4a59a68f69a2e272ba",
+      "after": "646214d81e1e656bc2003bc0ee60a714426e0c7bc68d9a39e56ec57e50175f03",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-missing-source-type",
+      "before": "17c441ba7f3202cfc2d181035eca50cb853f88217d20336549b14877dadd311c",
+      "after": "8bfe0a3b64b867610170ce0787681586bef97bcf44f61cf315389f8f52256760",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-curated-source-type",
+      "before": "540cdbab6dbdf619be1d51c4df01735c0d3784d0b1a42206f7a3cb9a264e0106",
+      "after": "844999e36f798bac3812384b400190caa6ec14275680257d142e326779990706",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-genome-key",
+      "before": "6141978cef73931ef446f8e933089e15a09b4bdd66b49c07514928c54a094491",
+      "after": "3c5e0d2ebdb2a72b14e3d6bdabeba4a094dc2b28f80c40b3f8bb8e1b6a95ff0f",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-derived-from-bad-relationship",
+      "before": "c87be854172dba0c2b97cc549ca258db3058165e1509824194a40a061d310afc",
+      "after": "f5f4b9ec9ad39038ff54efef872f6333d6b849403c3a80848d7d5a08adb01907",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-source-without-name",
+      "before": "9178fcd019cb77f0fe10131ef9f4127f30d4f5cb4863518c873a4945ad254208",
+      "after": "f3ffb2ee8e84c886d6310e2c0aab7c51d3a4f6607142c25fa279b2028b941db6",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-unused-genetic-code",
+      "before": "b8b41805b55d00e661641d08a0bc8d780d45b95443b626e40d0b55e9131791ad",
+      "after": "0834926b8200a024382f33390e03f064170f7cdc76aebb6d784716ac38fa925b",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-busco-no-lineage-version",
+      "before": "5ecc245fd6702ac56ef6d8a546009cef161c07c79de0f5d0c6ccdf31d4e1aecf",
+      "after": "1b7c708efabd2c1f9418c60d1949dfbf5f4b0d0c6591e0d0244c9d27f2d7553a",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-busco-lineage-trailing-dot",
+      "before": "f0fbd0b39de9b72ce4951db555231354e9cc9faf7e2ee1f0e63ab3dcf4d26bbc",
+      "after": "c99fa913f979ea03ee7dcdb717feb2229ce452d6a4322f43a366f227734c4e43",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-busco-lineage-leading-dot",
+      "before": "403336f0cbd79de2ca736e4d77922d3b55d7f88cb8fae8df32db2bb11986293b",
+      "after": "d5964e61666077dc881cd2fbb928002c52f33a110c86542d270d0fabb9e6a4ff",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-busco-lineage-letter-component",
+      "before": "dc6529c1cf55e54f2072b933d5aefd5d8c1c517a7960593ede928b97cac611d5",
+      "after": "6fd21518755bd73ff506f83dfb210424c6d0b302699498eda7566fc4c98e6c05",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-busco-lineage-uppercase",
+      "before": "73132c743566880f23e1303ed7cc6f7964113196e5608729e187b18f9f46b529",
+      "after": "4bd7804539e0b2e89349b9cdde4e1dbcdecde4662ac7cd9f343e32d08dc85702",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-fasta-tampered",
+      "before": "1cc00fd51143f56a6cdb65be872b8ec8d96c8f7cc6e3511e96a1204c4c340a10",
+      "after": "3540f681fa8dc4d67dddf0a66dc577651886c6a8156eccdfab27f1ad8890ab45",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-two-annotates",
+      "before": "47dce8dd3b1e9dc9633c91f8a16a5dfcd5814524e5af215b36ce825323f59499",
+      "after": "a40eb134f2b2c29d885378b6ef2e11c58228e5c346de4c3ae631ee2c0236bd96",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-annotates-fhp",
+      "before": "9fdef9314848aa795b4219c06f18286a047ab29916c71e6196a231cac318d803",
+      "after": "9c466b60a22336d42a6e29ce44b08a2165f0bcb162eec2d49f35aa0a9a4ee1f1",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-fhr-only-key",
+      "before": "7f9f3fdd8b464f2b107fb5c0075fc9bbd26cb30a75e23637da89569f81f96bdd",
+      "after": "4c384073397c14e920b15429e4f40167d4a1f0578a870c5a608a5caf402b8fd8",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-busco-lineage-trailing-dot",
+      "before": "75e80ba871e9241b88e033e6e94583ca83dccbfce16028f94da1c31ecafe7e3f",
+      "after": "d0526f8be1de9665ed6e0eb26210d67174252f40a25e870abaa9b6d6d3c61e12",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-extension-older-version",
+      "before": "ec41d6cba28ca4ad974c070ddebf4f6f981e2211807085a89c98ed4606a9a8c3",
+      "after": "aa0b26fdcfc7ee1caee9099990a3e1ee1d097da5ea013ac2b269edfdfda76c78",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-extension-older-version",
+      "before": "22265d0fef39dce4837556a4b2b12e856b9cbd98659bcaadaa51c1df1a6753e9",
+      "after": "ffa3bd3c0419236f4a3d065ed375ba32f8362b60698ad3132be7faa07f7ade96",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-extension-older-release",
+      "before": "6d464fceec6e84ef34c618e16079587cdd04b78432ae999194ac0bd2b8db128d",
+      "after": "3335c32a1f8e2720e964b7c3abb800471393ecdfe15b76fca8eed982a8c23e7b",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-extension-older-release",
+      "before": "2e817a149bcf8cf073dcbf7b6baf3620bef25e2a8246635e80e040df047f78fc",
+      "after": "4e5ca333ae1fed550b5ecb28f956d5bd1b6ef200880f7b33fbbcca0f29d86b39",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhp-fasta-extension-nested",
+      "before": "92074e451602286cf6a6c320f53d1d1d2de0f2564b72c2e3186c7573e4326ed2",
+      "after": "c09d089554dece3f3250009e51c699ebd4d38b7f32a1a1ab8b39bf6810369e9d",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    },
+    {
+      "id": "fhgff3-extension-nested",
+      "before": "acc84de85fb3adf1e3fd4a12fbb5556ed2a1fe81968d0d4b9c3a7587f1f984e8",
+      "after": "b0d0dbe94206fd2756e360849055793ad6423d68750fe1b9d00d9136297c6f62",
+      "reason": "D9 R4 canonical standard nested checksum; exact shared retirement crosswalk"
+    }
+  ]
+}

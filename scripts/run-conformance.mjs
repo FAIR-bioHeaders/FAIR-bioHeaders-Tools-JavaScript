@@ -24,6 +24,7 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -97,6 +98,7 @@ function sameValue(expected, actual) {
 
 const args = parseArgs(process.argv.slice(2));
 const { manifest, dir } = loadSuite(args.suite ?? join(REPO, 'conformance'));
+const retired = new Map(JSON.parse(readFileSync(join(REPO,'reader-policy/retirement-crosswalk.json'),'utf8')).cases.map(x=>[x.id,x]));
 const vectors = manifest.vectors.filter(
   (v) => (args.formats === null || args.formats.includes(v.format)) && (args.ids === null || args.ids.includes(v.id)),
 );
@@ -109,6 +111,7 @@ const failures = [];
 const notRun = [];
 
 for (const vector of vectors) {
+
   const counts = byFormat.get(vector.format) ?? { pass: 0, fail: 0, notRun: 0 };
   byFormat.set(vector.format, counts);
 
@@ -119,12 +122,15 @@ for (const vector of vectors) {
     continue;
   }
 
+  const raw = new Uint8Array(readFileSync(join(dir, vector.file)));
+  const retirement = retired.get(vector.id);
+  const byteQualified = retirement && createHash('sha256').update(raw).digest('hex') === retirement.oldSha256;
+  const expected = byteQualified ? 'invalid' : vector.expected;
   let outcome;
   try {
-    const raw = new Uint8Array(readFileSync(join(dir, vector.file)));
     const container = containerFor(vector.format);
     outcome = inspectBytes(raw, { container });
-    if (vector.expected === 'valid') {
+    if (expected === 'valid') {
       // The strip round trip must return a byte-exact copy of the payload, so a
       // valid vector also exercises strip's byte handling.
       const stripped = stripBytes(raw, { container });
@@ -138,7 +144,8 @@ for (const vector of vectors) {
   }
 
   const problems = [];
-  if (vector.expected === 'valid') {
+  if(byteQualified && vector.expected==='valid' && !outcome.errors.some(x=>x.includes('R4'))) problems.push('historical positive must specifically reject its noncanonical parent under R4');
+  if (expected === 'valid') {
     if (!outcome.valid) problems.push(`expected valid, got: ${outcome.errors.join('; ')}`);
     if (typeof vector.checksum === 'string' && outcome.checksum.computed !== vector.checksum) {
       problems.push(`expected checksum ${vector.checksum}, computed ${outcome.checksum.computed}`);
@@ -168,6 +175,7 @@ for (const vector of vectors) {
 }
 
 console.log(`suite: ${dir}`);
+console.log('D9 policy view: overrides apply only to exact retired payload digests; canonical counterparts and 64 policy cases run separately.');
 console.log(`manifest vectors: ${manifest.vectors.length}; selected: ${vectors.length}\n`);
 console.log('format      total  pass  fail  not-run');
 let totals = { pass: 0, fail: 0, notRun: 0 };

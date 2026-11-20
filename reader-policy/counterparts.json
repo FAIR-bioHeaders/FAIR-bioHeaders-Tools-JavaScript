@@ -1,0 +1,1650 @@
+{
+  "vectors": [
+    {
+      "id": "fhp-fasta-lf-canonical-parent",
+      "file": "valid/fhp-fasta-lf-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "P1",
+        "P2",
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R7",
+        "R10",
+        "R17"
+      ],
+      "description": "Protein FASTA with stops, rare and ambiguous residues, lower case and a gap; LF line endings. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "u0GHCw4XZcLUn4PnCwQ35mo9x8ZH39L7VZDU4n4Nesk=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "predicted"
+      }
+    },
+    {
+      "id": "fhp-fasta-crlf-canonical-parent",
+      "file": "valid/fhp-fasta-crlf-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "P1",
+        "R1",
+        "R3"
+      ],
+      "description": "CRLF line endings; CR bytes are hashed. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "iqYndX1ikM4wle1DKJxMECFaZTEZBdSUCYP1IZtxSsg=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "predicted"
+      }
+    },
+    {
+      "id": "fhp-fasta-no-final-newline-canonical-parent",
+      "file": "valid/fhp-fasta-no-final-newline-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "P1",
+        "R1"
+      ],
+      "description": "The last residue line has no terminator. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "LHPOs3i+vTgklfc4O8Hg+g9lolIH0VgnGS/UW2yuxgQ=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "predicted"
+      }
+    },
+    {
+      "id": "fhp-fasta-comments-and-blank-lines-canonical-parent",
+      "file": "valid/fhp-fasta-comments-and-blank-lines-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "P1",
+        "R3",
+        "R10"
+      ],
+      "description": "An ordinary comment and a blank line before the FHP lines; both are hashed. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "UxkRmXBvhoeg5Pk7PSU9StPW5JUG6ftBKGOqYYaEVFo=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "predicted"
+      }
+    },
+    {
+      "id": "fhp-fasta-escaped-record-markers-canonical-parent",
+      "file": "valid/fhp-fasta-escaped-record-markers-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "P1",
+        "R11"
+      ],
+      "description": "An FHP value holding '>' and '@' written as \\x3E and \\x40 in a double-quoted scalar; it reads back with the real characters. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "7/a/sjcqGcIemKdxKI0AKaGPB2dfWm+3wv9553qKc+s=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "predicted",
+        "documentation": "proteins > 50 aa; contact someone@example.org"
+      }
+    },
+    {
+      "id": "fhp-fasta-gzip-canonical-parent",
+      "file": "valid/fhp-fasta-gzip-canonical-parent.fhp.fasta.gz",
+      "format": "fhp-fasta",
+      "compressed": true,
+      "compression": "gzip",
+      "expected": "valid",
+      "rules": [
+        "P1",
+        "R1"
+      ],
+      "description": "fhp-fasta-lf compressed as one gzip member; same checksum. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "u0GHCw4XZcLUn4PnCwQ35mo9x8ZH39L7VZDU4n4Nesk=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "predicted"
+      }
+    },
+    {
+      "id": "fhp-fasta-bgzf-canonical-parent",
+      "file": "valid/fhp-fasta-bgzf-canonical-parent.fhp.fasta.gz",
+      "format": "fhp-fasta",
+      "compressed": true,
+      "compression": "bgzf",
+      "expected": "valid",
+      "rules": [
+        "P1",
+        "R1"
+      ],
+      "description": "fhp-fasta-lf compressed as multi-block BGZF; same checksum. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "u0GHCw4XZcLUn4PnCwQ35mo9x8ZH39L7VZDU4n4Nesk=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "predicted"
+      }
+    },
+    {
+      "id": "fhp-fasta-mixed-sources-canonical-parent",
+      "file": "valid/fhp-fasta-mixed-sources-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "P1"
+      ],
+      "description": "sourceType mixed with a parent file, a database source and a contribution. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "Hn6AV1fqqW4iU12kVwP14Q/JuCpmyMVLBG9X5bIVp3s=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "mixed"
+      }
+    },
+    {
+      "id": "fhp-fasta-rich-canonical-parent",
+      "file": "valid/fhp-fasta-rich-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "P1"
+      ],
+      "description": "Every optional FHP field. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "Ca74dKt4vFnJ0v/tn1WCg9hRUPTjI9OIY81+oqm74d8=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "predicted"
+      }
+    },
+    {
+      "id": "fhp-fasta-busco-lineage-dotted-canonical-parent",
+      "file": "valid/fhp-fasta-busco-lineage-dotted-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "P1"
+      ],
+      "description": "BUSCO completeness with the dotted dataset version odb12.2 that FHP 1.2 allows (#170). Canonical-parent replacement; historical payload preserved.",
+      "checksum": "tE/1W8fwBK/uhooO/GH7qoMfTq5UMQuSxRngyU/sCiU=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "predicted"
+      }
+    },
+    {
+      "id": "fhgff3-minimal-checksum-link-canonical-parent",
+      "file": "valid/fhgff3-minimal-checksum-link-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "G1",
+        "G2",
+        "G3",
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R7",
+        "R10",
+        "R17"
+      ],
+      "description": "The genome linked by its FHR checksum (derivedFrom annotates); header after ##gff-version 3; LF line endings. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "xm7zbrQcqX6QT7650VKWkmN0ZlDzoWSaAyQRYjf8oB0=",
+      "metadata": {
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "fhgff3-both-links-canonical-parent",
+      "file": "valid/fhgff3-both-links-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "G2"
+      ],
+      "description": "Both genome-link forms for the same genome; the checksum is authoritative. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "m+ywFVzvIi5uHqG+HlHtiH2s+ymDTFY0wRW0suNTX7c=",
+      "metadata": {
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "fhgff3-directives-interleaved-canonical-parent",
+      "file": "valid/fhgff3-directives-interleaved-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "G1",
+        "R3",
+        "R10"
+      ],
+      "description": "##sequence-region, #!genome-build, ##species and a comment before and between #~ lines; all are hashed. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "6loQ76sDBQdm/RiOg4XoNLiSWvXq1EdNmzbnfayL8Q8=",
+      "metadata": {
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "fhgff3-directives-after-header-canonical-parent",
+      "file": "valid/fhgff3-directives-after-header-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "G1"
+      ],
+      "description": "Native directives after the #~ lines, before the first feature. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "e2FKYkjr8nrqsJvyjdZscD14huiF2nRdqyUe//Q3Vlc=",
+      "metadata": {
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "fhgff3-triple-hash-before-features-canonical-parent",
+      "file": "valid/fhgff3-triple-hash-before-features-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "G1"
+      ],
+      "description": "A ### directive before any feature stays inside the leading block. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "timHnrsrw3L8fjfvw5sI+KAViglmALr0FTOWioSkOAI=",
+      "metadata": {
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "fhgff3-embedded-fasta-canonical-parent",
+      "file": "valid/fhgff3-embedded-fasta-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "G1",
+        "R1",
+        "R3"
+      ],
+      "description": "A ##FASTA section after the features; its residues are hashed. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "dRjQ6GsT+XJ3rf07uRCjglY8fR33Gvx4iV73iorWnyo=",
+      "metadata": {
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "fhgff3-header-only-canonical-parent",
+      "file": "valid/fhgff3-header-only-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "G1",
+        "G2"
+      ],
+      "description": "A header and no features: an empty annotation. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "T0gTBZHYVSKWZpMHoqEToelI+i6V/jOoY5WeX0P0f+s=",
+      "metadata": {
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "fhgff3-version-3-1-26-canonical-parent",
+      "file": "valid/fhgff3-version-3-1-26-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "G1"
+      ],
+      "description": "##gff-version 3.1.26 on line 1. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "GyvdyLQqg/JSWL6Ltnhvmf8SS+ip2Jjzr8PciNOkmM0=",
+      "metadata": {
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "fhgff3-version-3-trailing-whitespace-canonical-parent",
+      "file": "valid/fhgff3-version-3-trailing-whitespace-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "G1"
+      ],
+      "description": "##gff-version 3 followed by a space and a tab; G1 allows trailing spaces or tabs. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "Di2qY+E8wPqGybEsztbZy/Ubr8ke22oISBuaNQ2mZYE=",
+      "metadata": {
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "fhgff3-crlf-canonical-parent",
+      "file": "valid/fhgff3-crlf-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "G1",
+        "R1",
+        "R3"
+      ],
+      "description": "CRLF line endings; CR bytes are hashed. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "x43tsJLF/Zjqk6qy3sA7sAjPB0Hpjo7dqJtenCAN3+g=",
+      "metadata": {
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "fhgff3-gzip-canonical-parent",
+      "file": "valid/fhgff3-gzip-canonical-parent.fhgff3.gff3.gz",
+      "format": "fhgff3",
+      "compressed": true,
+      "compression": "gzip",
+      "expected": "valid",
+      "rules": [
+        "G1",
+        "R1"
+      ],
+      "description": "fhgff3-minimal-checksum-link compressed as one gzip member; same checksum. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "xm7zbrQcqX6QT7650VKWkmN0ZlDzoWSaAyQRYjf8oB0=",
+      "metadata": {
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "fhgff3-bgzf-canonical-parent",
+      "file": "valid/fhgff3-bgzf-canonical-parent.fhgff3.gff3.gz",
+      "format": "fhgff3",
+      "compressed": true,
+      "compression": "bgzf",
+      "expected": "valid",
+      "rules": [
+        "G1",
+        "R1"
+      ],
+      "description": "fhgff3-minimal-checksum-link compressed as multi-block BGZF; same checksum. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "xm7zbrQcqX6QT7650VKWkmN0ZlDzoWSaAyQRYjf8oB0=",
+      "metadata": {
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "fhgff3-nested-parent-checksum-canonical-parent",
+      "file": "valid/fhgff3-nested-parent-checksum-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "G2",
+        "R2",
+        "R3"
+      ],
+      "description": "A second parent (a filtered FHGFF3 annotation); both nested checksums are covered by the root checksum. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "wJ0lTg5+HRXwJNSKXOLnITzlb9zU6Mc/CbBIUNCYuhE=",
+      "metadata": {
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "fhgff3-busco-lineage-dotted-canonical-parent",
+      "file": "valid/fhgff3-busco-lineage-dotted-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "G2"
+      ],
+      "description": "BUSCO completeness with the dotted dataset version odb12.2 that FHGFF3 1.2 allows (#170). Canonical-parent replacement; historical payload preserved.",
+      "checksum": "EqBqnQGk7v4Toxw0T2EXaq+Pbt/Z2/xn3XdauWaWpKQ=",
+      "metadata": {
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "fhp-fasta-schema-canonical-raw-main-canonical-parent",
+      "file": "valid/fhp-fasta-schema-canonical-raw-main-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "V1"
+      ],
+      "description": "The raw-main FHP URL under the repository's current name selects the current FHP schema. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "4jx9naiSJ2y+F2ks+TVBb7ukP/5rgSoYiTZEecqrvKk=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "predicted"
+      }
+    },
+    {
+      "id": "fhgff3-schema-canonical-raw-main-canonical-parent",
+      "file": "valid/fhgff3-schema-canonical-raw-main-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "V1"
+      ],
+      "description": "The raw-main FHGFF3 URL under the repository's current name selects the current FHGFF3 schema. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "QwdPZsWPYlVFE8ACVU61P1pcdIF1t3KH3OSWIMJYYpU=",
+      "metadata": {
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "fhp-fasta-schema-raw-tag-canonical-parent",
+      "file": "valid/fhp-fasta-schema-raw-tag-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "V2",
+        "V4"
+      ],
+      "description": "The v0.4.0 release publishes FHP, so its raw tag URL selects the FHP 1.0 schema. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "0ciCD1Vv55L0j8wOt1f/J6TPdEeBrKucl9l3pOUX16k=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "predicted"
+      }
+    },
+    {
+      "id": "fhgff3-schema-raw-main-canonical-parent",
+      "file": "valid/fhgff3-schema-raw-main-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "V1"
+      ],
+      "description": "The raw-main FHGFF3 URL selects the current FHGFF3 schema. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "tJR+7TzZA4hm6QN8sWcyufje3J3RYA0oN888uf7YPNg=",
+      "metadata": {
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "fhp-fasta-extension-fields-canonical-parent",
+      "file": "valid/fhp-fasta-extension-fields-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "R15",
+        "P1"
+      ],
+      "description": "FHP 1.1 (v0.5.0) with an extension field holding an object. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "tiJ/RrnXajLfXCB+9EAeDaquVMFaBqG/l2dpVQZUBLI=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "predicted",
+        "x-example-curation": {
+          "reviewed": true,
+          "round": 2
+        }
+      }
+    },
+    {
+      "id": "fhgff3-extension-fields-canonical-parent",
+      "file": "valid/fhgff3-extension-fields-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "R15",
+        "G2"
+      ],
+      "description": "FHGFF3 1.1 (v0.5.0) with an extension field holding a list. Canonical-parent replacement; historical payload preserved.",
+      "checksum": "m3So48GouwNn0eWXRJxukqLrlMtICIlOodL3XedWlIY=",
+      "metadata": {
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "version": "1.0.0",
+        "x-example-pipeline": [
+          "synthetic-step-1",
+          "synthetic-step-2"
+        ]
+      }
+    },
+    {
+      "id": "fhp-fasta-busco-lineage-dotted-version-1-0-canonical-parent",
+      "file": "invalid/fhp-fasta-busco-lineage-dotted-version-1-0-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P1",
+      "reason": "Dotted BUSCO dataset version with schemaVersion 1.0, citing v0.6.0: the older stated minor retains its undotted pattern. Canonical-parent replacement isolates this rejection from R4.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhp/v0.6.0",
+        "schemaVersion": "1.0",
+        "proteome": "Synthetic FHP conformance protein set",
+        "sourceType": "predicted",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "relationship": "translatedFrom"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "completeness": {
+          "lineageDataset": "diptera_odb12.2",
+          "mode": "proteins",
+          "completeSingle": 1,
+          "completeDuplicated": 0,
+          "fragmented": 0,
+          "missing": 1,
+          "total": 2
+        },
+        "checksum": "4odx5DpGCME5DK4qre3bkiaY7BoEXjNjqZP2XrfwdRA="
+      }
+    },
+    {
+      "id": "fhp-fasta-busco-lineage-dotted-version-1-1-canonical-parent",
+      "file": "invalid/fhp-fasta-busco-lineage-dotted-version-1-1-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P1",
+      "reason": "Dotted BUSCO dataset version with schemaVersion 1.1, citing v0.6.0: the older stated minor retains its undotted pattern. Canonical-parent replacement isolates this rejection from R4.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhp/v0.6.0",
+        "schemaVersion": "1.1",
+        "proteome": "Synthetic FHP conformance protein set",
+        "sourceType": "predicted",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "relationship": "translatedFrom"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "completeness": {
+          "lineageDataset": "diptera_odb12.2",
+          "mode": "proteins",
+          "completeSingle": 1,
+          "completeDuplicated": 0,
+          "fragmented": 0,
+          "missing": 1,
+          "total": 2
+        },
+        "checksum": "kQxHYMpBejJe8FvMu/VoENFLHlPxC4KkQX8g+qYUo6M="
+      }
+    },
+    {
+      "id": "fhp-fasta-sequence-tampered-canonical-parent",
+      "file": "invalid/fhp-fasta-sequence-tampered-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R3",
+      "reason": "A residue changed after the checksum was computed (checksum mismatch). Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "fhp-fasta-stop-normalized-checksum-canonical-parent",
+      "file": "invalid/fhp-fasta-stop-normalized-checksum-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R1",
+      "reason": "Checksum computed after removing terminal stop symbols. Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "fhp-fasta-case-normalized-checksum-canonical-parent",
+      "file": "invalid/fhp-fasta-case-normalized-checksum-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R1",
+      "reason": "Checksum computed after upper-casing residues. Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "fhp-fasta-two-checksum-lines-canonical-parent",
+      "file": "invalid/fhp-fasta-two-checksum-lines-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R2",
+      "reason": "Two root-level checksum lines with the same value. Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "fhp-fasta-header-after-record-canonical-parent",
+      "file": "invalid/fhp-fasta-header-after-record-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R10",
+      "reason": "An FHP line after the first protein record. Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "fhp-fasta-missing-source-type-canonical-parent",
+      "file": "invalid/fhp-fasta-missing-source-type-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P1",
+      "reason": "No sourceType. Canonical-parent replacement isolates this rejection from R4.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhp/v0.4.0",
+        "schemaVersion": "1.0",
+        "proteome": "Synthetic FHP conformance protein set",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "relationship": "translatedFrom"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "checksum": "kke/s9sN2o/07gKQKnmOd86QAslVW5i3gRYSV5g4CRw="
+      }
+    },
+    {
+      "id": "fhp-fasta-curated-source-type-canonical-parent",
+      "file": "invalid/fhp-fasta-curated-source-type-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P1",
+      "reason": "sourceType curated is not an FHP value (use database or mixed). Canonical-parent replacement isolates this rejection from R4.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhp/v0.4.0",
+        "schemaVersion": "1.0",
+        "proteome": "Synthetic FHP conformance protein set",
+        "sourceType": "curated",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "relationship": "translatedFrom"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "checksum": "Zl5wrxJjSNWnHxfVxnFhe6D3pOEegQrofCFu778kQWU="
+      }
+    },
+    {
+      "id": "fhp-fasta-genome-key-canonical-parent",
+      "file": "invalid/fhp-fasta-genome-key-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P1",
+      "reason": "The FHR-only key genome. Canonical-parent replacement isolates this rejection from R4.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhp/v0.4.0",
+        "schemaVersion": "1.0",
+        "proteome": "Synthetic FHP conformance protein set",
+        "sourceType": "predicted",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "relationship": "translatedFrom"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "genome": "Synthetic genome",
+        "checksum": "jq5KQfc8Kz48sTMQ3/azRd6WLDN8TIF/q3m5dghh24I="
+      }
+    },
+    {
+      "id": "fhp-fasta-derived-from-bad-relationship-canonical-parent",
+      "file": "invalid/fhp-fasta-derived-from-bad-relationship-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P1",
+      "reason": "A derivedFrom relationship outside the shared vocabulary. Canonical-parent replacement isolates this rejection from R4.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhp/v0.4.0",
+        "schemaVersion": "1.0",
+        "proteome": "Synthetic FHP conformance protein set",
+        "sourceType": "predicted",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "relationship": "encodes"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "checksum": "BPRrfKlz5IACCDS5ZBMR/aIN8DpP8zZOw9eYdnYjKYQ="
+      }
+    },
+    {
+      "id": "fhp-fasta-source-without-name-canonical-parent",
+      "file": "invalid/fhp-fasta-source-without-name-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P1",
+      "reason": "A source entry without a name. Canonical-parent replacement isolates this rejection from R4.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhp/v0.4.0",
+        "schemaVersion": "1.0",
+        "proteome": "Synthetic FHP conformance protein set",
+        "sourceType": "predicted",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "relationship": "translatedFrom"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "source": [
+          {
+            "release": "2026_03"
+          }
+        ],
+        "checksum": "No9sK7Psp9kPtIH99bzyg5SE4M46OVrdhi+EuJjdqPg="
+      }
+    },
+    {
+      "id": "fhp-fasta-unused-genetic-code-canonical-parent",
+      "file": "invalid/fhp-fasta-unused-genetic-code-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P1",
+      "reason": "geneticCode 7 is not an NCBI translation table. Canonical-parent replacement isolates this rejection from R4.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhp/v0.4.0",
+        "schemaVersion": "1.0",
+        "proteome": "Synthetic FHP conformance protein set",
+        "sourceType": "predicted",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "relationship": "translatedFrom"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "geneticCode": 7,
+        "checksum": "XSyPaxlYvyidfmtI8JNibPmpqnfn6Bvmjxipkqvtu/M="
+      }
+    },
+    {
+      "id": "fhp-fasta-busco-no-lineage-version-canonical-parent",
+      "file": "invalid/fhp-fasta-busco-no-lineage-version-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P1",
+      "reason": "A BUSCO lineage dataset without its version suffix (_odbNN). Canonical-parent replacement isolates this rejection from R4.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhp/v0.4.0",
+        "schemaVersion": "1.0",
+        "proteome": "Synthetic FHP conformance protein set",
+        "sourceType": "predicted",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "relationship": "translatedFrom"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "completeness": {
+          "lineageDataset": "primates",
+          "completeSingle": 1,
+          "completeDuplicated": 0,
+          "fragmented": 0,
+          "missing": 1,
+          "total": 2
+        },
+        "checksum": "2u351axDPTpCSIgE8hPN/iFFPwSMxyhyqo1xTvmFSA4="
+      }
+    },
+    {
+      "id": "fhp-fasta-busco-lineage-trailing-dot-canonical-parent",
+      "file": "invalid/fhp-fasta-busco-lineage-trailing-dot-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P1",
+      "reason": "A malformed dotted BUSCO dataset version: the last dot has no digits after it. Canonical-parent replacement isolates this rejection from R4.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhp/v0.4.0",
+        "schemaVersion": "1.0",
+        "proteome": "Synthetic FHP conformance protein set",
+        "sourceType": "predicted",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "relationship": "translatedFrom"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "completeness": {
+          "lineageDataset": "primates_odb12.",
+          "completeSingle": 1,
+          "completeDuplicated": 0,
+          "fragmented": 0,
+          "missing": 1,
+          "total": 2
+        },
+        "checksum": "Zmtc81tfTMeQHJQR4FwZa9yD1dYilpc5d2hBOsoWRkM="
+      }
+    },
+    {
+      "id": "fhp-fasta-busco-lineage-leading-dot-canonical-parent",
+      "file": "invalid/fhp-fasta-busco-lineage-leading-dot-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P1",
+      "reason": "A malformed dotted BUSCO dataset version: _odb is followed by a dot, not a digit. Canonical-parent replacement isolates this rejection from R4.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhp/v0.4.0",
+        "schemaVersion": "1.0",
+        "proteome": "Synthetic FHP conformance protein set",
+        "sourceType": "predicted",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "relationship": "translatedFrom"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "completeness": {
+          "lineageDataset": "primates_odb.12",
+          "completeSingle": 1,
+          "completeDuplicated": 0,
+          "fragmented": 0,
+          "missing": 1,
+          "total": 2
+        },
+        "checksum": "iK3heDxSZ4RvTgy02fboxZX7rMfpuYfHny0aYSytHRk="
+      }
+    },
+    {
+      "id": "fhp-fasta-busco-lineage-letter-component-canonical-parent",
+      "file": "invalid/fhp-fasta-busco-lineage-letter-component-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P1",
+      "reason": "A malformed dotted BUSCO dataset version: a version component is not all digits. Canonical-parent replacement isolates this rejection from R4.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhp/v0.4.0",
+        "schemaVersion": "1.0",
+        "proteome": "Synthetic FHP conformance protein set",
+        "sourceType": "predicted",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "relationship": "translatedFrom"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "completeness": {
+          "lineageDataset": "primates_odb12.2b",
+          "completeSingle": 1,
+          "completeDuplicated": 0,
+          "fragmented": 0,
+          "missing": 1,
+          "total": 2
+        },
+        "checksum": "24Ig4Kj/EDeXbdDdswYSSSxiDsEZ/VBSkX/viIW0NX0="
+      }
+    },
+    {
+      "id": "fhp-fasta-busco-lineage-uppercase-canonical-parent",
+      "file": "invalid/fhp-fasta-busco-lineage-uppercase-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P1",
+      "reason": "A malformed dotted BUSCO dataset version: dataset names are lower case. Canonical-parent replacement isolates this rejection from R4.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhp/v0.4.0",
+        "schemaVersion": "1.0",
+        "proteome": "Synthetic FHP conformance protein set",
+        "sourceType": "predicted",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "relationship": "translatedFrom"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "completeness": {
+          "lineageDataset": "Primates_odb12.2",
+          "completeSingle": 1,
+          "completeDuplicated": 0,
+          "fragmented": 0,
+          "missing": 1,
+          "total": 2
+        },
+        "checksum": "k3gY0mzo/30qQeQQwjxvGGQDFt3r80cjgjbKsHhx6/I="
+      }
+    },
+    {
+      "id": "fhp-fasta-pattern-trailing-newline-canonical-parent",
+      "file": "invalid/fhp-fasta-pattern-trailing-newline-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P1",
+      "reason": "The BUSCO lineageDataset ends with a line feed, which its pattern ^...$ does not allow under ECMA-262 regular expressions; validators whose $ also matches before a final line feed (Python re) wrongly accept it. Canonical-parent replacement isolates this rejection from R4.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhp/v0.4.0",
+        "schemaVersion": "1.0",
+        "proteome": "Synthetic FHP conformance protein set",
+        "sourceType": "predicted",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "relationship": "translatedFrom"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "completeness": {
+          "lineageDataset": "primates_odb10\n",
+          "completeSingle": 1,
+          "completeDuplicated": 0,
+          "fragmented": 0,
+          "missing": 1,
+          "total": 2
+        },
+        "checksum": "h/4pS4cHB300achcdtVpNP3V+1fYDypbHHvfjQUzbIg="
+      }
+    },
+    {
+      "id": "fhp-fasta-cites-fhr-schema-canonical-parent",
+      "file": "invalid/fhp-fasta-cites-fhr-schema-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P2",
+      "reason": "Protein metadata citing fhr.json is validated as FHR, and fails it. Canonical-parent replacement isolates this rejection from R4.",
+      "metadata": {
+        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json",
+        "schemaVersion": "1.0",
+        "proteome": "Synthetic FHP conformance protein set",
+        "sourceType": "predicted",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "relationship": "translatedFrom"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "checksum": "Z8SWBBzaS2Z+24bAFfIl9tUf3i2XU55fhdKhhFEIZ38="
+      }
+    },
+    {
+      "id": "fhgff3-busco-lineage-dotted-version-1-0-canonical-parent",
+      "file": "invalid/fhgff3-busco-lineage-dotted-version-1-0-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "G2",
+      "reason": "Dotted BUSCO dataset version with schemaVersion 1.0, citing v0.6.0: the older stated minor retains its undotted pattern. Canonical-parent replacement isolates this rejection from R4.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhgff3/v0.6.0",
+        "schemaVersion": "1.0",
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-13",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "relationship": "annotates"
+          }
+        ],
+        "documentation": "Synthetic FHGFF3 conformance vector; genome identifiers are placeholders.",
+        "completeness": {
+          "lineageDataset": "enterobacterales_odb12.2",
+          "completeSingle": 1,
+          "completeDuplicated": 0,
+          "fragmented": 0,
+          "missing": 1,
+          "total": 2
+        },
+        "checksum": "a79pn9s7/r2qWWdRDHvIJla6Duyeh9lkBRejQsAKtrQ="
+      }
+    },
+    {
+      "id": "fhgff3-busco-lineage-dotted-version-1-1-canonical-parent",
+      "file": "invalid/fhgff3-busco-lineage-dotted-version-1-1-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "G2",
+      "reason": "Dotted BUSCO dataset version with schemaVersion 1.1, citing v0.6.0: the older stated minor retains its undotted pattern. Canonical-parent replacement isolates this rejection from R4.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhgff3/v0.6.0",
+        "schemaVersion": "1.1",
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-13",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "relationship": "annotates"
+          }
+        ],
+        "documentation": "Synthetic FHGFF3 conformance vector; genome identifiers are placeholders.",
+        "completeness": {
+          "lineageDataset": "enterobacterales_odb12.2",
+          "completeSingle": 1,
+          "completeDuplicated": 0,
+          "fragmented": 0,
+          "missing": 1,
+          "total": 2
+        },
+        "checksum": "EhK/DLmflfXC15hLJtg+cVA9myxQDND3aGCnrdXBKFI="
+      }
+    },
+    {
+      "id": "fhgff3-fasta-tampered-canonical-parent",
+      "file": "invalid/fhgff3-fasta-tampered-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R3",
+      "reason": "A residue of the ##FASTA section changed after the checksum was computed. Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "fhgff3-two-checksum-lines-canonical-parent",
+      "file": "invalid/fhgff3-two-checksum-lines-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R2",
+      "reason": "Two root-level checksum lines with the same value. Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "fhgff3-header-after-feature-canonical-parent",
+      "file": "invalid/fhgff3-header-after-feature-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R10",
+      "reason": "A #~ line after the first feature. Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "fhgff3-header-after-fasta-canonical-parent",
+      "file": "invalid/fhgff3-header-after-fasta-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "G1",
+      "reason": "A #~ line after ##FASTA, before the first sequence line. Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "fhgff3-concatenated-canonical-parent",
+      "file": "invalid/fhgff3-concatenated-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R10",
+      "reason": "Two FHGFF3 files concatenated: the second #~ block follows features. Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "fhgff3-header-before-version-canonical-parent",
+      "file": "invalid/fhgff3-header-before-version-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "G1",
+      "reason": "A #~ line on line 1, before ##gff-version 3. Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "fhgff3-version-30-canonical-parent",
+      "file": "invalid/fhgff3-version-30-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "G1",
+      "reason": "##gff-version 30 on line 1: G1 allows only 3 or 3.x.y. Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "fhgff3-version-3x-canonical-parent",
+      "file": "invalid/fhgff3-version-3x-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "G1",
+      "reason": "##gff-version 3x on line 1: G1 allows only 3 or 3.x.y. Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "fhgff3-version-3-1-canonical-parent",
+      "file": "invalid/fhgff3-version-3-1-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "G1",
+      "reason": "##gff-version 3.1 on line 1: G1 allows only 3 or 3.x.y. Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "fhgff3-two-annotates-canonical-parent",
+      "file": "invalid/fhgff3-two-annotates-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "G2",
+      "reason": "Two derivedFrom items with the relationship annotates. Canonical-parent replacement isolates this rejection from R4.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhgff3/v0.4.0",
+        "schemaVersion": "1.0",
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-13",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "relationship": "annotates"
+          },
+          {
+            "headerType": "FHR",
+            "checksum": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCA=",
+            "relationship": "annotates"
+          }
+        ],
+        "documentation": "Synthetic FHGFF3 conformance vector; genome identifiers are placeholders.",
+        "checksum": "q4dBZP+YJFIdBIQv11UySFB/1xRIiM366BRERjwc0JY="
+      }
+    },
+    {
+      "id": "fhgff3-annotates-fhp-canonical-parent",
+      "file": "invalid/fhgff3-annotates-fhp-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "G2",
+      "reason": "An annotates link whose parent is not an FHR genome. Canonical-parent replacement isolates this rejection from R4.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhgff3/v0.4.0",
+        "schemaVersion": "1.0",
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-13",
+        "derivedFrom": [
+          {
+            "headerType": "FHP",
+            "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "relationship": "annotates"
+          }
+        ],
+        "documentation": "Synthetic FHGFF3 conformance vector; genome identifiers are placeholders.",
+        "checksum": "ynxtoQ1ovCpjem4d+AW8VtcD8YWWMH/0oujBawzAtlI="
+      }
+    },
+    {
+      "id": "fhgff3-fhr-only-key-canonical-parent",
+      "file": "invalid/fhgff3-fhr-only-key-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "G2",
+      "reason": "The FHR-only key genome. Canonical-parent replacement isolates this rejection from R4.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhgff3/v0.4.0",
+        "schemaVersion": "1.0",
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-13",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "relationship": "annotates"
+          }
+        ],
+        "documentation": "Synthetic FHGFF3 conformance vector; genome identifiers are placeholders.",
+        "genome": "Synthetic genome",
+        "checksum": "Ej0YGIl7IUL5E/JI14G6t02QgR4U39vYh61d6Cynmcs="
+      }
+    },
+    {
+      "id": "fhgff3-busco-lineage-trailing-dot-canonical-parent",
+      "file": "invalid/fhgff3-busco-lineage-trailing-dot-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "G2",
+      "reason": "A malformed dotted BUSCO dataset version: the last dot has no digits after it (#170). Canonical-parent replacement isolates this rejection from R4.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhgff3/v0.4.0",
+        "schemaVersion": "1.0",
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-13",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "relationship": "annotates"
+          }
+        ],
+        "documentation": "Synthetic FHGFF3 conformance vector; genome identifiers are placeholders.",
+        "completeness": {
+          "lineageDataset": "primates_odb12.",
+          "completeSingle": 1,
+          "completeDuplicated": 0,
+          "fragmented": 0,
+          "missing": 1,
+          "total": 2
+        },
+        "checksum": "u12yHIT0gG5rG/WgxjPFAXppTGVePa26uZR7fO8p9Nw="
+      }
+    },
+    {
+      "id": "fhgff3-cites-fhr-schema-canonical-parent",
+      "file": "invalid/fhgff3-cites-fhr-schema-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "G3",
+      "reason": "Annotation metadata citing fhr.json is validated as FHR, and fails it. Canonical-parent replacement isolates this rejection from R4.",
+      "metadata": {
+        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json",
+        "schemaVersion": "1.0",
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-13",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "relationship": "annotates"
+          }
+        ],
+        "documentation": "Synthetic FHGFF3 conformance vector; genome identifiers are placeholders.",
+        "checksum": "7Ad5ULOwjSwoo/XeNb6/4jF7gUVsQ9FGBgcJGLJQGgQ="
+      }
+    },
+    {
+      "id": "fhp-fasta-schema-release-without-type-canonical-parent",
+      "file": "invalid/fhp-fasta-schema-release-without-type-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "V4",
+      "reason": "v0.3.1 published no FHP schema; the result is unsupported-version. Canonical-parent replacement isolates this rejection from R4.",
+      "result": "unsupported-version"
+    },
+    {
+      "id": "fhgff3-schema-unknown-release-canonical-parent",
+      "file": "invalid/fhgff3-schema-unknown-release-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "V4",
+      "reason": "v0.0.0 is not a release; the result is unsupported-version. Canonical-parent replacement isolates this rejection from R4.",
+      "result": "unsupported-version"
+    },
+    {
+      "id": "fhp-fasta-extension-older-version-canonical-parent",
+      "file": "invalid/fhp-fasta-extension-older-version-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R15",
+      "reason": "The record cites v0.5.0 but states schemaVersion '1.0', which has no extension fields. Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "fhgff3-extension-older-version-canonical-parent",
+      "file": "invalid/fhgff3-extension-older-version-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R15",
+      "reason": "The record cites v0.5.0 but states schemaVersion '1.0', which has no extension fields. Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "fhp-fasta-extension-older-release-canonical-parent",
+      "file": "invalid/fhp-fasta-extension-older-release-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R15",
+      "reason": "The record cites v0.4.0, whose schema (1.0) has no extension fields. Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "fhgff3-extension-older-release-canonical-parent",
+      "file": "invalid/fhgff3-extension-older-release-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R15",
+      "reason": "The record cites v0.4.0, whose schema (1.0) has no extension fields. Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "fhp-fasta-extension-nested-canonical-parent",
+      "file": "invalid/fhp-fasta-extension-nested-canonical-parent.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R15",
+      "reason": "An x- key inside a derivedFrom item: nested objects stay closed. Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "fhgff3-extension-nested-canonical-parent",
+      "file": "invalid/fhgff3-extension-nested-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R15",
+      "reason": "An x- key inside a derivedFrom item: nested objects stay closed. Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "fasta-fhgff3-header-canonical-parent",
+      "file": "invalid/fasta-fhgff3-header-canonical-parent.fhr.fasta",
+      "format": "fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R17",
+      "reason": "An FHGFF3 header in a FASTA file: the record is valid under its own schema and its checksum matches, but that header type does not go in this file. Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "gfa-fhgff3-header-canonical-parent",
+      "file": "invalid/gfa-fhgff3-header-canonical-parent.fhr.gfa",
+      "format": "gfa",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R17",
+      "reason": "An FHGFF3 header in a GFA file: the record is valid under its own schema and its checksum matches, but that header type does not go in this file. Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "gfa-fhp-header-canonical-parent",
+      "file": "invalid/gfa-fhp-header-canonical-parent.fhr.gfa",
+      "format": "gfa",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R17",
+      "reason": "An FHP header in a GFA file: the record is valid under its own schema and its checksum matches, but that header type does not go in this file. Canonical-parent replacement isolates this rejection from R4."
+    },
+    {
+      "id": "fhgff3-fhp-header-canonical-parent",
+      "file": "invalid/fhgff3-fhp-header-canonical-parent.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R17",
+      "reason": "An FHP header in a GFF3 file: the record is valid under its own schema and its checksum matches, but that header type does not go in this file. Canonical-parent replacement isolates this rejection from R4."
+    }
+  ]
+}

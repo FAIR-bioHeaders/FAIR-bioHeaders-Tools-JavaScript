@@ -129,9 +129,20 @@ const document = {
   examples,
 };
 
-if (process.argv[2] === 'write') {
+if (process.argv[2] === 'policy-delta') {
+  const prior = JSON.parse(readFileSync(GOLDEN, 'utf8'));
+  const allowed = new Set(JSON.parse(readFileSync(join(ROOT,'reader-policy/retirement-crosswalk.json'),'utf8')).cases.map(x=>x.id));
+  const old = new Map(prior.vectors.map(x=>[x.id,x.digest]));
+  const changes = vectors.filter(x=>old.get(x.id)!==x.digest).map(x=>{
+    if(!allowed.has(x.id)) throw new Error('Unclassified default change: '+x.id);
+    return {id:x.id,before:old.get(x.id),after:x.digest,reason:'D9 R4 canonical standard nested checksum; exact shared retirement crosswalk'};
+  });
+  writeFileSync(join(ROOT,'test/goldens/reader-policy-delta.json'),JSON.stringify({
+    predecessorCommit:'5b2fbc9', baselineAggregate:prior.aggregate,
+    adoptedDecision:'https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/211#issuecomment-7017854934',
+    aggregate:document.aggregate,changes},null,2)+'\n');
+} else if (process.argv[2] === 'write') {
   writeFileSync(GOLDEN, `${JSON.stringify(document, null, 2)}\n`);
-  console.log(`wrote ${GOLDEN}`);
 }
 console.log(`aggregate ${document.aggregate}`);
 console.log(`vectors ${vectors.length}, examples ${examples.length}`);

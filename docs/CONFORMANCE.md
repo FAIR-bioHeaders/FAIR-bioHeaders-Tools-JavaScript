@@ -1,3 +1,9 @@
+# Round 15 runtime policy update
+
+See [ROUND15-READINESS.md](ROUND15-READINESS.md) for the explicit D9/D10 runtime
+change, preserved historical291 ledger, separate canonical counterparts and
+64-case policy receipt. Older measured counts below remain dated evidence.
+
 # Conformance: what the shared vectors say about this build
 
 Acceptance is FAIR-bioHeaders-Specification's own conformance suite — 291 vectors,
