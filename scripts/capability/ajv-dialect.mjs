@@ -138,7 +138,7 @@ for (const [type, record] of Object.entries(minimal)) {
   const withParents = (derivedFrom) => validateRecord({ ...minimal.FHGFF3, derivedFrom }, { type: 'FHGFF3', release: CURRENT_RELEASE, rule: 'V3' });
   const parent = (headerType, checksum, relationship) => ({ headerType, checksum, relationship });
   const A = `${'A'.repeat(43)}=`;
-  const B = `${'B'.repeat(43)}=`;
+  const B = `${'B'.repeat(42)}A=`; // distinct canonical synthetic parent; probe targets cardinality
   check('FHGFF3: minContains refuses two `annotates` parents', !withParents([parent('FHR', A, 'annotates'), parent('FHR', B, 'annotates')]).valid);
   check('FHGFF3: one `annotates` parent plus one other parent is accepted', withParents([parent('FHR', A, 'annotates'), parent('FHP', B, 'translatedFrom')]).valid);
   check('FHGFF3: `annotates` on a non-FHR parent is refused', !withParents([parent('FHP', B, 'annotates')]).valid);
