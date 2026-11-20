@@ -145,7 +145,7 @@ an FHGFF3 header, so the file keeps its released FHGFF3 citation and routing. Th
 implemented model rules are B1 (the boundary), K1 (transport), K2 (record contract),
 K3 (unique `modelId`), K4 (feature-target resolution) and K5 (reference agreement)
 and K6 (predecessor verdicts against snapshots the caller supplies). K4 resolves a
-`featureId`, percent-decoded, against the `ID` and `type` of the GFF3 feature rows —
+`featureId` as written against the percent-decoded `ID` and `type` of the GFF3 feature rows —
 exactly one gene row passes. The layer is an injected resolver: by default the lane
 indexes the file's own rows through `src/features.js`, a caller holding the feature
 layer elsewhere can inject `options.features` (row facts or GFF3 content) or the
