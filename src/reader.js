@@ -23,7 +23,6 @@
 import { closeSync, fstatSync, openSync, readSync } from 'node:fs';
 import { open as openFile, rename, rm } from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
-import { Readable, pipeline } from 'node:stream';
 import { createGunzip, gunzipSync } from 'node:zlib';
 
 import { HeaderError } from './errors.js';
@@ -162,11 +161,81 @@ export function decompress(data, options = {}) {
   if (!isGzip(data)) return data;
   const limit = decompressionLimit(options);
   try {
-    return new Uint8Array(gunzipSync(data, { maxOutputLength: limit }));
+    const decoded = gunzipSync(data, { maxOutputLength: limit, info: true });
+    // Node stops at the first NUL after a complete member and ignores everything
+    // after it. R1 permits only final NUL padding, never an ignored nonzero tail.
+    const consumed = consumedBytes(decoded.engine.bytesWritten, data.length);
+    requireNulPadding(data.subarray(consumed));
+    return new Uint8Array(decoded.buffer);
   } catch (error) {
+    if (error instanceof HeaderError) throw error;
     if (error instanceof RangeError && /** @type {any} */ (error).code === 'ERR_BUFFER_TOO_LARGE') throw tooLarge(limit);
     throw new HeaderError(`invalid gzip or BGZF input: ${firstLine(error)}`, { rule: 'R1' });
   }
+}
+
+/** Validate the public zlib input-consumption count before using it as an offset. */
+function consumedBytes(count, length) {
+  if (!Number.isSafeInteger(count) || count < 0 || count > length) {
+    throw new HeaderError('invalid gzip or BGZF input: unusable compressed-byte consumption count', { rule: 'R1' });
+  }
+  return count;
+}
+
+/** R1 transport padding is allowed only when every remaining input byte is NUL. */
+function requireNulPadding(bytes) {
+  for (const byte of bytes) {
+    if (byte !== 0) {
+      throw new HeaderError('invalid gzip or BGZF input: non-gzip data after final member', { rule: 'R1' });
+    }
+  }
+}
+
+/** Write with backpressure while also settling on decoder errors/closure. */
+function writeCompressed(gunzip, chunk) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (error) => {
+      if (settled) return;
+      settled = true;
+      gunzip.off('error', onError);
+      gunzip.off('close', onClose);
+      if (error) reject(error);
+      else resolve();
+    };
+    const onError = (error) => finish(error);
+    const onClose = () => finish(new HeaderError('invalid gzip or BGZF input: decoder closed before completing its input', { rule: 'R1' }));
+    gunzip.once('error', onError);
+    gunzip.once('close', onClose);
+    try {
+      gunzip.write(chunk, finish);
+    } catch (error) {
+      finish(error);
+    }
+  });
+}
+
+/** Read one source chunk with a cancellation listener that is removed on settlement. */
+function nextCompressedInput(iterator, signal) {
+  if (signal.aborted) return Promise.resolve({ done: true });
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (error, next) => {
+      if (settled) return;
+      settled = true;
+      signal.removeEventListener('abort', onAbort);
+      if (error) reject(error);
+      else resolve(next);
+    };
+    const onAbort = () => finish(null, { done: true });
+    signal.addEventListener('abort', onAbort, { once: true });
+    try {
+      // Both branches remain handled if cancellation wins before a pending read.
+      Promise.resolve(iterator.next()).then((next) => finish(null, next), (error) => finish(error));
+    } catch (error) {
+      finish(error);
+    }
+  });
 }
 
 /**
@@ -181,6 +250,18 @@ export function decompress(data, options = {}) {
 async function* decompressedChunks(source, transport) {
   const iterator = source[Symbol.asyncIterator]();
   let finished = false;
+  let cancelled = false;
+  const inputCancellation = new AbortController();
+  let sourceReturn = null;
+  const closeSource = () => {
+    if (!finished && sourceReturn === null) {
+      sourceReturn = Promise.resolve().then(() => iterator.return?.());
+      // Cleanup starts before waiting for the producer. Retain its rejection for
+      // the final await without leaving a temporarily unhandled promise.
+      sourceReturn.catch(() => {});
+    }
+    return sourceReturn;
+  };
   /** @type {Uint8Array[]} */
   const head = [];
   let headLength = 0;
@@ -201,7 +282,10 @@ async function* decompressedChunks(source, transport) {
     async function* all() {
       if (first.length > 0) yield first;
       while (!finished) {
-        const next = await iterator.next();
+        const next = transport.gzip
+          ? await nextCompressedInput(iterator, inputCancellation.signal)
+          : await iterator.next();
+        if (cancelled) return;
         if (next.done) {
           finished = true;
           break;
@@ -215,17 +299,63 @@ async function* decompressedChunks(source, transport) {
       return;
     }
     const gunzip = createGunzip();
-    pipeline(Readable.from(all(), { objectMode: false }), gunzip, () => {});
+    // The async iterator reports errors, and the producer records them below.
+    // Keep an error listener while draining padding after zlib's readable end.
+    gunzip.on('error', () => {});
+    let producerError = null;
+    const producer = (async () => {
+      try {
+        let padding = false;
+        for await (const chunk of all()) {
+          if (cancelled) break;
+          if (padding) {
+            requireNulPadding(chunk);
+            continue;
+          }
+          const before = gunzip.bytesWritten;
+          // Await each write callback: zlib output backpressure bounds the pump,
+          // and its consumption count now describes exactly this input chunk.
+          await writeCompressed(gunzip, chunk);
+          const after = gunzip.bytesWritten;
+          if (!Number.isSafeInteger(before) || !Number.isSafeInteger(after)) {
+            consumedBytes(NaN, chunk.length);
+          }
+          const consumed = consumedBytes(after - before, chunk.length);
+          if (consumed < chunk.length) {
+            requireNulPadding(chunk.subarray(consumed));
+            padding = true;
+          }
+        }
+        if (!cancelled && !gunzip.destroyed) gunzip.end();
+      } catch (error) {
+        producerError = error;
+        gunzip.destroy(error);
+      }
+    })();
     try {
       for await (const chunk of gunzip) yield chunk;
+      // zlib may finish before the raw source: inspect the entire trailing tail
+      // before treating the reading as complete, without buffering that tail.
+      await producer;
+      if (producerError !== null) throw producerError;
     } catch (error) {
       if (error instanceof Error && typeof (/** @type {any} */ (error).code) === 'string' && /^Z_/.test(/** @type {any} */ (error).code)) {
         throw new HeaderError(`invalid gzip or BGZF input: ${firstLine(error)}`, { rule: 'R1' });
       }
       throw error;
+    } finally {
+      cancelled = true;
+      inputCancellation.abort();
+      gunzip.destroy();
+      const closing = closeSource();
+      await producer;
+      if (closing !== null) await closing;
     }
   } finally {
-    if (!finished) await iterator.return?.();
+    cancelled = true;
+    inputCancellation.abort();
+    const closing = closeSource();
+    if (closing !== null) await closing;
   }
 }
 
