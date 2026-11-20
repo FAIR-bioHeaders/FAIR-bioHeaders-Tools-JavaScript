@@ -88,11 +88,11 @@ explicit in README, `llms.txt`, docs and code comments, in both directions:
 
 ## Drafts take no release form (rule V7)
 
-FHT and FHGM are drafts. They have no released contract, no row in
-`schemas/versions.json`, no `schemaVersion`, no w3id URL and no support claim —
-here or in any documentation, skill or packaging metadata in this repository.
-A scheduled future release (FHT as `v0.7.0`, FHGM as `v0.8.0`) is a decision about
-*those* types, not a licence to publish them here.
+The shared project published FHT in `v0.7.0` and native FHGM in `v0.8.0`.
+This consumer still bundles historical owning-draft bytes. Its own
+`schemas/provenance.json` has no row for either addition; its opt-in lane has
+no released-contract support claim. Native FHGM differs from the historical
+FHGFF3 extension this library reads. Do not repin or adopt as documentation cleanup.
 
 This library implements the V7 lane, because V7 is a published rule about reader
 behaviour and the maintainer direction of 2026-11-14

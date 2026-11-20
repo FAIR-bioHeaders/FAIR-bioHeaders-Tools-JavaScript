@@ -23,16 +23,14 @@ V1-V6 in `docs/SCHEMA-VERSIONS.md`.
 | FHR | reference genome FASTA or GFA | `https://w3id.org/fair-bioheaders/fhr/v0.6.0` | `'2.1'` | yes |
 | FHP | protein FASTA | `https://w3id.org/fair-bioheaders/fhp/v0.6.0` | `'1.2'` | yes |
 | FHGFF3 | GFF3 annotation | `https://w3id.org/fair-bioheaders/fhgff3/v0.6.0` | `'1.2'` | yes |
-| FHT | transcriptome | - | - | **no: draft, no released contract.** Readable only through the opt-in `{drafts: ['FHT']}` lane against pinned bytes |
-| FHGM | gene-model records inside an FHGFF3 header | - | - | **no: draft, no released contract.** Same lane; K4 resolves a `featureId` against the file's own feature rows (or an injected resolver) and states `not-checked`/`unchecked` without a usable layer |
+| FHT | transcriptome | - | - | **no released implementation in this build; historical draft pin.** Readable only through the opt-in `{drafts: ['FHT']}` lane against pinned bytes |
+| FHGM | gene-model records inside an FHGFF3 header | - | - | **no released implementation in this build; historical draft pin.** Same lane; K4 resolves a `featureId` against the file's own feature rows (or an injected resolver) and states `not-checked`/`unchecked` without a usable layer |
 
-Read versions from the shared registry
-(`schemas/versions.json` at a release tag), never from memory. FHT is scheduled as a
-future `v0.7.0` and FHGM as `v0.8.0`; until those releases exist, a draft has no
-`schemaVersion`, no w3id URL, no registry row and no support claim, and rule V7 keeps
-it that way. If a user asks you to add FHT or FHGM **support** here, stop and say the
-contract is unreleased - do not invent a version, a URL, a registry row or a
-`drafts/provenance.json` entry that looks like a release.
+Read versions from this consumer's vendored provenance. The shared project has
+published FHT in `v0.7.0` and native FHGM in `v0.8.0`; this consumer retains its
+historical draft contracts. Do not invent support, repin schemas or add registry
+rows during documentation cleanup. The V7 lane stays explicitly opt-in through
+`{drafts: [...]}` and bound to the commits/digests below.
 
 What this library *does* have is the reader lane V7 defines, which is recognition and
 not adoption: `inspectBytes(bytes, {container, drafts: ['FHT']})`. Use it only when the

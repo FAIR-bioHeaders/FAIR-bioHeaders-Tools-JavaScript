@@ -163,7 +163,14 @@ describe('the CI workflow is native where it has to be', () => {
     assert.ok(contract < move, 'the contract bytes are confirmed at the contract revision before the checkout moves');
     assert.ok(move < suite, 'the suite is verified at the revision the pin names');
     assert.ok(suite < runner, 'nothing is scored before the suite it will score has been verified');
-    assert.match(text(steps[move]), /suite-commit/, 'the revision it moves to comes from the registry output, not a literal in the workflow');
+    for (const type of ['FHT', 'FHGM']) {
+      const key = `${type}_SUITE_COMMIT`;
+      assert.equal(steps[move].env[key], '${{ steps.pins.outputs.' + type.toLowerCase() + '-suite-commit }}', 'suite revision comes from registry output through an environment variable');
+      assert.ok(steps[move].run.includes('$' + key), 'shell uses the quoted environment value');
+    }
+    for (const step of steps) {
+      assert.ok(!String(step.run ?? '').includes('${{ steps.pins.outputs.'), 'pin outputs must not be interpolated into shell source');
+    }
     // No commit sha is ever written into this job: it comes from the registry, so a re-pin
     // cannot leave a stale revision in the workflow. Derived from the registry rather than a
     // literal list, because a literal list goes stale exactly when the pins move - which is

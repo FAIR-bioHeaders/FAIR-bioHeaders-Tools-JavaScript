@@ -53,7 +53,7 @@ await stripFileTo('genome.fhr.fa.gz', 'genome.fa');                          // 
 A streaming reading is the reading `inspectBytes` gives for the same bytes,
 including which finding comes first. `stripFileTo` writes to a temporary file
 beside the output and renames it into place only after the whole input is
-accepted, so a refused input leaves no file behind.
+read and its header structure accepted, so a refused input leaves no file behind.
 
 `gfa` means "a GFA file with an FHR header". FHR and FHP share the FASTA
 container, so `container: 'fasta'` covers both and the record's own `schema` URL
@@ -142,8 +142,9 @@ is how data gets lost.
 
 ## The rule-V7 draft lane
 
-FHT and FHGM are drafts: no released contract, no registry row, no `schemaVersion`
-claim and no w3id URL, and neither is supported here. The lane below is the one way
+This library reads historical FHT/FHGM draft pins, with no registry row or released
+contract claim for either addition here. Upstream publication does not adopt those
+new contracts into this build. The lane below is the one way
 this library recognises them, and it is a caller decision.
 
 ```js

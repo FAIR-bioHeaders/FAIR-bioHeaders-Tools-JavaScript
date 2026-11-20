@@ -12,6 +12,7 @@ the reader side of those rules: parse the header, recompute the checksum, select
 the contract the record cites, validate against it, and take the header out again.
 
 ```js
+import { writeFileSync } from 'node:fs';
 import { inspectFile, stripFile } from 'fair-bioheaders';
 
 const reading = inspectFile('genome.fhr.fasta');
@@ -60,7 +61,9 @@ repositories' live default branch is a third job, advisory and non-gating. See
 Nothing is published yet. This repository's `package.json` is set up for it —
 `name: fair-bioheaders`, `license: MPL-2.0` — but publication to npm is a
 maintainer action and has not happened; `npm view fair-bioheaders` returned 404
-(name unclaimed) on 2026-11-14, and no ownership of that name is asserted here.
+(name unclaimed) on 2026-11-14, re-verified against the npm registry on
+2026-11-20 (both `fair-bioheaders` and `@fair-bioheaders/javascript` still
+404), and no ownership of that name is asserted here.
 Until then, install from the repository:
 
 ```sh
@@ -86,8 +89,9 @@ FHGFF3 `'1.2'`, and lists no row for FHT or FHGM. The contracts declare
 `"$schema": "https://json-schema.org/draft/2020-12/schema"`, so validation uses
 ajv's 2020-12 build; see [`docs/CAPABILITY.md`](docs/CAPABILITY.md).
 
-FHT and FHGM are drafts under development in their own repositories, scheduled for
-`v0.7.0` and `v0.8.0`. Neither is supported here, and nothing below makes it so: the
+The shared project has published FHT in `v0.7.0` and native FHGM in `v0.8.0`.
+This library still bundles earlier owning-draft pins, including the historical
+FHGM extension inside FHGFF3. Neither released addition is supported here: the
 library ships no `schemaVersion` claim, no w3id URL and no registry row for either,
 and `schemas/provenance.json` lists released contracts only.
 
@@ -166,7 +170,7 @@ All functions are named exports of the package root. The library is ESM only.
 | `inspectFile(path, {container})` | the same for a file on disk, read in chunks (sync) |
 | `inspectFileAsync(path, opts)`, `inspectStream(asyncIterable, opts)` | the same as a stream: any size, gzip included, memory the size of the header; returns a `Promise<Reading>` |
 | `stripBytes(bytes, {container})`, `stripFile(path, {container})` | remove the header block, byte-exact |
-| `stripFileTo(input, output, opts)` | the same as a stream, written to `output` only once the input is accepted |
+| `stripFileTo(input, output, opts)` | the same as a stream, written to `output` once header structure and input transport are accepted; does not validate schema/checksum |
 | `computeChecksum(bytes, container)` | R2-R5: the stated value, the recomputed value and the covered bytes |
 | `HeaderScanner` | the single pass behind all of these: `push` chunks, then `finish` |
 | `digest(bytes)` | base64 SHA-512/256 of exactly those bytes |
@@ -178,7 +182,6 @@ All functions are named exports of the package root. The library is ESM only.
 | `draftSupport()`, `draftEntry(type)`, `draftSuitePin(type)`, `loadDraft(type)`, `verifyDraftBytes(dir)` | the rule-V7 pin: what it is, where the bytes are, whether they still match, and which development-suite revision this build's draft evidence names |
 | `checkFhgmModels(header, {base, overlay, predecessors, features, geneIds})` | the FHGM draft verdict: B1, K1, K2, K3, K5, K6, and K4 against `features` (row facts or GFF3 content) or `geneIds`; `inspectBytes` defaults `features` to the file's own bytes when the lane names FHGM and the file is read as GFF3, and to no layer at all in another container, where K4 reports `not-checked` |
 | `verifyParentLinks(record, {resolveParent})` | FHT draft rule C3: checked-pass / checked-fail / unchecked, against parent bytes the caller hands over |
-| `validateRecord(record, selection)` | contract validation, format assertion and warnings |
 | `containerOf(path)`, `decompress(bytes)`, `sha512_256Available()` | helpers |
 | `CURRENT_RELEASE`, `FHR1_RELEASE`, `DIALECT`, `releasesFor(type)`, `hasSchema(type, release)`, `loadSchema(type, release)`, `schemaEntry(type, release)`, `describeSupport(type)` | what this build bundles |
 | `plainScalarIsPortable(text)`, `plainScalarOverflows(text)`, `resolveCore(text)`, `resolveYaml11(text)` | the R12/R13 scalar tables, exposed for reuse and testing |
@@ -327,11 +330,18 @@ in [`docs/MATRIX.md`](docs/MATRIX.md):
 - **no gzip writing, no browser, Deno or Bun build** (SHA-512/256 comes
   from `node:crypto`; WebCrypto does not offer it), and no TypeScript declaration
   files.
-- **no support for FHT or FHGM.** Both are drafts; the V7 lane recognises pinned bytes
+- **no released FHT or native FHGM implementation.** This build retains historical drafts; the V7 lane recognises pinned bytes
   behind an explicit caller decision and warns on every record, which rule V7 calls
   recognition rather than adoption.
 - **no release of this library.** No npm publication, no tag, no DOI, and
   `package.json` says `0.0.0`.
+
+## Setup and API guide
+
+See [the complete installed-package quickstart and API guide](docs/GETTING-STARTED.md)
+for prerequisites, positive and rejection examples, errors, side effects and
+resource boundaries. The pinned draft lane is opt-in through `{drafts: [...]}`;
+its exact commits and digests remain recorded above and in `drafts/provenance.json`.
 
 ## Repository layout
 
