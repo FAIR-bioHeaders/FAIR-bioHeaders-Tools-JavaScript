@@ -113,7 +113,7 @@ export const FHGM_RULES = Object.freeze(['B1', 'K1', 'K2', 'K3', 'K4', 'K5', 'K6
  * gff3-validator even now that a `featureId` resolves here.
  */
 export const FHGM_K4_BOUNDARY = Object.freeze({
-  resolves: 'a record featureId, percent-decoded, against the ID and type of the enclosing file\'s GFF3 feature rows - two facts per row, read by src/features.js or injected by the caller as options.features; exactly one gene row passes',
+  resolves: 'a record featureId as written against the percent-decoded ID and type of the enclosing file\'s GFF3 feature rows - two facts per row, read by src/features.js or injected by the caller as options.features; exactly one gene row passes',
   withoutFeatureLayer: 'not-checked: no resolver supplied, so K4 ran against nothing and claims nothing',
   unusableFeatureLayer: 'unchecked: the layer was supplied but cannot be trusted (a row without nine fields, compressed content at the direct call), so K4 neither passes nor rejects',
   stillElsewhere: 'SO-term correctness, coordinates, parent/child structure and every other feature and biology rule belong to gff3-validator; reading two columns of a row does not validate it',
@@ -161,8 +161,10 @@ export const VERDICTS = Object.freeze({
  *   prior snapshots K6 may resolve against; each is itself run through K1-K3 and K5
  * @property {string|Uint8Array|import('./features.js').FeatureIndex|Array<{id: string, type: string}>|null} [features]
  *   the K4 resolver: GFF3 text or decompressed bytes to index with `src/features.js`,
- *   an index that module already built (`{rows, problems}`), or row facts `[{id, type}]` taken from elsewhere (decoded or percent-escaped ids
- *   both work - ids are decoded before comparison). `null` says "no feature layer,
+ *   an index that module already built (`{rows, problems}`), or row facts `[{id, type}]`
+ *   using GFF3-encoded IDs (percent escapes are decoded once before comparison).
+ *   For already-decoded gene IDs, use `geneIds`; an encoded literal percent must
+ *   remain `%25` here to avoid being interpreted as another escape. `null` says "no feature layer,
  *   do not look for one"; absent at the direct call means `not-checked`, and
  *   `inspectBytes` defaults it to the file's own bytes when the lane names FHGM
  * @property {string[]} [geneIds] the decoded `ID` of every local gene row, as an

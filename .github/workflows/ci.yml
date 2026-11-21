@@ -135,7 +135,9 @@ jobs:
         # source and uses node:crypto and the global fetch. Native, and read-only towards
         # the two development repositories - it fetches over anonymous HTTPS and writes
         # nothing outside its own report file.
-        run: node scripts/ci/draft-pin-freshness.mjs --json draft-freshness.json | tee draft-freshness.txt
+        run: |
+          set -o pipefail
+          node scripts/ci/draft-pin-freshness.mjs --json draft-freshness.json | tee draft-freshness.txt
       - name: Upload the freshness report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -174,28 +176,36 @@ jobs:
       # reachable from their default branch. Nothing here writes to them, and no
       # credential is passed.
       - name: Clone the two owning repositories at the pinned commits
+        env:
+          FHT_REPO: ${{ steps.pins.outputs.fht-repo }}
+          FHT_COMMIT: ${{ steps.pins.outputs.fht-commit }}
+          FHGM_REPO: ${{ steps.pins.outputs.fhgm-repo }}
+          FHGM_COMMIT: ${{ steps.pins.outputs.fhgm-commit }}
         run: |
-          git clone --quiet "https://github.com/FAIR-bioHeaders/${{ steps.pins.outputs.fht-repo }}" .upstream/FHT-Specification
-          git -C .upstream/FHT-Specification checkout --detach --quiet "${{ steps.pins.outputs.fht-commit }}"
-          git clone --quiet "https://github.com/FAIR-bioHeaders/${{ steps.pins.outputs.fhgm-repo }}" .upstream/FHGM-Specification
-          git -C .upstream/FHGM-Specification checkout --detach --quiet "${{ steps.pins.outputs.fhgm-commit }}"
+          set -eu
+          : "${FHT_REPO:?missing FHT repository pin}"
+          : "${FHT_COMMIT:?missing FHT commit pin}"
+          : "${FHGM_REPO:?missing FHGM repository pin}"
+          : "${FHGM_COMMIT:?missing FHGM commit pin}"
+          git clone --quiet "https://github.com/FAIR-bioHeaders/$FHT_REPO" .upstream/FHT-Specification
+          git -C .upstream/FHT-Specification checkout --detach --quiet "$FHT_COMMIT"
+          git clone --quiet "https://github.com/FAIR-bioHeaders/$FHGM_REPO" .upstream/FHGM-Specification
+          git -C .upstream/FHGM-Specification checkout --detach --quiet "$FHGM_COMMIT"
           git -C .upstream/FHT-Specification rev-parse HEAD
           git -C .upstream/FHGM-Specification rev-parse HEAD
       - name: Confirm the checked-out draft bytes still match this build's pin
         run: node scripts/ci/draft-pins.mjs --check .upstream/FHT-Specification .upstream/FHGM-Specification
       # The suite is a separate claim from the contract, pinned to a separate field:
-      # after the 2026-11-18 re-pin both FHT revisions name one commit (86438f21 last
-      # touched both `fht.json` and the 82-vector `C1`-`C3` suite manifest) and all three
-      # FHGM targets name 06176262, but the fields stay separate and are checked
-      # separately, because the claims differ - the checkout moves to the suite revision
-      # only after the contract bytes above have been confirmed, and the manifest is then
-      # verified before a single vector is scored. A type whose registry row states no
-      # suite pin stays where it is, and says so as UNPINNED rather than being silently
-      # blessed.
+      # The deliberate 2026-11-20 refresh names independent last-touch revisions
+      # for the FHT contract / 93-vector suite and FHGM record / overlay / 92-vector
+      # suite. Verify contract bytes first, then move to and verify suite manifests.
       - name: Move each checkout to the suite revision its pin names
+        env:
+          FHT_SUITE_COMMIT: ${{ steps.pins.outputs.fht-suite-commit }}
+          FHGM_SUITE_COMMIT: ${{ steps.pins.outputs.fhgm-suite-commit }}
         run: |
           set -eu
-          for pair in "FHT-Specification ${{ steps.pins.outputs.fht-suite-commit }}" "FHGM-Specification ${{ steps.pins.outputs.fhgm-suite-commit }}"; do
+          for pair in "FHT-Specification $FHT_SUITE_COMMIT" "FHGM-Specification $FHGM_SUITE_COMMIT"; do
             dir=${pair%% *}
             rev=${pair##* }
             if [ -n "$rev" ] && [ "$rev" != "$(git -C ".upstream/$dir" rev-parse HEAD)" ]; then

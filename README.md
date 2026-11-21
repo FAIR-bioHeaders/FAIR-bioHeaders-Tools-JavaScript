@@ -12,6 +12,7 @@ the reader side of those rules: parse the header, recompute the checksum, select
 the contract the record cites, validate against it, and take the header out again.
 
 ```js
+import { writeFileSync } from 'node:fs';
 import { inspectFile, stripFile } from 'fair-bioheaders';
 
 const reading = inspectFile('genome.fhr.fasta');
@@ -60,7 +61,9 @@ repositories' live default branch is a third job, advisory and non-gating. See
 Nothing is published yet. This repository's `package.json` is set up for it —
 `name: fair-bioheaders`, `license: MPL-2.0` — but publication to npm is a
 maintainer action and has not happened; `npm view fair-bioheaders` returned 404
-(name unclaimed) on 2026-11-14, and no ownership of that name is asserted here.
+(name unclaimed) on 2026-11-14, re-verified against the npm registry on
+2026-11-20 (both `fair-bioheaders` and `@fair-bioheaders/javascript` still
+404), and no ownership of that name is asserted here.
 Until then, install from the repository:
 
 ```sh
@@ -86,9 +89,12 @@ FHGFF3 `'1.2'`, and lists no row for FHT or FHGM. The contracts declare
 `"$schema": "https://json-schema.org/draft/2020-12/schema"`, so validation uses
 ajv's 2020-12 build; see [`docs/CAPABILITY.md`](docs/CAPABILITY.md).
 
-FHT and FHGM are drafts under development in their own repositories, scheduled for
-`v0.7.0` and `v0.8.0`. Neither is supported here, and nothing below makes it so: the
-library ships no `schemaVersion` claim, no w3id URL and no registry row for either,
+The shared project has published FHT in `v0.7.0` and native FHGM in `v0.8.0`.
+This library deliberately refreshed its consumer development pins on 2026-11-20, including the historical
+FHGM extension inside FHGFF3. Neither released addition is supported here: the
+library makes no released selection or version claim for either. Its FHT development
+contract requires the record field `schemaVersion: 1.0`; this is not a released
+registry entry. Neither type has a consumer w3id alias or registry row,
 and `schemas/provenance.json` lists released contracts only.
 
 What it does implement is the reader lane rule V7 defines, and the lane is a caller
@@ -120,7 +126,7 @@ superseded in `drafts/provenance.json` with the superseded digests kept on the r
 
 | Draft | Owning repository | Pinned commit | SHA-256 of the pinned bytes |
 | --- | --- | --- | --- |
-| FHT | FHT-Specification | `86438f21c3a17a58334c97aed4955be1a2393522` | `4156353aa6d077fee2d2c69be4e17859b8e4f81bb10824f3c87f6701de196e7a` |
+| FHT | FHT-Specification | `eb6c36d37771918a754d12719a29cad1876fb73c` | `b62c4e227042e162b43d2c461cfe6c3ece3806636ca88a4cf9b0b2f902fb1fc3` |
 | FHGM | FHGM-Specification | `06176262f9824f26d974a15d8feeebde1fbeb0a8` | `b7075e5872e0a5ffce5ae61c590ce182f1f219fa269413cad3b1a966753cfeae` |
 
 Those are the **contract** bytes the lane compiles. The **development suites** are a
@@ -128,8 +134,8 @@ separate pair of pins, because a suite and its contract move at different times:
 
 | Draft | Suite commit | Suite manifest | SHA-256 | Vectors |
 | --- | --- | --- | --- | --- |
-| FHT | `86438f21c3a17a58334c97aed4955be1a2393522` | `conformance/manifest.json` | `e5a4a5d027259e29a7e3cfb42da5e1ef07fa78d4a0e604ef73f28b8e5a59a508` | 82 |
-| FHGM | `06176262f9824f26d974a15d8feeebde1fbeb0a8` | `development/conformance/manifest.json` | `e41f05fd8bb8b8ec175b0192b80832041c84e15c325876aa66a86ba6e59413ce` | 62 |
+| FHT | `e6ba1c737c9caddc53b99a4a107825d7a16a4765` | `conformance/manifest.json` | `d0147d3ad97c0fad0ede94ae76340632a86a160f566b01129e592e643fd77492` | 93 |
+| FHGM | `e8e26d7cb9024b83e474045291f56a46e57a1ecf` | `development/conformance/manifest.json` | `d42b621165951dc0eb94ec80ff1953aae72c62d668e7a88c5b48541e41d26a64` | 92 |
 
 A count is a note about a digest, never the thing being pinned: `scripts/ci/suite-pin.mjs`
 refuses a manifest that does not digest to the recorded value, and refuses one that does
@@ -141,7 +147,7 @@ an FHGFF3 header, so the file keeps its released FHGFF3 citation and routing. Th
 implemented model rules are B1 (the boundary), K1 (transport), K2 (record contract),
 K3 (unique `modelId`), K4 (feature-target resolution) and K5 (reference agreement)
 and K6 (predecessor verdicts against snapshots the caller supplies). K4 resolves a
-`featureId`, percent-decoded, against the `ID` and `type` of the GFF3 feature rows —
+`featureId` as written against the percent-decoded `ID` and `type` of the GFF3 feature rows —
 exactly one gene row passes. The layer is an injected resolver: by default the lane
 indexes the file's own rows through `src/features.js`, a caller holding the feature
 layer elsewhere can inject `options.features` (row facts or GFF3 content) or the
@@ -166,7 +172,7 @@ All functions are named exports of the package root. The library is ESM only.
 | `inspectFile(path, {container})` | the same for a file on disk, read in chunks (sync) |
 | `inspectFileAsync(path, opts)`, `inspectStream(asyncIterable, opts)` | the same as a stream: any size, gzip included, memory the size of the header; returns a `Promise<Reading>` |
 | `stripBytes(bytes, {container})`, `stripFile(path, {container})` | remove the header block, byte-exact |
-| `stripFileTo(input, output, opts)` | the same as a stream, written to `output` only once the input is accepted |
+| `stripFileTo(input, output, opts)` | the same as a stream, written to `output` once header structure and input transport are accepted; does not validate schema/checksum |
 | `computeChecksum(bytes, container)` | R2-R5: the stated value, the recomputed value and the covered bytes |
 | `HeaderScanner` | the single pass behind all of these: `push` chunks, then `finish` |
 | `digest(bytes)` | base64 SHA-512/256 of exactly those bytes |
@@ -178,7 +184,6 @@ All functions are named exports of the package root. The library is ESM only.
 | `draftSupport()`, `draftEntry(type)`, `draftSuitePin(type)`, `loadDraft(type)`, `verifyDraftBytes(dir)` | the rule-V7 pin: what it is, where the bytes are, whether they still match, and which development-suite revision this build's draft evidence names |
 | `checkFhgmModels(header, {base, overlay, predecessors, features, geneIds})` | the FHGM draft verdict: B1, K1, K2, K3, K5, K6, and K4 against `features` (row facts or GFF3 content) or `geneIds`; `inspectBytes` defaults `features` to the file's own bytes when the lane names FHGM and the file is read as GFF3, and to no layer at all in another container, where K4 reports `not-checked` |
 | `verifyParentLinks(record, {resolveParent})` | FHT draft rule C3: checked-pass / checked-fail / unchecked, against parent bytes the caller hands over |
-| `validateRecord(record, selection)` | contract validation, format assertion and warnings |
 | `containerOf(path)`, `decompress(bytes)`, `sha512_256Available()` | helpers |
 | `CURRENT_RELEASE`, `FHR1_RELEASE`, `DIALECT`, `releasesFor(type)`, `hasSchema(type, release)`, `loadSchema(type, release)`, `schemaEntry(type, release)`, `describeSupport(type)` | what this build bundles |
 | `plainScalarIsPortable(text)`, `plainScalarOverflows(text)`, `resolveCore(text)`, `resolveYaml11(text)` | the R12/R13 scalar tables, exposed for reuse and testing |
@@ -223,37 +228,15 @@ run** (jsonld 37, microdata 26) because those reader paths are not implemented.
 They are reported as skipped with a reason, never as passes. With the V7 lane
 requested, the same reading path is exercised against the two development suites
 that own the drafts, each verified against its own pin before anything is scored:
-**all 144 draft vectors pass.** FHT **82/82, 0 fail, 0 not-run** at suite pin
-`86438f21` (`C1`/`C2`/`C3`, the labels the registry states), and FHGM **62/62, 0 fail,
-0 not-run** at suite pin `06176262` — FHGM scored 58/4 when the re-pin landed on
-2026-11-18; the four named `layers.model` expectations of FHGM-Specification#29 are
-implemented in this build (2026-11-19), against a draft whose upstream semantics
-`FHGM#22`/`#27`/`#28`/`#32` still hold open.
-The re-pin of 2026-11-18 moved **both contract byte sets** for the first time since the
-lane existed: the old pins (FHT `226f923c`/`be9bcc82` at 72 vectors, FHGM
-`ac3d37b3`/`c503ecf3` at 43) are superseded and named in `previousPin` fields of
-`drafts/provenance.json`, where the retrieval date, command and digests are recorded.
-FHGM's suite has had a stated pin since the re-pin of 2026-11-16 — before that its row
-read `UNPINNED`, and the 31 vectors it scored were scored against a checkout nobody had
-checked. The K4-dependent FHGM vectors are now eleven, up from eight, and all eleven
-reached a `pass` or `reject` verdict against the file's own feature rows.
-`node scripts/capability/draft-vectors.mjs` refuses a suite
-whose manifest digest is not the one it pins, so a draft count here names a checked
-revision or says it names none. A K4 vector whose feature layer is absent or
-untrustworthy is still reported not-run with that state, never scored by assumption, and
-so is a vector whose `layers.gff3` expectation asks about the feature layer this library
-does not judge. Four of the 82 FHT vectors carry `promotion: candidate-unreviewed` upstream,
-twelve FHGM vectors came from a packet marked `Status: DRAFT`, and FHGM's four
-failures on the day the re-pin landed were this build not yet implementing four
-expectations FHGM-Specification#29 added to
-`layers.model` — base selection by cited release (`carrier-cites-raw-main`), root-gene-row
-target and raw-vs-decoded featureId identity (`feature-target-gene-with-parent`,
-`feature-id-names-percent-encoding`), and NFC-compared modelId uniqueness
-(`model-ids-equal-under-nfc`); those four are implemented in this build (2026-11-19,
-Round 14 #23). They are reported by name with their reasons
-([`docs/CONFORMANCE.md`](docs/CONFORMANCE.md)), because a pass on an unreviewed expectation
-is agreement with a draft claim, not review of it, and a failure is where the work is.
-Those counts are draft evidence and are never added to
+**183 pass, 0 fail, 2 not-run across 185 development vectors**, measured
+2026-11-20. FHT is **93/93** at suite `e6ba1c737c9c`; FHGM is **90 pass / 0 fail /
+2 not-run** at `e8e26d7cb902`. The two abstentions name unavailable K4 evidence and a
+GFF3-validator-owned rejection; neither is counted as a pass. FHT C1 checks the
+BUSCO component sum against total, refusing counts outside JavaScript’s safe
+integer range because their input precision cannot be guaranteed. Contract and suite pins are independent,
+verified before scoring; prior pins remain in `drafts/provenance.json`. The four
+former FHT promotion candidates now carry upstream D3 acceptance for file identity
+only, without a claim of biological derivation. These results never add to
 the 291. Full breakdown, and the list of what is not implemented or claimed:
 [`docs/CONFORMANCE.md`](docs/CONFORMANCE.md), and [`docs/USAGE.md`](docs/USAGE.md) for recipes.
 
@@ -327,11 +310,18 @@ in [`docs/MATRIX.md`](docs/MATRIX.md):
 - **no gzip writing, no browser, Deno or Bun build** (SHA-512/256 comes
   from `node:crypto`; WebCrypto does not offer it), and no TypeScript declaration
   files.
-- **no support for FHT or FHGM.** Both are drafts; the V7 lane recognises pinned bytes
+- **no released FHT or native FHGM implementation.** This build retains historical drafts; the V7 lane recognises pinned bytes
   behind an explicit caller decision and warns on every record, which rule V7 calls
   recognition rather than adoption.
 - **no release of this library.** No npm publication, no tag, no DOI, and
   `package.json` says `0.0.0`.
+
+## Setup and API guide
+
+See [the complete installed-package quickstart and API guide](docs/GETTING-STARTED.md)
+for prerequisites, positive and rejection examples, errors, side effects and
+resource boundaries. The pinned draft lane is opt-in through `{drafts: [...]}`;
+its exact commits and digests remain recorded above and in `drafts/provenance.json`.
 
 ## Repository layout
 

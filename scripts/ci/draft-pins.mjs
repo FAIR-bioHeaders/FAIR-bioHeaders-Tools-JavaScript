@@ -32,17 +32,32 @@ function pathInCheckout(type) {
 const args = process.argv.slice(2);
 
 if (args.includes('--github-output')) {
+  // This output becomes clone/checkout input. Validate every row before emitting
+  // any line, including fields that could otherwise inject another output key.
+  const repositories = { FHT: 'FHT-Specification', FHGM: 'FHGM-Specification' };
+  if (DRAFT_TYPES.length !== 2 || DRAFT_TYPES.some((type) => !Object.hasOwn(repositories, type))) {
+    throw new Error('github-output requires the complete FHT/FHGM pin set');
+  }
+  const rows = DRAFT_TYPES.map((type) => [type, draftEntry(type)]);
+  const commit = (value) => typeof value === 'string' && /^[0-9a-f]{40}$/.test(value);
+  const digest = (value) => typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
+  const relative = (value) => typeof value === 'string' && value.split('/').every((part) =>
+    part !== '.' && part !== '..' && /^[A-Za-z0-9_.-]+$/.test(part));
+  for (const [type, entry] of rows) {
+    if (entry.repository !== repositories[type]) throw new Error(`${type}: unexpected repository pin for github-output`);
+    if (!commit(entry.commit) || !commit(entry.suiteCommit)) throw new Error(`${type}: complete immutable contract/suite commits required for github-output`);
+    if (!digest(entry.sha256) || !digest(entry.suiteManifestSha256)) throw new Error(`${type}: SHA-256 contract/suite digests required for github-output`);
+    if (!relative(entry.sourcePath) || !relative(entry.suiteManifest)) throw new Error(`${type}: confined single-line source/suite paths required for github-output`);
+  }
   const lines = [];
-  for (const type of DRAFT_TYPES) {
-    const entry = draftEntry(type);
+  for (const [type, entry] of rows) {
     const key = type.toLowerCase();
     lines.push(`${key}-commit=${entry.commit}`);
     lines.push(`${key}-repo=${entry.repository}`);
     lines.push(`${key}-path=${entry.sourcePath}`);
     lines.push(`${key}-sha256=${entry.sha256}`);
-    // The suite is a second, separate claim, so it gets its own keys. An empty value is
-    // the honest one: this build states no suite pin for that type, and `suite-pin.mjs`
-    // reports the absence and refuses scoring instead of inventing a revision.
+    // The suite is a second, separate claim. Its complete pin was checked above;
+    // absence remains representable by the library API, but is not clone input.
     lines.push(`${key}-suite-commit=${entry.suiteCommit ?? ''}`);
     lines.push(`${key}-suite-manifest=${entry.suiteManifest ?? ''}`);
     lines.push(`${key}-suite-sha256=${entry.suiteManifestSha256 ?? ''}`);

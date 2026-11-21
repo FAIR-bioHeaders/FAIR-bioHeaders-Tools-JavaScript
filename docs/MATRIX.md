@@ -81,7 +81,7 @@ Contracts bundled (from `schemas/provenance.json`): v0.4.0 = '1.0', v0.4.1 = '1.
 ### FHT - draft
 
 ```text
-FHT: draft, no released contract, no schemaVersion claim, no w3id URL and no registry row; readable only through the V7 lane against FHT-Specification 86438f21c3a1 (sha256 4156353aa6d0...)
+FHT: draft in this consumer, no released contract selection, no released version claim, no w3id alias and no registry row; FHT development records require schemaVersion 1.0; readable only through the V7 lane against FHT-Specification eb6c36d37771 (sha256 b62c4e227042...)
 ```
 
 | operation \ serialization | fasta | gfa | gff3 | model-records | jsonld | microdata |
@@ -94,13 +94,14 @@ FHT: draft, no released contract, no schemaVersion claim, no w3id URL and no reg
 | strip the header | yes [^9] | n/a [^22] | n/a [^23] | n/a [^24] | n/a [^25] | n/a [^26] |
 | write a header | no [^10] | no [^10] | no [^10] | no [^10] | no [^10] | no [^10] |
 
-No contract, no registry row, no `schemaVersion` claim and no w3id URL. Read only through the
-V7 lane against FHT-Specification at 86438f21c3a17a58334c97aed4955be1a2393522 (sha256 `4156353aa6d077fee2d2c69be4e17859b8e4f81bb10824f3c87f6701de196e7a`).
+No released selection, released registry row or consumer w3id alias. Read only through the
+The pinned development contract requires the record field `schemaVersion: 1.0`.
+V7 lane against FHT-Specification at eb6c36d37771918a754d12719a29cad1876fb73c (sha256 `b62c4e227042e162b43d2c461cfe6c3ece3806636ca88a4cf9b0b2f902fb1fc3`).
 
 ### FHGM - draft, nested records inside an FHGFF3 header
 
 ```text
-FHGM: draft, no released contract, no schemaVersion claim, no w3id URL and no registry row; readable only through the V7 lane against FHGM-Specification 06176262f982 (sha256 b7075e5872e0...)
+FHGM: draft in this consumer, no released contract selection, no released version claim, no w3id alias and no registry row; readable only through the V7 lane against FHGM-Specification 06176262f982 (sha256 b7075e5872e0...)
 ```
 
 | operation \ serialization | fasta | gfa | gff3 | model-records | jsonld | microdata |
@@ -113,7 +114,7 @@ FHGM: draft, no released contract, no schemaVersion claim, no w3id URL and no re
 | strip the header | n/a [^31] | n/a [^31] | n/a [^31] | yes [^38] | n/a [^33] | n/a [^34] |
 | write a header | no [^10] | no [^10] | no [^10] | no [^10] | no [^10] | no [^10] |
 
-No contract, no registry row, no `schemaVersion` claim and no w3id URL. Read only through the
+No released selection, released registry row or consumer w3id alias. Read only through the
 V7 lane against FHGM-Specification at 06176262f9824f26d974a15d8feeebde1fbeb0a8 (sha256 `b7075e5872e0a5ffce5ae61c590ce182f1f219fa269413cad3b1a966753cfeae`).
 
 ## Contract versions this build can select
@@ -154,15 +155,12 @@ FHT's rules are C1 to C3 and FHGM's are B1 and K1 to K6, drafted in their own
 repositories.
 
 The lane reads two pinned things and they are separate claims: the contract bytes at
-`86438f21c3a17a58334c97aed4955be1a2393522` (sha256 `4156353aa6d077fe…`), and the development suite this
-build verifies at `86438f21c3a17a58334c97aed4955be1a2393522` - manifest `conformance/manifest.json`, sha256
-`e5a4a5d027259e29…`, 82 vectors across 76939 bytes, whose 3 contract
+`eb6c36d37771918a754d12719a29cad1876fb73c` (sha256 `b62c4e227042e162…`), and the development suite this
+build verifies at `e6ba1c737c9caddc53b99a4a107825d7a16a4765` - manifest `conformance/manifest.json`, sha256
+`d0147d3ad97c0fad…`, 93 vectors across 89146 bytes, whose 3 contract
 rules carry the C1/C2/C3 ids listed below. The guard is
 `scripts/ci/suite-pin.mjs`, and it refuses any other suite revision, so no draft
 count in this repository is attributed to a revision that was never checked.
-(The two values above are the same commit by design: the 2026-11-18 re-pin found one
-commit that last touched both files, and the registry repeats it so the check is
-uniform - two fields, two claims, one revision.)
 The re-pin of 2026-11-18 moved the contract bytes themselves for the first time: the
 pinned contract grew `mixed` to a fifth `MoleculeType` value, made `properties.schema` a
 const admitting only the raw-main citation while the type is a draft, and made the
@@ -171,10 +169,10 @@ re-pinned together because the new suite cannot be scored against the old bytes.
 
 FHGM is the same shape, over three artifacts: the record contract at
 `06176262f9824f26d974a15d8feeebde1fbeb0a8` (sha256 `b7075e5872e0a5ff…`), the transport overlay beside it at
-`06176262f9824f26d974a15d8feeebde1fbeb0a8` (sha256 `533b3120f4a86590…`), and the suite
-this build verifies at `06176262f9824f26d974a15d8feeebde1fbeb0a8` - manifest
-`development/conformance/manifest.json`, sha256 `e41f05fd8bb8b8ec…`,
-62 vectors across 69526 bytes, labelled B1/K1/K2/K3/K4/K5/K6. Before the
+`019bc29e32ce225791053dd2ce323bb91f304ce1` (sha256 `533b3120f4a86590…`), and the suite
+this build verifies at `e8e26d7cb9024b83e474045291f56a46e57a1ecf` - manifest
+`development/conformance/manifest.json`, sha256 `d42b621165951dc0…`,
+92 vectors across 113389 bytes, labelled B1/K1/K2/K3/K4/K5/K6. Before the
 re-pin of 2026-11-16 this registry stated no suite revision for FHGM at all, so its
 draft-lane run could only print `UNPINNED`; the guard is the same one and it refuses
 any other suite bytes. That re-pin left the record contract where it was; the
@@ -205,7 +203,7 @@ Which of the rules run here, and which do not:
 | K1 | FHGM | yes | transport: R15 admits extension fields from FHGFF3 1.1, and `x-fhgm-models` holds one or more records. `overlay: true` also applies the pinned transport overlay, which since FHGM-Specification#17 admits either released base as a closed pairing - v0.5.0 with 1.1, or v0.6.0 with 1.2 - and refuses a citation and version that contradict each other |
 | K2 | FHGM | yes | every record validates against the pinned record contract (`modelId`, `modelVersion`, `featureId`, `reference` required, objects closed) |
 | K3 | FHGM | yes | `modelId` unique within a snapshot; a shared id is ambiguous and rejects that snapshot, current or supplied predecessor |
-| K4 | FHGM | yes | a record featureId, percent-decoded, against the ID and type of the enclosing file's GFF3 feature rows - two facts per row, read by src/features.js or injected by the caller as options.features; exactly one gene row passes. not-checked: no resolver supplied, so K4 ran against nothing and claims nothing. unchecked: the layer was supplied but cannot be trusted (a row without nine fields, compressed content at the direct call), so K4 neither passes nor rejects. SO-term correctness, coordinates, parent/child structure and every other feature and biology rule belong to gff3-validator; reading two columns of a row does not validate it |
+| K4 | FHGM | yes | a record featureId as written against the percent-decoded ID and type of the enclosing file's GFF3 feature rows - two facts per row, read by src/features.js or injected by the caller as options.features; exactly one gene row passes. not-checked: no resolver supplied, so K4 ran against nothing and claims nothing. unchecked: the layer was supplied but cannot be trusted (a row without nine fields, compressed content at the direct call), so K4 neither passes nor rejects. SO-term correctness, coordinates, parent/child structure and every other feature and biology rule belong to gff3-validator; reading two columns of a row does not validate it |
 | K5 | FHGM | yes | a record reference shares at least one comparable form with the file genome link and never contradicts it |
 | K6 | FHGM | yes | predecessor verdicts `resolvable` / `unresolvable` / `ambiguous`, against explicitly supplied prior snapshots only |
 
@@ -220,7 +218,7 @@ machine-checkable (`test/draft-lane.test.mjs`):
 {
   "schema": { "type": "FHT", "release": null, "schemaVersion": null, "rule": "V7" },
   "warnings": [
-    "FHT: warning: schema https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/main/fht.json is an unreleased draft (commit 86438f21c3a17a58334c97aed4955be1a2393522, sha256 4156353aa6d077fee2d2c69be4e17859b8e4f81bb10824f3c87f6701de196e7a of those bytes); read against that pinned draft, not a released schema"
+    "FHT: warning: schema https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/main/fht.json is an unreleased draft (commit eb6c36d37771918a754d12719a29cad1876fb73c, sha256 b62c4e227042e162b43d2c461cfe6c3ece3806636ca88a4cf9b0b2f902fb1fc3 of those bytes); read against that pinned draft, not a released schema"
   ]
 }
 ```

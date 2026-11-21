@@ -53,7 +53,7 @@ await stripFileTo('genome.fhr.fa.gz', 'genome.fa');                          // 
 A streaming reading is the reading `inspectBytes` gives for the same bytes,
 including which finding comes first. `stripFileTo` writes to a temporary file
 beside the output and renames it into place only after the whole input is
-accepted, so a refused input leaves no file behind.
+read and its header structure accepted, so a refused input leaves no file behind.
 
 `gfa` means "a GFA file with an FHR header". FHR and FHP share the FASTA
 container, so `container: 'fasta'` covers both and the record's own `schema` URL
@@ -142,31 +142,32 @@ is how data gets lost.
 
 ## The rule-V7 draft lane
 
-FHT and FHGM are drafts: no released contract, no registry row, no `schemaVersion`
-claim and no w3id URL, and neither is supported here. The lane below is the one way
+This library reads historical FHT/FHGM draft pins, with no registry row or released
+contract claim for either addition here. Upstream publication does not adopt those
+new contracts into this build. The lane below is the one way
 this library recognises them, and it is a caller decision.
 
 ```js
 import { inspectFile, inspectBytes, draftSupport, draftSuitePin, verifyDraftBytes, checkFhgmModels, verifyParentLinks } from 'fair-bioheaders';
 
 draftSupport();
-// [{ type: 'FHT', citation: '…/FHT-Specification/main/fht.json', commit: '86438f21…', sha256: '4156353a…', status: 'draft' }, …]
+// [{ type: 'FHT', citation: '…/FHT-Specification/main/fht.json', commit: 'eb6c36d3…', sha256: 'b62c4e22…', status: 'draft' }, …]
 
 // The suite is a separate pin from the contract, and it is the one that names the
 // development suite `scripts/capability/draft-vectors.mjs` scores. Both drafts state one
 // as of the re-pin of 2026-11-16; the re-pin of 2026-11-18 moved the contract bytes too,
-// and both revisions now coincide per owning repository while staying separate fields.
+// and the 2026-11-20 repair pins independent last-touch contract/suite revisions.
 // A draft that stated no pin would report `stated: false`, and the runner refuses before
 // scoring any requested suite. It never invents a revision.
 // The values below are printed, not transcribed: `node -e` over `draftSuitePin`.
 draftSuitePin('FHT');
 // { type: 'FHT', repository: 'FHT-Specification', stated: true, partial: false,
-//   commit: '86438f21…', manifest: 'conformance/manifest.json', sha256: 'e5a4a5d0…',
-//   bytes: 76939, vectors: 82, rules: ['C1', 'C2', 'C3'] }
+//   commit: 'e6ba1c73…', manifest: 'conformance/manifest.json', sha256: 'd0147d3a…',
+//   bytes: 89146, vectors: 93, rules: ['C1', 'C2', 'C3'] }
 draftSuitePin('FHGM');
 // { type: 'FHGM', repository: 'FHGM-Specification', stated: true, partial: false,
-//   commit: '06176262…', manifest: 'development/conformance/manifest.json',
-//   sha256: 'e41f05fd…', bytes: 69526, vectors: 62,
+//   commit: 'e8e26d7c…', manifest: 'development/conformance/manifest.json',
+//   sha256: 'd42b6211…', bytes: 113389, vectors: 92,
 //   rules: ['B1', 'K1', 'K2', 'K3', 'K4', 'K5', 'K6'] }
 
 const reading = inspectFile('rna.fht.fasta', { drafts: ['FHT'] });

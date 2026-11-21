@@ -1,33 +1,31 @@
 # Agent instructions
 
-## Independent review and merge authorization (2026-11-18)
+## Independent review and human-only merges (maintainer direction, 2026-11-20)
 
-The maintainer's independent-review rule (2026-11-18) applies only to
-FAIR-bioHeaders repositories and agents operated by David Molik (`molikd`) or
-Adam Wright (`adamjohnwright`). A PR submitted by either maintainer or their
-agents may satisfy the approval gate through an independent **different model**:
-Copilot, or a model operated by David or Adam. The approving model/agent must be
-other than the submitter; an agent must not self-approve its PR, and another
-instance of the same model does not satisfy the different-model requirement.
-Record author/reviewer model provenance when needed to establish independence.
-David and Adam themselves may self-approve their PRs; this exception does not
-apply to their agents.
+The [Round 16 policy](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/211#issuecomment-7042896529)
+supersedes the former conditional agent-merge authorization of 2026-11-16/18 and
+the #268 authority links recorded under it. **Agents must never merge pull
+requests in this repository; a human performs every merge.** Do not enable
+auto-merge, enter a merge queue, use another agent or service as a merge proxy,
+or push directly to the default branch as a substitute for merging a PR. Model
+review never grants an agent merge authority; preserve platform protections and
+do not forge approval or work around repository permissions.
 
-An eligible agent may merge only after that approval requirement is met, all
-applicable CI checks are green, and its own validation of the current changes
-passes, including changes after review. Recheck the exact head, base branch,
-findings and dependencies immediately before merging. Missing checks are not
-passing checks, and branch protection must not be bypassed. Read every overall
-review and inline finding, reply with its disposition and fix/evidence, resolve
-handled threads, and post an overall response. Merge authorization does not grant
-contract adoption, curator acceptance, release, publication or deployment
-authority; those retain their separate maintainer gates.
+Every PR receives independent review from another actual model. A different
+model family is preferred (for example Codex or Gemini reviewing Qwen work, or
+Qwen reviewing Codex work), but family diversity is a preference, not a hard
+requirement; a second session of the same model is not another model. Record
+actual author/reviewer model identities and never invent review provenance.
 
-Authority: [approval by another, different model](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/268#issuecomment-6984337685)
-and [human self-approval exception](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/268#issuecomment-6984418624).
-
-Port source: FAIR-bioHeaders-Specification commit
-`0d0d6b43efdee96bc7548f1f7c65fdafb2a31f32` ([specification PR #269](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/pull/269)).
+Agents keep monitoring CI and fixing failures and actionable review findings:
+read the overall review and every inline finding, fix in new commits, reply with
+disposition and evidence, resolve handled threads and acknowledge clean reviews.
+Validate the current head after changes and hand the human exact head/base,
+review, CI, dependency and remaining-risk information. Missing, failed and
+NOT_RUN checks are not passes. This grants no contract adoption, curator
+acceptance, release, publication or deployment authority — those gates are
+unchanged. Earlier rounds' authorized merges and dated receipts remain accurate
+historical facts, not future permission.
 
 ## Provenance of this file, and what it does not claim
 
@@ -88,13 +86,13 @@ explicit in README, `llms.txt`, docs and code comments, in both directions:
   `options.features`, and a missing or untrustworthy layer leaves K4
   `not-checked`/`unchecked`, never a pass and never a rejection.
 
-## Drafts take no release form (rule V7)
+## Historical pinned drafts take no release form here (rule V7)
 
-FHT and FHGM are drafts. They have no released contract, no row in
-`schemas/versions.json`, no `schemaVersion`, no w3id URL and no support claim —
-here or in any documentation, skill or packaging metadata in this repository.
-A scheduled future release (FHT as `v0.7.0`, FHGM as `v0.8.0`) is a decision about
-*those* types, not a licence to publish them here.
+The shared project published FHT in `v0.7.0` and native FHGM in `v0.8.0`.
+This consumer still bundles historical owning-draft bytes. Its own
+`schemas/provenance.json` has no row for either addition; its opt-in lane has
+no released-contract support claim. Native FHGM differs from the historical
+FHGFF3 extension this library reads. Do not repin or adopt as documentation cleanup.
 
 This library implements the V7 lane, because V7 is a published rule about reader
 behaviour and the maintainer direction of 2026-11-14
@@ -245,18 +243,14 @@ depends on them.
 The draft-lane run is *labelled draft evidence*, not acceptance: it reads the
 development suites that live in the repositories owning FHT and FHGM, verifies each
 stated suite manifest against its own pin before scoring anything, and its counts are
-never added to the shared 291. The measured counts are FHT **82 pass / 0 fail / 0
-not-run**, from the suite pin `86438f21`, and FHGM **62 pass / 0 fail / 0 not-run**,
-from `06176262` - FHGM scored 58/4 when the re-pin landed (2026-11-18), the four
-`layers.model` expectations FHGM-Specification#29 added being implemented on
-2026-11-19 (Round 14 #23) and named in `docs/CONFORMANCE.md`, together with the
-upstream semantics still open (`FHGM#22`/`#27`/`#28`/`#32`). The re-pin of 2026-11-18 **moved both
-contract byte sets** (`59ad9641`→`4156353a` for FHT, `bf1553ca`→`b7075e58` for FHGM) -
-a suite moving does not usually move a contract, but this one could not be scored
-without it, and a re-pin that changes contract bytes is exactly the louder change the
-previous wording anticipated. See
-`docs/CONFORMANCE.md` for both, and for the FHT vectors whose *expectations* upstream
-still marks unreviewed. FHGM's K4 runs
+never added to the shared 291. The user-authorized CI repair on 2026-11-20 refreshed
+FHT contract and suite and FHGM suite deliberately. Current measured evidence is
+FHT **93 pass / 0 fail / 0 not-run** at suite `e6ba1c737c9c`, and FHGM **90 pass /
+0 fail / 2 not-run** at `e8e26d7cb902`. Exact independent artifact pins, prior-pin
+history and named abstentions are in provenance and `docs/CONFORMANCE.md`. FHT C1
+requires exact component-to-total arithmetic; partial or ill-typed counts defer to
+schema errors. This repair does not adopt published selection URLs, change the
+released registry, or widen FHGM feature-layer support. FHGM's K4 runs
 against the reading's feature layer (the file's own rows by default); when a layer
 is absent or untrustworthy the vector stays not-run with that state as the reason -
 converting a not-run into a pass by assumption is forbidden, not merely discouraged.
@@ -328,8 +322,9 @@ decision instead of resolving it silently.
   the commit hash; resolve the thread; then summarise dispositions. Treat optional
   suggestions as required unless genuinely out of scope, and say why with a
   scoped follow-up link. Give an overall response even when no findings exist.
-- Never push directly to `main`. Conditional merges follow the independent
-  review authorization above; adoption and publication keep separate gates.
+- Never push directly to `main`. Merges are performed only by a human
+  maintainer (agents never merge, per the human-only merges section above);
+  adoption and publication keep separate gates.
 
 ## Local scope of this repository
 

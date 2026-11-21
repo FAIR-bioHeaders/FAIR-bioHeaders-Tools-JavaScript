@@ -67,7 +67,7 @@ describe('the type table', () => {
   it('describes a draft without a support claim and a released type without a version invention', () => {
     for (const type of DRAFT_TYPE_IDS) {
       const line = describeType(type);
-      assert.match(line, /draft, no released contract/);
+      assert.match(line, /draft in this consumer, no released contract selection/);
       assert.doesNotMatch(line, /supported/i, `${type}: a draft is recognised, never supported`);
       assert.doesNotMatch(line, /w3id\.org/, `${type}: no w3id URL for a draft`);
     }
