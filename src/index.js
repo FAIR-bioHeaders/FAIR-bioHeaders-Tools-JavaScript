@@ -12,8 +12,8 @@
  * Supported contracts: the released FHR, FHP and FHGFF3 schemas, selected per
  * record by rules V1 to V6 from the copies vendored in `schemas/`.
  *
- * FHT and FHGM are drafts: no released contract, no `schemaVersion` of their own
- * in the shared registry, no w3id URL and no row in `schemas/versions.json`, and
+ * FHT and FHGM are drafts: no released contract selection in this consumer, no `schemaVersion` of their own
+ * in this consumer’s released registry, no w3id alias and no row in `schemas/versions.json`, and
  * no support claim for either. Rule V7 gives them one recognition path - the
  * explicit `{drafts: [...]}` lane in `src/drafts.js`, reading bytes pinned by
  * commit and SHA-256 and warning on every record - and nothing about that lane

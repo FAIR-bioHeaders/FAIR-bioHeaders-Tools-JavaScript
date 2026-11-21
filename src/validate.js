@@ -451,11 +451,28 @@ function readPaths(data, path, shown) {
  * @param {import('./selection.js').Selection} selection
  * @returns {ValidationResult}
  */
+// C1 is an owning-reader predicate: JSON Schema owns missing/type/range errors.
+// Parsing uses Numbers: refuse unsafe counts rather than credit a rounded value.
+function fhtCompletenessErrors(record) {
+  const value = record?.completeness;
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return [];
+  const components = ['completeSingle', 'completeDuplicated', 'fragmented', 'missing'];
+  if (![...components, 'total'].every((key) => Object.hasOwn(value, key)
+      && typeof value[key] === 'number' && Number.isInteger(value[key]))) return [];
+  if (![...components, 'total'].every((key) => Number.isSafeInteger(value[key]))) {
+    return ['C1: completeness counts exceed the safe integer range of this reader; exact comparison is unavailable'];
+  }
+  const sum = components.reduce((total, key) => total + BigInt(value[key]), 0n);
+  return sum === BigInt(value.total) ? []
+    : [`C1: completeness component counts must sum to total (sum ${sum}, total ${value.total})`];
+}
+
 export function validateRecord(record, selection) {
   const draft = selection.rule === 'V7';
   const { validate, entry } = draft ? draftValidator(selection.type, 'contract') : validator(selection.type, selection.release);
   const ok = validate(record);
   const errors = ok ? [] : (validate.errors ?? []).map((error) => formatError(error));
+  if (draft && selection.type === 'FHT') errors.push(...fhtCompletenessErrors(record));
   const document = contractDocument(selection.type, selection.release);
   const checked = new Set();
   for (const path of collectUriPaths(document, document, [], new Set(), 'checksum')) {

@@ -118,55 +118,31 @@ describe('the suite pin on the API', () => {
     }
   });
 
-  it('holds the FHT suite revision and the FHT contract revision as separate fields, and names the 2026-11-18 re-pinned pair', () => {
-    const pin = draftSuitePin('FHT');
-    const entry = draftEntry('FHT');
-    assert.equal(pin.stated, true);
-    assert.equal(pin.repository, 'FHT-Specification');
-    assert.equal(pin.manifest, 'conformance/manifest.json');
-    assert.equal(pin.commit, '86438f21c3a17a58334c97aed4955be1a2393522');
-    assert.equal(pin.sha256, 'e5a4a5d027259e29a7e3cfb42da5e1ef07fa78d4a0e604ef73f28b8e5a59a508');
-    assert.equal(pin.vectors, 82);
-    assert.equal(pin.bytes, 76939);
-    assert.deepEqual([...pin.rules], ['C1', 'C2', 'C3']);
-    // Two fields, two claims - but after the 2026-11-18 re-pin the FHT contract and
-    // suite bytes were both last touched at 86438f21, so the registry repeats the
-    // commit on purpose, exactly as its description requires when they coincide. The
-    // previous revision pair (contract 226f923c / suite be9bcc82, 72 vectors at
-    // 65615 bytes) is recorded in the registry's `previousPin` field, and every value
-    // of it is DRIFT to the guard now.
-    assert.equal(pin.commit, entry.commit, 'contract and suite coincide at the 2026-11-18 pin; separate fields all the same');
-    assert.equal(entry.suiteCommit, pin.commit);
-    assert.notEqual(pin.sha256, entry.sha256, 'the manifest digest and the contract digest are still different byte strings');
-    const previous = registry.drafts.FHT.previousPin;
-    assert.equal(previous.contractSha256.slice(0, 12), '59ad9641adcb');
-    assert.equal(previous.suiteVectors, 72, 'the superseded count stays on the record');
-  });
-
-  it('holds the FHGM suite revision and the FHGM contract revision as separate fields too, and names the re-pinned pair', () => {
-    // FHGM used to state no suite pin at all; the re-pin of 2026-11-16 stated one, and
-    // this re-pin moves the record contract, the overlay and the suite together.
-    const pin = draftSuitePin('FHGM');
-    const entry = draftEntry('FHGM');
-    assert.equal(pin.stated, true, 'FHGM states a suite pin now, so a draft-lane count can name a revision');
-    assert.equal(pin.partial, false);
-    assert.equal(pin.repository, 'FHGM-Specification');
-    assert.equal(pin.manifest, 'development/conformance/manifest.json');
-    assert.equal(pin.commit, '06176262f9824f26d974a15d8feeebde1fbeb0a8');
-    assert.equal(pin.sha256, 'e41f05fd8bb8b8ec175b0192b80832041c84e15c325876aa66a86ba6e59413ce');
-    assert.equal(pin.vectors, 62);
-    assert.equal(pin.bytes, 69526);
-    assert.deepEqual([...pin.rules], ['B1', 'K1', 'K2', 'K3', 'K4', 'K5', 'K6']);
-    // All three FHGM targets are byte-identical at 06176262 and at the measured head
-    // (the overlay's own last-touched commit is 019bc29e with the same git blob), so
-    // the record contract, the overlay and the suite share one commit label by the
-    // convention this re-pin adopted - provenance, not conflation.
-    assert.equal(pin.commit, entry.commit, 'record contract and suite coincide at the 2026-11-18 pin; separate fields all the same');
-    assert.equal(entry.overlay.commit, pin.commit, 'the transport overlay is named at the same revision, where its bytes are byte-identical');
-    assert.notEqual(entry.overlay.sha256, pin.sha256, 'three artifacts, three digests, none interchangeable');
-    const previous = registry.drafts.FHGM.previousPin;
-    assert.equal(previous.contractSha256.slice(0, 12), 'bf1553cac04d');
-    assert.equal(previous.suiteVectors, 43, 'the superseded count stays on the record');
+  it('pins independently measured contract and suite artifacts on 2026-11-20', () => {
+    for (const [type, commit, digest, vectors, bytes] of [
+      ['FHT', 'e6ba1c737c9caddc53b99a4a107825d7a16a4765', 'd0147d3ad97c0fad0ede94ae76340632a86a160f566b01129e592e643fd77492', 93, 89146],
+      ['FHGM', 'e8e26d7cb9024b83e474045291f56a46e57a1ecf', 'd42b621165951dc0eb94ec80ff1953aae72c62d668e7a88c5b48541e41d26a64', 92, 113389],
+    ]) {
+      const pin = draftSuitePin(type);
+      const entry = draftEntry(type);
+      assert.equal(pin.stated, true);
+      assert.equal(pin.partial, false);
+      assert.equal(pin.repository, `${type}-Specification`);
+      assert.equal(pin.commit, commit);
+      assert.equal(pin.sha256, digest);
+      assert.equal(pin.vectors, vectors);
+      assert.equal(pin.bytes, bytes);
+      assert.notEqual(pin.commit, entry.commit);
+      assert.notEqual(pin.sha256, entry.sha256);
+      assert.equal(entry.suiteCommit, pin.commit);
+    }
+    assert.equal(draftEntry('FHT').commit, 'eb6c36d37771918a754d12719a29cad1876fb73c');
+    assert.equal(draftEntry('FHGM').commit, '06176262f9824f26d974a15d8feeebde1fbeb0a8');
+    assert.equal(draftEntry('FHGM').overlay.commit, '019bc29e32ce225791053dd2ce323bb91f304ce1');
+    assert.deepEqual([...draftSuitePin('FHT').rules], ['C1', 'C2', 'C3']);
+    assert.deepEqual([...draftSuitePin('FHGM').rules], ['B1', 'K1', 'K2', 'K3', 'K4', 'K5', 'K6']);
+    assert.equal(registry.drafts.FHT.priorConsumerPin.suiteVectors, 82);
+    assert.equal(registry.drafts.FHGM.priorConsumerPin.suiteVectors, 62);
   });
 
   it('refuses a half-stated pin, because a subset of a pin checks nothing', () => {

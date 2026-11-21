@@ -127,7 +127,8 @@ for (const typeId of TYPE_IDS) {
     lines.push('Contracts bundled (from `schemas/provenance.json`): ' + versions + '.');
   } else {
     const entry = draftEntry(typeId);
-    lines.push('No contract, no registry row, no `schemaVersion` claim and no w3id URL. Read only through the');
+    lines.push('No released selection, released registry row or consumer w3id alias. Read only through the');
+    if (typeId === 'FHT') lines.push('The pinned development contract requires the record field `schemaVersion: 1.0`.');
     lines.push(`V7 lane against ${entry.repository} at ${entry.commit} (sha256 \`${entry.sha256}\`).`);
   }
   lines.push('');

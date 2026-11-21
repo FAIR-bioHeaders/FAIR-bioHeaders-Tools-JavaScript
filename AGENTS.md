@@ -243,18 +243,14 @@ depends on them.
 The draft-lane run is *labelled draft evidence*, not acceptance: it reads the
 development suites that live in the repositories owning FHT and FHGM, verifies each
 stated suite manifest against its own pin before scoring anything, and its counts are
-never added to the shared 291. The measured counts are FHT **82 pass / 0 fail / 0
-not-run**, from the suite pin `86438f21`, and FHGM **62 pass / 0 fail / 0 not-run**,
-from `06176262` - FHGM scored 58/4 when the re-pin landed (2026-11-18), the four
-`layers.model` expectations FHGM-Specification#29 added being implemented on
-2026-11-19 (Round 14 #23) and named in `docs/CONFORMANCE.md`, together with the
-upstream semantics still open (`FHGM#22`/`#27`/`#28`/`#32`). The re-pin of 2026-11-18 **moved both
-contract byte sets** (`59ad9641`→`4156353a` for FHT, `bf1553ca`→`b7075e58` for FHGM) -
-a suite moving does not usually move a contract, but this one could not be scored
-without it, and a re-pin that changes contract bytes is exactly the louder change the
-previous wording anticipated. See
-`docs/CONFORMANCE.md` for both, and for the FHT vectors whose *expectations* upstream
-still marks unreviewed. FHGM's K4 runs
+never added to the shared 291. The user-authorized CI repair on 2026-11-20 refreshed
+FHT contract and suite and FHGM suite deliberately. Current measured evidence is
+FHT **93 pass / 0 fail / 0 not-run** at suite `e6ba1c737c9c`, and FHGM **90 pass /
+0 fail / 2 not-run** at `e8e26d7cb902`. Exact independent artifact pins, prior-pin
+history and named abstentions are in provenance and `docs/CONFORMANCE.md`. FHT C1
+requires exact component-to-total arithmetic; partial or ill-typed counts defer to
+schema errors. This repair does not adopt published selection URLs, change the
+released registry, or widen FHGM feature-layer support. FHGM's K4 runs
 against the reading's feature layer (the file's own rows by default); when a layer
 is absent or untrustworthy the vector stays not-run with that state as the reason -
 converting a not-run into a pass by assumption is forbidden, not merely discouraged.

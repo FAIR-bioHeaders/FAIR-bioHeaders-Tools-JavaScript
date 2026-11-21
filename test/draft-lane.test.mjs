@@ -269,3 +269,41 @@ describe('parent links (FHT draft rule C3)', () => {
     assert.ok(!reading.errors.join(' ').includes('checked-fail'));
   });
 });
+
+
+describe('FHT C1 completeness arithmetic in the selected V7 lane', () => {
+  const selection = selectSchema(fhtRecord(), { drafts: ['FHT'] });
+  const counts = { lineageDataset: 'insecta_odb10', completeSingle: 7.0,
+    completeDuplicated: 1, fragmented: 1, missing: 1, total: 10 };
+  const check = (completeness) => validateRecord(fhtRecord({ completeness, checksum: `${'A'.repeat(43)}=` }), selection);
+  it('accepts exact component totals including integral floating point values', () => {
+    assert.equal(check(counts).valid, true);
+  });
+  for (const total of [9, 11]) it(`rejects a mismatched total of ${total}`, () => {
+    assert.ok(check({ ...counts, total }).errors.some((error) => error.startsWith('C1:')));
+  });
+  it('refuses serialized counts whose precision would be lost before comparison', () => {
+    const fixture = buildSequenceFile(fhtRecord({ completeness: counts }));
+    const serialized = new TextDecoder().decode(fixture.bytes)
+      .replace('completeSingle: 7', 'completeSingle: 9007199254740993')
+      .replace('completeDuplicated: 1', 'completeDuplicated: 0')
+      .replace('fragmented: 1', 'fragmented: 0')
+      .replace('missing: 1', 'missing: 0')
+      .replace('total: 10', 'total: 9007199254740992');
+    const result = inspectBytes(new TextEncoder().encode(serialized), { container: 'fasta', drafts: ['FHT'] });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some((error) => error.includes('C1: completeness counts exceed the safe integer range')));
+  });
+  it('refuses even equal unsafe parsed counts rather than assert lossless support', () => {
+    assert.ok(check({ ...counts, completeSingle: 2 ** 53, completeDuplicated: 0,
+      fragmented: 0, missing: 0, total: 2 ** 53 }).errors.some((error) => error.includes('safe integer range')));
+  });
+  for (const value of [true, 0.5, undefined]) it(`leaves ${String(value)} to schema validation`, () => {
+    const input = { ...counts, missing: value };
+    if (value === undefined) delete input.missing;
+    const result = check(input);
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some((error) => !error.startsWith('C1:')));
+    assert.ok(result.errors.every((error) => !error.startsWith('C1:')));
+  });
+});

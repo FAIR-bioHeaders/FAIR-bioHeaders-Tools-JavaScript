@@ -196,14 +196,9 @@ jobs:
       - name: Confirm the checked-out draft bytes still match this build's pin
         run: node scripts/ci/draft-pins.mjs --check .upstream/FHT-Specification .upstream/FHGM-Specification
       # The suite is a separate claim from the contract, pinned to a separate field:
-      # after the 2026-11-18 re-pin both FHT revisions name one commit (86438f21 last
-      # touched both `fht.json` and the 82-vector `C1`-`C3` suite manifest) and all three
-      # FHGM targets name 06176262, but the fields stay separate and are checked
-      # separately, because the claims differ - the checkout moves to the suite revision
-      # only after the contract bytes above have been confirmed, and the manifest is then
-      # verified before a single vector is scored. A type whose registry row states no
-      # suite pin stays where it is, and says so as UNPINNED rather than being silently
-      # blessed.
+      # The deliberate 2026-11-20 refresh names independent last-touch revisions
+      # for the FHT contract / 93-vector suite and FHGM record / overlay / 92-vector
+      # suite. Verify contract bytes first, then move to and verify suite manifests.
       - name: Move each checkout to the suite revision its pin names
         env:
           FHT_SUITE_COMMIT: ${{ steps.pins.outputs.fht-suite-commit }}

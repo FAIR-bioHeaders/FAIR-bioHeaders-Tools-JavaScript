@@ -17,8 +17,8 @@ them reports a pass it did not compute.
 
 ## (0) What the two drafts are, and what reading them does not mean
 
-FHT and FHGM are drafts with no released contract, no `schemaVersion` of their own
-in the registry, no w3id URL and no support claim. Rule V7 gives a reader one way
+This consumer exposes FHT and the historical FHGM extension only in development
+lanes, with no released selection in its registry and no released support claim. Rule V7 gives a reader one way
 to recognise them - an explicit opt-in lane, reading bytes pinned by commit and
 SHA-256, warning on every record - and this build implements that lane while
 keeping every one of those negatives true. `docs/MATRIX.md` states the resulting
@@ -49,7 +49,7 @@ Findings from executing the lane against the pinned bytes:
 | `js-yaml` | 5.5.0 (MIT) |
 | reference toolkit | `fair-bioheaders` 0.11.0 from PyPI (no `direct_url.json`: index-installed, not a checkout), Python 3.15.0 |
 | contracts | FAIR-bioHeaders-Specification `v0.6.0` (`fhr.json` `694ab5af…`, `fhp.json` `92a0b3cb…`, `fhgff3.json` `1942be4c…`), `main` at `a60bc02` schema-identical to the tag |
-| pinned drafts (V7 lane only) | Contracts, **moved by the 2026-11-18 re-pin** (measured 2026-11-18T21:45Z from fresh clones at FHT-Specification `0311dda` and FHGM-Specification `b1a82f8`): FHT `86438f21c3a17a58334c97aed4955be1a2393522`, `fht.json`, sha256 `4156353aa6d077fe…`, 34396 B (was `59ad9641adcb0e55…`, 29430 B, at `226f923c…`); FHGM `06176262f9824f26d974a15d8feeebde1fbeb0a8`, `development/model/fhgm-model.schema.json`, sha256 `b7075e5872e0a5ff…`, 11522 B (was `bf1553cac04dc88d…`, 9564 B, at `ac3d37b3…`). Also re-pinned the same day: the FHGM transport overlay `development/model/fhgm-draft.schema.json`, sha256 `533b3120f4a86590…`, 3191 B (was `d1619cced91b4ef5…`, 2613 B, on 2026-11-16; `dd9f69274f26860b…`, 1363 B, before that), and the two suite manifests - FHT `86438f21…` (`conformance/manifest.json`, sha256 `e5a4a5d027259e29…`, 76939 B, 82 vectors; was `be9bcc82…`, 65615 B, 72) and FHGM `06176262…` (`development/conformance/manifest.json`, sha256 `e41f05fd8bb8b8ec…`, 69526 B, 62 vectors; was `c503ecf3…`, 51114 B, 43) |
+| pinned drafts (V7 lane only) | Deliberately refreshed 2026-11-20; independent contract/suite last-touch commits, exact SHA-256, byte counts and measured 93-vector FHT / 92-vector FHGM evidence are recorded in [CONFORMANCE.md](CONFORMANCE.md) and `drafts/provenance.json`. FHT C1 exact arithmetic is an owning-reader predicate in addition to JSON Schema. Released schemas and default selection remain unchanged. |
 
 All three dependency versions are exact pins in `package.json`, not ranges, so a
 future `npm install` on a clean tree gets what was measured here.

@@ -16,7 +16,7 @@
  *   a row in `schemas/versions.json`, a `schemaVersion` and w3id URLs. FHR, FHP and
  *   FHGFF3 are released; their copies are vendored in `schemas/` and are selected by
  *   rules V1 to V6.
- * - `draft` - no released contract, no registry row, no w3id URL and no support
+ * - `draft` - no released contract selection in this consumer, no registry row, no w3id URL and no support
  *   claim. FHT and FHGM are drafts, read only through the explicit rule-V7 lane in
  *   `src/drafts.js` against bytes pinned by commit and SHA-256. A lane reading is
  *   recognition of a proposal, never support for a type.
@@ -332,5 +332,5 @@ export function describeType(typeId) {
     return `${typeId}: released, ${type.contracts.length} contract copies (${versions}); a record is checked against the copy its own citation selects`;
   }
   const entry = draftEntry(typeId);
-  return `${typeId}: draft, no released contract, no schemaVersion claim, no w3id URL and no registry row; readable only through the V7 lane against ${entry.repository} ${entry.commit.slice(0, 12)} (sha256 ${entry.sha256.slice(0, 12)}...)`;
+  return `${typeId}: draft in this consumer, no released contract selection, no released version claim, no w3id alias and no registry row; ${typeId === 'FHT' ? 'FHT development records require schemaVersion 1.0; ' : ''}readable only through the V7 lane against ${entry.repository} ${entry.commit.slice(0, 12)} (sha256 ${entry.sha256.slice(0, 12)}...)`;
 }
